@@ -107,6 +107,48 @@ async function checkKick(slug) {
 
 const CHECKERS = { twitch: checkTwitch, youtube: checkYouTube, kick: checkKick };
 
+// Latest clip / video for a live announcement (1.4.5). Twitch uses the
+// Helix clips endpoint (same client ID/secret as the live checks). YouTube
+// has no public clips API, so the latest video is attached instead. If
+// nothing is found (or the fetch fails), the announcement goes out without
+// one — the clip fetch must never fail a live announcement.
+async function fetchLatestClip(platform, channelIdOrName) {
+  try {
+    if (platform === 'twitch') {
+      const token = await twitchAccessToken();
+      const tw = config.streams?.twitch || {};
+      if (!token) return null;
+      const userRes = await fetch(`https://api.twitch.tv/helix/users?login=${encodeURIComponent(channelIdOrName)}`, {
+        headers: { 'Client-Id': tw.clientId, Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(10_000),
+      });
+      const userJson = await userRes.json().catch(() => null);
+      const broadcasterId = userJson?.data?.[0]?.id;
+      if (!broadcasterId) return null;
+      const res = await fetch(`https://api.twitch.tv/helix/clips?broadcaster_id=${broadcasterId}&first=1`, {
+        headers: { 'Client-Id': tw.clientId, Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(10_000),
+      });
+      const json = await res.json().catch(() => null);
+      const clip = json?.data?.[0];
+      return clip ? { title: clip.title, url: clip.url, thumbnail: clip.thumbnail_url || null, type: 'clip' } : null;
+    }
+    if (platform === 'youtube') {
+      const apiKey = config.streams?.youtube?.apiKey;
+      if (!apiKey || apiKey.includes('YOUR_')) return null;
+      const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${encodeURIComponent(channelIdOrName)}&type=video&order=date&maxResults=1&key=${encodeURIComponent(apiKey)}`, {
+        signal: AbortSignal.timeout(10_000),
+      });
+      const json = await res.json().catch(() => null);
+      const item = json?.items?.[0];
+      return item ? { title: item.snippet.title, url: `https://www.youtube.com/watch?v=${item.id.videoId}`, thumbnail: item.snippet.thumbnails?.medium?.url || null, type: 'latest video' } : null;
+    }
+  } catch (err) {
+    await errorLogger.log({ level: 'warn', guildId: null, commandName: 'stream-clip', message: `Latest clip fetch failed for ${platform}/${channelIdOrName}: ${err.message}`, stack: err.stack }).catch(() => {});
+  }
+  return null;
+}
+
 function liveEmbed(platform, name, data) {
   const colors = { twitch: 0x9146ff, youtube: 0xff0000, kick: 0x53fc18, facebook: 0x1877f2, tiktok: 0x25f4ee };
   const embed = new EmbedBuilder()
@@ -188,7 +230,14 @@ async function checkAllStreams(client) {
         || await guild?.channels.fetch(row.notify_channel_id).catch(() => null);
       if (channel?.isTextBased()) {
         const ping = row.ping_role_id ? `<@&${row.ping_role_id}> ` : '';
-        await channel.send({ content: `${ping}🔴 **${row.channel_id_or_name}** just went live!`, embeds: [liveEmbed(row.platform, row.channel_id_or_name, status)] }).catch(() => {});
+        const embed = liveEmbed(row.platform, row.channel_id_or_name, status);
+        // Attach the latest clip (Twitch) or latest video (YouTube) when
+        // the streamer has clips enabled — never blocks the announcement.
+        if (row.include_clip !== 0) {
+          const clip = await fetchLatestClip(row.platform, row.channel_id_or_name).catch(() => null);
+          if (clip) embed.addFields({ name: clip.type === 'clip' ? '🎬 Latest clip' : '📺 Latest video', value: `[${clip.title}](${clip.url})` });
+        }
+        await channel.send({ content: `${ping}🔴 **${row.channel_id_or_name}** just went live!`, embeds: [embed] }).catch(() => {});
       }
     } else if (!nowLive && wasLive) {
       await applyLiveChannelRename(client, row, { live: false }).catch(() => {});
@@ -237,4 +286,4 @@ async function checkOneStreamer(client, streamerId) {
   return { live: status.live, title: status.title || null, game: status.game || null, viewers: status.viewers ?? null, url: status.url || null };
 }
 
-module.exports = { checkAllStreams, startStreamChecker, liveEmbed, CHECKERS, checkOneStreamer, applyLiveChannelRename };
+module.exports = { checkAllStreams, startStreamChecker, liveEmbed, CHECKERS, checkOneStreamer, applyLiveChannelRename, fetchLatestClip };

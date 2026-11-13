@@ -19,14 +19,54 @@ async function getTicketByChannel(channelId) {
   return rows?.[0] || null;
 }
 
-async function createTicketRecord(guildId, channelId, userId, subject) {
+async function createTicketRecord(guildId, channelId, userId, subject, panelId = null) {
   if (!db.isEnabled()) return null;
-  await db.query(
-    'INSERT INTO tickets (guild_id, channel_id, user_id, subject, status) VALUES (?, ?, ?, ?, \'open\')',
-    [guildId, channelId, userId, subject],
-  );
+  try {
+    await db.query(
+      'INSERT INTO tickets (guild_id, channel_id, user_id, subject, status, panel_id) VALUES (?, ?, ?, ?, \'open\', ?)',
+      [guildId, channelId, userId, subject, panelId || null],
+    );
+  } catch {
+    // panel_id column not yet migrated — fall back to the legacy insert.
+    await db.query(
+      'INSERT INTO tickets (guild_id, channel_id, user_id, subject, status) VALUES (?, ?, ?, ?, \'open\')',
+      [guildId, channelId, userId, subject],
+    );
+  }
   const rows = await db.query('SELECT * FROM tickets WHERE channel_id = ? ORDER BY id DESC LIMIT 1', [channelId]);
   return rows?.[0] || null;
+}
+
+// Multi-ticket panels (1.11.5): a guild can have several panels, each with
+// its own category, staff role, and topic. The legacy single panel is the
+// "default" panel (panel_id NULL).
+async function createPanel(guildId, { channelId, categoryId, staffRoleId, title, description, createdBy }) {
+  if (!db.isEnabled()) return null;
+  const res = await db.query(
+    'INSERT INTO ticket_panels (guild_id, channel_id, category_id, staff_role_id, title, description, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [guildId, channelId, categoryId || null, staffRoleId || null, title, description || null, createdBy || null],
+  );
+  const rows = await db.query('SELECT * FROM ticket_panels WHERE id = ?', [res.insertId]);
+  return rows?.[0] || null;
+}
+
+async function listPanels(guildId) {
+  if (!db.isEnabled()) return [];
+  return (await db.query('SELECT * FROM ticket_panels WHERE guild_id = ? ORDER BY id', [guildId])) || [];
+}
+
+async function getPanel(guildId, id) {
+  if (!db.isEnabled()) return null;
+  const rows = await db.query('SELECT * FROM ticket_panels WHERE guild_id = ? AND id = ?', [guildId, id]);
+  return rows?.[0] || null;
+}
+
+async function deletePanel(guildId, id) {
+  if (!db.isEnabled()) return null;
+  const panel = await getPanel(guildId, id);
+  if (!panel) return null;
+  await db.query('DELETE FROM ticket_panels WHERE id = ?', [id]);
+  return panel;
 }
 
 async function nextTicketNumber(guildId) {
@@ -48,16 +88,16 @@ function canManageTicket(member, ticket, settings) {
   return isSupport(member, ticket, settings);
 }
 
-function ticketPanelEmbed() {
+function ticketPanelEmbed(title, description) {
   return new EmbedBuilder()
     .setColor(0x5865f2)
-    .setTitle('🎫 Support Tickets')
-    .setDescription('Need help? Click **Create Ticket** below and tell us what\'s going on.\n\nA private channel will be created just for you and the support team.');
+    .setTitle(`🎫 ${title || 'Support Tickets'}`)
+    .setDescription(description || 'Need help? Click **Create Ticket** below and tell us what\'s going on.\n\nA private channel will be created just for you and the support team.');
 }
 
-function ticketPanelRow() {
+function ticketPanelRow(panelId) {
   return new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId('ticket_create').setLabel('Create Ticket').setStyle(ButtonStyle.Primary).setEmoji('🎫'),
+    new ButtonBuilder().setCustomId(panelId ? `ticket_create:${panelId}` : 'ticket_create').setLabel('Create Ticket').setStyle(ButtonStyle.Primary).setEmoji('🎫'),
   );
 }
 
@@ -77,21 +117,23 @@ function ticketOpenEmbed(ticket, creatorTag) {
     .addFields({ name: 'Subject', value: ticket?.subject || '—', inline: true });
 }
 
-async function createTicketChannel(guild, creator, subject, settings) {
+async function createTicketChannel(guild, creator, subject, settings, opts = {}) {
   const number = await nextTicketNumber(guild.id);
   const name = `ticket-${creator.username.toLowerCase().replace(/[^a-z0-9-]/g, '')}-${number}`.slice(0, 100);
+  const categoryId = opts.categoryId || settings.ticketCategoryId;
+  const supportRoleId = opts.supportRoleId || settings.ticketSupportRoleId;
   const overwrites = [
     { id: guild.roles.everyone.id, deny: [PermissionsBitField.Flags.ViewChannel] },
     { id: creator.id, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory] },
     { id: guild.members.me.id, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ManageChannels] },
   ];
-  if (settings.ticketSupportRoleId) {
-    overwrites.push({ id: settings.ticketSupportRoleId, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory] });
+  if (supportRoleId) {
+    overwrites.push({ id: supportRoleId, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory] });
   }
   const channel = await guild.channels.create({
     name,
     type: ChannelType.GuildText,
-    parent: settings.ticketCategoryId || undefined,
+    parent: categoryId || undefined,
     permissionOverwrites: overwrites,
     topic: `Ticket for ${creator.tag} — ${subject}`,
   });
@@ -118,6 +160,14 @@ async function closeTicket(interaction, channel, ticket, reason, closedBy) {
       "UPDATE tickets SET status = 'closed', closed_at = CURRENT_TIMESTAMP, transcript_path = ? WHERE id = ?",
       [transcript?.filePath || null, ticket.id],
     );
+    // Index the transcript for the Staff → Transcripts dashboard page.
+    if (transcript?.filePath) {
+      const { indexTranscript } = require('./transcripts');
+      await indexTranscript({
+        guildId: channel.guildId, ticketId: ticket.id, userId: ticket.user_id,
+        closedBy: closedBy?.id || null, filePath: transcript.filePath,
+      }).catch(() => {});
+    }
   }
 
   // Send transcript to the ticket log channel + DM the creator.
@@ -171,4 +221,5 @@ module.exports = {
   isSupport, canManageTicket,
   ticketPanelEmbed, ticketPanelRow, ticketControlRow, ticketOpenEmbed,
   createTicketChannel, closeTicket, reopenTicket, pendingDeletions,
+  createPanel, listPanels, getPanel, deletePanel,
 };

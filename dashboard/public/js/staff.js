@@ -96,6 +96,18 @@
       } catch (err) { if (out) out.textContent = '❌ Failed: ' + err.message; AceBot.toast('Failed: ' + err.message, 'error'); }
       return;
     }
+    if (form.id === 'serverbackup-create-form') {
+      e.preventDefault();
+      const fd = new FormData(form);
+      const out = document.getElementById('serverbackup-result');
+      if (out) out.textContent = 'Creating backup…';
+      try {
+        const r = await AceBot.postJSON('/api/staff/serverbackups', { guildId: fd.get('guildId'), name: fd.get('name') });
+        if (out) out.textContent = `✅ Saved backup #${r.id} (${r.roles} roles, ${r.channels} channels). Reload the page to see it in the list.`;
+        AceBot.toast('Server backup created');
+      } catch (err) { if (out) out.textContent = '❌ Failed: ' + err.message; AceBot.toast('Failed: ' + err.message, 'error'); }
+      return;
+    }
   });
 
   // --- Click handlers (delegated) ---
@@ -128,6 +140,27 @@
         await AceBot.refreshSection('#backup-files');
         await AceBot.refreshSection('#backup-logs');
       } catch (err) { if (out) out.textContent = '❌ Failed: ' + err.message; AceBot.toast('Failed: ' + err.message, 'error'); }
+      return;
+    }
+    const sbRestore = e.target.closest('[data-serverbackup-restore]');
+    if (sbRestore) {
+      const id = sbRestore.dataset.serverbackupRestore;
+      const replace = document.querySelector(`[data-serverbackup-replace="${id}"]`)?.checked || false;
+      if (!AceBot.confirmAction(replace ? 'Restore this backup AND delete roles/channels not in it (replace mode)?' : 'Restore this backup? Roles/channels will be created or updated by name; nothing is deleted.')) return;
+      try {
+        const r = await AceBot.postJSON(`/api/staff/serverbackups/${id}/restore`, { replace });
+        AceBot.toast(`Restore complete: ${r.summary.rolesCreated} roles, ${r.summary.channelsCreated} channels created`);
+      } catch (err) { AceBot.toast('Restore failed: ' + err.message, 'error'); }
+      return;
+    }
+    const sbDelete = e.target.closest('[data-serverbackup-delete]');
+    if (sbDelete) {
+      if (!AceBot.confirmAction('Delete this server backup?')) return;
+      try {
+        await AceBot.del(`/api/staff/serverbackups/${sbDelete.dataset.serverbackupDelete}`);
+        AceBot.removeRow(sbDelete);
+        AceBot.toast('Server backup deleted');
+      } catch (err) { AceBot.toast('Failed: ' + err.message, 'error'); }
       return;
     }
     if (e.target.closest('#presence-rotate')) {

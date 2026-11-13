@@ -33,7 +33,7 @@ const FOLDER_CATEGORY = {
   staff: 'Staff / Owner', owner: 'Staff / Owner', welcome: 'Welcome',
   automod: 'Automod', suggestions: 'Suggestions', economy: 'Economy',
   casino: 'Casino', starboard: 'Starboard', customcommands: 'Custom Commands',
-  faq: 'FAQ',
+  faq: 'FAQ', emojis: 'Emojis',
 };
 const COMMAND_CATEGORY = {
   afk: 'AFK', 'afk-remove': 'AFK', poll: 'Polls', 'poll-end': 'Polls',
@@ -44,13 +44,17 @@ const COMMAND_CATEGORY = {
   trade: 'Inventory & Trading', 'trade-cancel': 'Inventory & Trading',
   botflags: 'Bot Tracking', botflag: 'Bot Tracking', 'botflag-clear': 'Bot Tracking',
   bottrack: 'Bot Tracking',
+  countdown: 'Countdowns', prestige: 'Leveling', 'prestige-leaderboard': 'Leveling',
+  'ticket-panel': 'Tickets', inviterole: 'Invites',
+  dj: 'Music', 'dj-setup': 'Music', 'queue-clear': 'Music',
+  'emoji-add': 'Emojis', 'emoji-remove': 'Emojis', 'emoji-list': 'Emojis',
 };
 const CATEGORY_ORDER = [
   'Moderation', 'Music', 'Utility', 'Tickets', 'Leveling', 'Fun', 'Giveaways',
   'Reaction Roles', 'Streams', 'Game Servers', 'Steam', 'Applications', 'Invites',
   'Staff / Owner', 'Welcome', 'Automod', 'Suggestions', 'Economy', 'Casino',
   'Inventory & Trading', 'Starboard', 'Custom Commands', 'AFK', 'Polls', 'FAQ',
-  'Presence', 'Scheduled', 'Auto-Role', 'Bot Tracking',
+  'Presence', 'Scheduled', 'Auto-Role', 'Bot Tracking', 'Emojis', 'Countdowns',
 ];
 
 function audienceOf(source, perms) {

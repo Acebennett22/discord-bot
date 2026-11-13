@@ -141,7 +141,34 @@
     return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
+  // Welcome image preview (1.3.6): fetch the sample card PNG and show it.
+  function bindWelcomePreview() {
+    const btn = document.getElementById('welcome-preview-btn');
+    if (!btn) return;
+    btn.addEventListener('click', async () => {
+      const box = document.getElementById('welcome-preview-img');
+      const m = window.location.pathname.match(/\/guilds\/([^/]+)/);
+      if (!box || !m) return;
+      btn.disabled = true; btn.textContent = 'Generating…';
+      try {
+        const res = await fetch(`/api/guilds/${m[1]}/welcome-preview`);
+        if (!res.ok) throw new Error('preview failed');
+        const blob = await res.blob();
+        box.innerHTML = '';
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(blob);
+        img.style.maxWidth = '100%';
+        img.alt = 'Sample welcome card';
+        box.appendChild(img);
+      } catch {
+        toast('Preview failed — is canvas installed on the host?', 'error');
+      } finally {
+        btn.disabled = false; btn.textContent = 'Preview sample card';
+      }
+    });
+  }
+
   window.AceBot = { toast, postJSON, getJSON, del, confirmAction, formToJSON, bindApiForms, refreshSection, removeRow, refreshEvery, esc };
 
-  document.addEventListener('DOMContentLoaded', bindApiForms);
+  document.addEventListener('DOMContentLoaded', () => { bindApiForms(); bindWelcomePreview(); });
 })();

@@ -20,9 +20,11 @@ module.exports = {
   async execute(interaction) {
     const client = interaction.client;
 
-    // --- Create Ticket button -> subject modal ---
-    if (interaction.isButton() && interaction.customId === 'ticket_create') {
-      const modal = new ModalBuilder().setCustomId('ticket_create_modal').setTitle('Create a Ticket');
+    // --- Create Ticket button -> subject modal (default panel or a
+    // multi-panel button: ticket_create:<panelId>) ---
+    if (interaction.isButton() && (interaction.customId === 'ticket_create' || interaction.customId.startsWith('ticket_create:'))) {
+      const panelId = interaction.customId.includes(':') ? interaction.customId.split(':')[1] : null;
+      const modal = new ModalBuilder().setCustomId(panelId ? `ticket_create_modal:${panelId}` : 'ticket_create_modal').setTitle('Create a Ticket');
       modal.addComponents(modalInput('subject', 'Subject / reason for your ticket', TextInputStyle.Short, true));
       return interaction.showModal(modal);
     }
@@ -69,12 +71,21 @@ module.exports = {
     }
 
     // --- Modals ---
-    if (interaction.isModalSubmit() && interaction.customId === 'ticket_create_modal') {
+    if (interaction.isModalSubmit() && (interaction.customId === 'ticket_create_modal' || interaction.customId.startsWith('ticket_create_modal:'))) {
+      const panelId = interaction.customId.includes(':') ? interaction.customId.split(':')[1] : null;
       const subject = interaction.fields.getTextInputValue('subject');
       await interaction.deferReply({ ephemeral: true });
       const settings = await getGuildSettings(interaction.guildId);
-      const channel = await tickets.createTicketChannel(interaction.guild, interaction.user, subject, settings);
-      const ticket = await tickets.createTicketRecord(interaction.guildId, channel.id, interaction.user.id, subject);
+      // Multi-panel (1.11.5): the panel's own category/staff role win.
+      let panel = null;
+      let channelOpts = {};
+      if (panelId) {
+        panel = await tickets.getPanel(interaction.guildId, panelId);
+        if (!panel) return interaction.editReply({ embeds: [errorEmbed('Panel gone', 'That ticket panel no longer exists — ask an admin to post a new one.')] });
+        channelOpts = { categoryId: panel.category_id, supportRoleId: panel.staff_role_id };
+      }
+      const channel = await tickets.createTicketChannel(interaction.guild, interaction.user, subject, settings, channelOpts);
+      const ticket = await tickets.createTicketRecord(interaction.guildId, channel.id, interaction.user.id, subject, panel ? panel.id : null);
       await channel.send({ content: `<@${interaction.user.id}>`, embeds: [tickets.ticketOpenEmbed(ticket, interaction.user.tag)], components: [tickets.ticketControlRow()] });
       return interaction.editReply({ embeds: [successEmbed('Ticket created', `🎫 Your ticket is ready: <#${channel.id}>`)] });
     }

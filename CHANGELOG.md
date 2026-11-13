@@ -126,6 +126,121 @@ version below must match a `package.json` version, and the dashboard
 ### Added
 - Tempban (1.9.1) — `/tempban @user <duration> [reason] [delete_days]` — temporary bans with durations like `12h`, `7d`, `2w`, `30d`, auto-unbanned by a 5-minute expiry timer (plus once at startup). `/tempban-list` (active tempbans with banned-by, reason, and expiry) and `/tempban-cancel` (admin-only early unban). New `temp_bans` table; expiry processing only unbans users who are still banned and logs failures instead of crashing. Guards against tempbanning the server owner, yourself, or anyone with a higher/equal top role. Dashboard Moderation tab: active tempbans with cancel buttons.
 
+## [1.6.6] - 2026-11-13
+
+### Added
+- Voice leaderboard (1.6.6) — `/voicelb` ranks members by total voice time, from `voice_sessions`; `/voicetime [user]` shows your (or their) total voice time. Voice time only counts when not muted/deafened and at least one other non-bot user is in the channel (the same rules as voice XP, 1.4.3).
+
+## [1.6.5] - 2026-11-13
+
+### Added
+- Birthday role (1.6.5) — `/birthday-role` (admin) picks a role that is granted to a member on their birthday and removed the next day. The daily birthday checker handles both the grant and the removal; grants are tracked in `birthday_roles_granted` so a role is never double-granted or left behind.
+
+## [1.6.4] - 2026-11-13
+
+### Added
+- Confessions (1.6.4) — `/confess <text>` posts an anonymous confession; the author is never shown publicly (posts show only "Anonymous" + a number). A staff approval queue is on by default: confessions wait in a review channel until staff approve or deny them, and denied confessions are never posted. Approval can be turned off per server. Authors are visible to staff only in the review queue (`confessions` table).
+
+## [1.6.3] - 2026-11-13
+
+### Added
+- Daily streaks (1.6.3) — `/daily` now builds a streak: +25 XP per streak day, with the streak bonus capped at +500, tracked in the `streaks` table. Milestone crates are awarded at 7/30/100-day streaks. `/streak` shows your current streak and `/streak-leaderboard` ranks the longest streaks. Missing a day resets the streak to 0.
+
+## [1.6.2] - 2026-11-13
+
+### Added
+- XP role shop (1.6.2) — per-server configurable: each guild has its own `xp_shop_items` catalog and prices, no global catalog. `/xpshop` lists your server's items, `/xpshop-add <role> <xp_price>` (admin) adds one, `/xpshop-remove <role>` (admin) removes one. Buying spends leveling XP (not coins) and grants the role.
+
+## [1.6.1] - 2026-11-13
+
+### Added
+- Thread auto-archive control (1.6.1) — per-channel archive-duration overrides in `thread_archive_settings`: `/threadarchive set <channel> <duration>` (admin) sets 1h/24h/3d/1w or off. Threads in overridden channels are auto-archived after the chosen inactivity, skipping pinned threads and threads with recent staff activity. Dashboard Moderation tab lists the overrides.
+
+## [1.5.5] - 2026-11-13
+
+### Added
+- Quote system (1.5.5) — `/quote <text> [author]` saves a quote, `/quotes [user]` lists saved quotes, `/quote-random` posts a random one, and `/quote-leaderboard` ranks who has the most saved quotes (`quotes` table). Quote embeds are public posts.
+
+## [1.5.4] - 2026-11-13
+
+### Added
+- Server backup/restore (1.5.4) — `/serverbackup create` (admin) exports roles, channels, and bot settings to a JSON file in `backups/`; `/serverbackup restore <file>` (admin) restores them with a two-step confirm. Non-destructive by default: nothing existing is deleted unless explicitly confirmed. Message history is NOT backed up (stated in the README).
+
+## [1.5.3] - 2026-11-13
+
+### Added
+- Anti-ghost-ping (1.5.3) — when a message that pinged someone is deleted, the bot posts a callout naming who was ghost-pinged and by whom (plus the modlog, if set). Bot and automod deletions are excluded, and at most 1 callout is posted per user per minute. `/ghostping-setup` (admin) sets the callout channel and toggle.
+
+## [1.5.2] - 2026-11-13
+
+### Added
+- Temp roles (1.5.2) — `/temprole give <user> <role> <duration>` (mod) grants a role that expires automatically on a minute timer (`temp_roles` table); expiry is logged to the modlog. `/temprole list` shows active temp roles and `/temprole remove` ends one early.
+
+## [1.5.1] - 2026-11-13
+
+### Added
+- Media auto-threads (1.5.1) — when a message with an image/video attachment is posted in a configured media channel, the bot creates a thread on it for discussion. `/mediathreads set <channel>` (admin) toggles a channel; `/mediathreads list` shows the configured channels.
+
+## [1.4.6] - 2026-11-13
+
+### Added
+- Modmail (1.4.6) — members DM the bot to open a modmail thread in a staff channel; staff replies relay back to the member's DMs and member DMs relay into the thread (`modmail_threads` / `modmail_messages` tables). `/modmail-setup` (admin) picks the staff channel, `/modmail-close` (staff) closes a thread, `/modmail-block` (staff) blocks a user from modmail (`modmail_blocks`).
+
+## [1.4.5] - 2026-11-13
+
+### Added
+- Clips with live announcements (1.4.5) — when a streamer goes live, the announcement can include their latest Twitch clip (Helix) or, for YouTube streamers, their latest video (YouTube has no clips API). `/stream-clip-toggle <streamer>` (admin) turns the clip on or off per streamer. If the clip fetch fails, the live announcement still goes out — a clip failure never blocks it.
+
+## [1.4.4] - 2026-11-13
+
+### Added
+- Self-assignable color roles (1.4.4) — `/color list` shows the server's color roles, `/color set <role>` gives you one color role at a time (your old one is removed), `/color remove` clears it. `/color-add` and `/color-remove-role` (admin) manage the catalog (`color_roles` table). The bot checks role hierarchy before granting.
+
+## [1.4.3] - 2026-11-13
+
+### Added
+- Voice XP (1.4.3) — members earn leveling XP for time in voice channels (default 2 XP/min), using the same `user_levels` table as message XP. Only counts when not muted/deafened and at least one other non-bot user is present. `/voicexp` (admin) shows the setting; voice sessions are recorded in `voice_sessions`.
+
+## [1.4.2] - 2026-11-13
+
+### Added
+- Minecraft live status widget (1.4.2) — `/mcstatus-setup <server> [channel]` (admin) posts an embed showing a Minecraft server's live status (online players, version, MOTD) that refreshes every 5 minutes (`mc_widgets` table). Reuses the existing Minecraft ping provider.
+
+## [1.4.1] - 2026-11-13
+
+### Added
+- AI chat/Q&A (1.4.1) — `/ask <question>` plus an AI channel, answered from the owner's own OpenAI-compatible API key in the `config.json` `ai` section (get a key at platform.openai.com/api-keys; see `_whereToGetKeys`). 10-second per-user rate limit, daily per-guild cap default 100, usage logged in `ai_usage`. If no key is configured, the feature replies with a clear disabled message instead of failing.
+
+## [1.3.6] - 2026-11-13
+
+### Added
+- Custom welcome images (1.3.6) — new-member welcome posts can use a 900x300 canvas card with the member's avatar, name, and member count (`welcomeCard.js`, node-canvas). Falls back to a plain embed if canvas fails to load (missing native build deps — documented in the README). Toggle in the welcome settings / dashboard Welcome tab.
+
+## [1.3.5] - 2026-11-13
+
+### Added
+- Level-up reward reminders (1.3.5) — `/levelrewards` lists the level roles and the level at which each is granted, plus any reminders you have set. A "Remind me" button on a reward you haven't reached stores a reminder (`level_reminders` table) and the bot DMs you when you hit that level. If the guild has no level rewards configured, the command says so.
+
+## [1.3.4] - 2026-11-13
+
+### Added
+- Server analytics page (1.3.4) — dashboard Analytics page with joins/leaves over time, messages per day, top channels, and top users, drawn from real MySQL data (`guild_daily_stats`, `message_logs`, `user_stats`) with vanilla-JS charts. No made-up numbers.
+
+## [1.3.3] - 2026-11-13
+
+### Added
+- XP boosts (1.3.3) — `/xpboost start <multiplier> <duration>` (admin) starts a server-wide XP boost, `/xpboost stop` ends it early, `/xpboost status` shows the active boost and time left (`xp_boosts` table). Boosts multiply message (and voice) XP while active.
+
+## [1.3.2] - 2026-11-13
+
+### Added
+- Ticket transcripts in dashboard (1.3.2) — Staff → Transcripts lists every closed ticket's HTML transcript with search, view, and download (`ticket_transcripts` index table; the list backfills from transcript files on disk so older transcripts show up too).
+
+## [1.3.1] - 2026-11-13
+
+### Added
+- Giveaway requirements (1.3.1) — `/giveaway start` now takes optional `required_role`, `min_days`, and `min_level`; members who don't meet them can't enter and get an ephemeral embed naming exactly what they missed (role, days in server, or leveling level). Requirements are stored on the giveaway and shown on the giveaway embed.
+
 ## [1.2.7] - 2026-11-13
 
 ### Added

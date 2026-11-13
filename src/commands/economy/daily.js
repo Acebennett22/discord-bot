@@ -3,6 +3,8 @@ const { successEmbed, errorEmbed } = require('../../utils/embeds');
 const db = require('../../utils/database');
 const { getBalance, addCoins, randInt, cooldownRemaining, formatRemaining } = require('../../utils/economy');
 const { getPremiumSettings } = require('../../utils/premiumSettings');
+const { getGuildSettings } = require('../../utils/guildSettings');
+const { recordDailyClaim, streakBonus, milestoneFor } = require('../../utils/streaks');
 const inv = require('../../utils/inventory');
 
 // Daily loot table (on top of the coin reward — see README "Daily items"):
@@ -56,7 +58,21 @@ module.exports = {
     const amount = randInt(settings.economyDailyMin, settings.economyDailyMax);
     await addCoins(interaction.guildId, interaction.user.id, amount, 'daily', 'Daily reward');
     await db.query('UPDATE economy_users SET last_daily = NOW() WHERE guild_id = ? AND user_id = ?', [interaction.guildId, interaction.user.id]);
+    // Daily streak (1.6.3): consecutive days scale the reward.
+    const gSettings = await getGuildSettings(interaction.guildId).catch(() => null);
+    const { streak, best } = await recordDailyClaim(interaction.guildId, interaction.user.id);
+    const bonus = streakBonus(streak, gSettings?.streakBonusPerDay ?? 25);
+    if (bonus > 0) await addCoins(interaction.guildId, interaction.user.id, bonus, 'daily_streak', `Daily streak bonus (${streak} days)`);
+    const milestone = milestoneFor(streak, gSettings?.streakMilestoneBonuses);
+    let milestoneText = '';
+    if (milestone) {
+      const item = await inv.getShopItemByName(interaction.guildId, milestone).catch(() => null);
+      if (item) {
+        await inv.addItem(interaction.guildId, interaction.user.id, item.id, 1);
+        milestoneText = `\n🏆 **${streak}-day streak milestone!** You earned a ${inv.itemLabel(item)}!`;
+      }
+    }
     const loot = await grantDailyLoot(interaction, emoji, name);
-    return interaction.reply({ embeds: [successEmbed('Daily reward', `${emoji} You claimed **${amount} ${name}**!\n${loot}\nCome back tomorrow for more.`)], ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed('Daily reward', `${emoji} You claimed **${amount} ${name}**!${bonus > 0 ? `\n🔥 **${streak}-day streak** (+${bonus} ${name} bonus, best: ${best})` : ''}${milestoneText}\n${loot}\nCome back tomorrow for more.`)] , ephemeral: true });
   },
 };

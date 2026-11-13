@@ -3,7 +3,8 @@
     "discordBotToken_clientId_clientSecret": "https://discord.com/developers/applications — Discord Developer Portal: create an application, copy the Bot Token (Bot tab) and the Client ID + Client Secret (OAuth2 tab).",
     "twitchClientId_clientSecret": "https://dev.twitch.tv/console — Twitch Developer Console: register an application, copy the Client ID and Client Secret.",
     "youtubeApiKey": "https://console.cloud.google.com/apis/library/youtube.googleapis.com — Google Cloud Console: enable the YouTube Data API v3, then create an API key under APIs & Services > Credentials.",
-    "steamApiKey": "https://steamcommunity.com/dev/apikey — Steam: sign in and register for a Web API key."
+    "steamApiKey": "https://steamcommunity.com/dev/apikey — Steam: sign in and register for a Web API key.",
+    "openAiApiKey": "https://platform.openai.com/api-keys — OpenAI: create an API key. Any OpenAI-compatible endpoint works — set ai.baseUrl to use another provider."
   },
   "setupComplete": false,
   "token": "YOUR_DISCORD_BOT_TOKEN_HERE",
@@ -132,6 +133,12 @@
   "backups": {
     "retentionDays": 30,
     "time": "03:00"
+  },
+  "ai": {
+    "apiKey": "YOUR_OPENAI_API_KEY_HERE",
+    "model": "gpt-4o-mini",
+    "baseUrl": "https://api.openai.com/v1",
+    "dailyLimit": 100
   },
   "milestones": [
     100,

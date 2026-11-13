@@ -60,7 +60,7 @@ async function queryMinecraft(host, port) {
         const { value: jsonLen, offset: o3 } = readVarInt(data, o2);
         const json = JSON.parse(data.slice(o3, o3 + jsonLen).toString('utf8'));
         const desc = typeof json.description === 'string' ? json.description : (json.description?.text || '');
-        done({ online: true, players: json.players?.online ?? null, maxPlayers: json.players?.max ?? null, map: null, version: json.version?.name || null, motd: desc });
+        done({ online: true, players: json.players?.online ?? null, maxPlayers: json.players?.max ?? null, map: null, version: json.version?.name || null, motd: desc, sample: (json.players?.sample || []).map((s) => s.name).filter(Boolean) });
       } catch {}
     });
     socket.on('timeout', () => done({ online: false }));

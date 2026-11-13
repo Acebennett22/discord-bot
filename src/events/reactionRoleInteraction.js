@@ -1,7 +1,42 @@
 // Reaction-role button clicks toggle the role (one click = on, again = off).
+// Requirements (required role / min days in server / min leveling level)
+// are checked before granting — a member who misses one gets an ephemeral
+// embed naming exactly what they missed. Removing a role never checks
+// requirements.
 const { Events } = require('discord.js');
 const { getMappings } = require('../utils/reactionRoles');
 const { successEmbed, errorEmbed } = require('../utils/embeds');
+const { getRank } = require('../utils/leveling');
+
+function requirementSummary(mapping) {
+  const reqs = [];
+  if (mapping.required_role_id) reqs.push(`the <@&${mapping.required_role_id}> role`);
+  if (mapping.min_days_in_server !== null && mapping.min_days_in_server !== undefined) reqs.push(`${mapping.min_days_in_server}+ days in the server`);
+  if (mapping.min_level !== null && mapping.min_level !== undefined) reqs.push(`leveling level ${mapping.min_level}+`);
+  return reqs;
+}
+
+async function checkRequirements(interaction, mapping) {
+  const missed = [];
+  if (mapping.required_role_id && !interaction.member.roles.cache.has(mapping.required_role_id)) {
+    missed.push(`You need the <@&${mapping.required_role_id}> role first.`);
+  }
+  if (mapping.min_days_in_server !== null && mapping.min_days_in_server !== undefined) {
+    const joinedAt = interaction.member.joinedTimestamp;
+    const days = joinedAt ? Math.floor((Date.now() - joinedAt) / 86_400_000) : 0;
+    if (days < mapping.min_days_in_server) {
+      missed.push(`You need to have been in the server for at least ${mapping.min_days_in_server} days (you're at ${days}).`);
+    }
+  }
+  if (mapping.min_level !== null && mapping.min_level !== undefined) {
+    const rank = await getRank(interaction.user.id, interaction.guildId).catch(() => null);
+    const level = rank?.level ?? 0;
+    if (level < mapping.min_level) {
+      missed.push(`You need leveling level ${mapping.min_level} or higher (you're level ${level}).`);
+    }
+  }
+  return missed;
+}
 
 module.exports = {
   name: Events.InteractionCreate,
@@ -16,6 +51,13 @@ module.exports = {
     if (interaction.member.roles.cache.has(roleId)) {
       await interaction.member.roles.remove(role).catch(() => {});
       return interaction.reply({ embeds: [successEmbed('Role removed', `➖ Removed the **${role.name}** role.`)], ephemeral: true });
+    }
+    const missed = await checkRequirements(interaction, mapping);
+    if (missed.length) {
+      return interaction.reply({
+        embeds: [errorEmbed('You don\'t meet the requirements', `You can't take the **${role.name}** role yet:\n${missed.map((m) => `• ${m}`).join('\n')}`)],
+        ephemeral: true,
+      });
     }
     await interaction.member.roles.add(role).catch(() => {});
     return interaction.reply({ embeds: [successEmbed('Role added', `➕ You now have the **${role.name}** role!`)], ephemeral: true });

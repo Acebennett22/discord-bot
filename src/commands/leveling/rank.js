@@ -12,8 +12,9 @@ module.exports = {
     const rank = await getRank(user.id, interaction.guildId);
     if (!rank) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Leveling needs MySQL — connect the database first.')], ephemeral: true });
     const { level, into, needed } = xpIntoLevel(rank.xp);
+    const prestigeLine = rank.prestige > 0 ? `\n**Prestige:** ⭐ ${rank.prestige} (x${(1 + Math.min(rank.prestige, 10) * 0.1).toFixed(1)} XP)` : '';
     return interaction.reply({ ephemeral: true, embeds: [infoEmbed(`🏆 Rank — ${user.tag}`, [
-      `**Level:** ${level} · **Rank:** #${rank.rank}`,
+      `**Level:** ${level} · **Rank:** #${rank.rank}${prestigeLine}`,
       `**XP:** ${rank.xp} (${into}/${needed} to level ${level + 1})`,
       `${progressBar(into, needed)}`,
     ].join('\n'))] });

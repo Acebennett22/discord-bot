@@ -124,6 +124,11 @@ async function recordJoin(member) {
     if (inviterId) await recomputeUserInvites(guild.id, inviterId);
   }
 
+  // Invite-based auto-role (1.11.6): joining via a specific invite code
+  // grants the role configured for that code. Never fatal to the join flow.
+  const { grantInviteRole } = require('./inviteRoles');
+  await grantInviteRole(member, inviteCode).catch(() => {});
+
   // Invite log message (inviteLogChannelId, else welcome channel).
   const logChannelId = settings.inviteLogChannelId || settings.welcomeChannelId;
   if (logChannelId) {

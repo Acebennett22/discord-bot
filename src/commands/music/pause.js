@@ -6,7 +6,7 @@ const { requireDJ } = require('../../utils/djCheck');
 module.exports = {
   data: new SlashCommandBuilder().setName('pause').setDescription('Pause the current song.'),
   async execute(interaction) {
-    if (!(await requireDJ(interaction))) return;
+    if (!(await requireDJ(interaction, 'pause'))) return;
     const queue = getQueue(interaction.guildId);
     if (!queue || !queue.playing) return interaction.reply({ embeds: [errorEmbed('Nothing playing', 'There is no song playing right now.')], ephemeral: true });
     pause(interaction.guildId);
