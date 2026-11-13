@@ -32,7 +32,7 @@
         <tr><td>Client secret</td><td><%= data.clientSecret ? '••••' + String(data.clientSecret).slice(-4) : '—' %></td></tr>
         <tr><td>Owner ID</td><td><%= data.ownerId || '—' %></td></tr>
         <tr><td>Database</td><td><%= data.dbUser || '—' %>@<%= data.dbHost || 'localhost' %>:<%= data.dbPort || 3306 %>/<%= data.dbName || '—' %></td></tr>
-        <tr><td>Dashboard port</td><td><%= data.port || 3000 %></td></tr>
+        <tr><td>Dashboard port</td><td><%= data.port || 3010 %></td></tr>
         <tr><td>Redirect URI</td><td><%= data.redirectUri || '—' %></td></tr>
         <tr><td>Twitch</td><td><%= data.twitchClientId ? 'configured' : 'skipped' %></td></tr>
         <tr><td>YouTube API key</td><td><%= data.youtubeApiKey ? 'configured' : 'skipped' %></td></tr>
@@ -74,16 +74,7 @@
         <br><br>
         <button class="btn" type="submit">Next →</button>
       </form>
-      <script>
-      document.getElementById('test-discord').addEventListener('click', async () => {
-        const out = document.getElementById('test-discord-result');
-        const token = document.querySelector('input[name=token]').value;
-        out.textContent = 'Testing…';
-        const r = await fetch('/setup/api/test-discord', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) });
-        const j = await r.json();
-        out.textContent = j.ok ? `✅ Connected as ${j.username}` : `❌ ${j.error}`;
-      });
-      </script>
+
     <% } else if (step.id === 'database') { %>
       <h1>Database (MySQL)</h1>
       <p class="muted">The bot stores logs, stats, tickets, leveling, and settings in MySQL. It keeps running without a database, but most features need it.</p>
@@ -106,40 +97,23 @@
         <a class="btn ghost" href="/setup/2">← Back</a>
         <button class="btn" type="submit">Next →</button>
       </form>
-      <script>
-      document.getElementById('test-db').addEventListener('click', async () => {
-        const out = document.getElementById('test-db-result');
-        const f = document.querySelector('form');
-        const fd = new FormData(f);
-        out.textContent = 'Testing…';
-        const r = await fetch('/setup/api/test-db', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(fd)) });
-        const j = await r.json();
-        out.textContent = j.ok ? '✅ Connected' : `❌ ${j.error}`;
-      });
-      </script>
+
     <% } else if (step.id === 'dashboard') { %>
       <h1>Dashboard</h1>
       <p class="muted">The web GUI (Dyno-style) — Discord OAuth2 login, per-server settings.</p>
       <form method="post" action="/setup/4">
         <label>Port</label>
-        <input type="number" name="port" id="dash-port" value="<%= data.port || 3000 %>">
+        <input type="number" name="port" id="dash-port" value="<%= data.port || 3010 %>">
         <label>Session secret</label>
         <input type="text" name="sessionSecret" id="session-secret" value="<%= data.sessionSecret || '' %>" placeholder="Click generate">
         <button type="button" class="btn ghost" id="gen-secret">Generate random secret</button>
         <label>Redirect URI (must match the OAuth2 redirect in the Developer Portal)</label>
-        <input type="text" name="redirectUri" id="redirect-uri" value="<%= data.redirectUri || (typeof publicUrl !== 'undefined' && publicUrl ? publicUrl + '/callback' : 'http://localhost:3000/callback') %>">
+        <input type="text" name="redirectUri" id="redirect-uri" value="<%= data.redirectUri || (typeof publicUrl !== 'undefined' && publicUrl ? publicUrl + '/callback' : 'http://localhost:3010/callback') %>">
         <br><br>
         <a class="btn ghost" href="/setup/3">← Back</a>
         <button class="btn" type="submit">Next →</button>
       </form>
-      <script>
-      function randHex(n) { const a = new Uint8Array(n); crypto.getRandomValues(a); return [...a].map(x => x.toString(16).padStart(2, '0')).join(''); }
-      document.getElementById('gen-secret').addEventListener('click', () => { document.getElementById('session-secret').value = randHex(32); });
-      document.getElementById('dash-port').addEventListener('input', (e) => {
-        const uri = document.getElementById('redirect-uri');
-        if (uri.value.startsWith('http://localhost:')) uri.value = `http://localhost:${e.target.value || 3000}/callback`;
-      });
-      </script>
+
     <% } else if (step.id === 'streaming') { %>
       <h1>Streaming APIs <span class="muted">(optional)</span></h1>
       <p class="muted">Needed only for live stream notifications. Skip this step if you don't use them — you can fill them in later in config.json.</p>
@@ -187,4 +161,6 @@
     <% } %>
   </section>
 </div>
+<script>window.ACEBOT_PAGE = { page: 'setup' };</script>
+<script src="/js/setup.js" defer></script>
 <%- include('partials/footer') %>

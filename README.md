@@ -6,6 +6,10 @@ A multi-file JavaScript Discord bot built with **discord.js v14** (CommonJS) —
 >
 > **Ephemeral replies:** EVERY slash-command reply, followUp, and deferReply is ephemeral (`ephemeral: true`) — only the public posts a command is *meant* to make in a channel (a suggestion embed, a welcome message, an announcement) are public. The confirmation/reply back to the user who ran the command is always ephemeral.
 
+## Wiki
+
+User-facing docs live on the dashboard at **`/docs`** (also linked from the header, footer, home page, and the `/version` page): getting started, a command reference for every slash command grouped by category (generated live from `src/commands`, so it can't go stale), step-by-step feature guides, and an FAQ. The static content (guides + FAQ) lives in `docs/content.json`; the command reference is built at request time by `src/utils/docs.js`. The page has a client-side search box (see "Dashboard JavaScript").
+
 ## Features
 
 | Category | Commands |
@@ -28,6 +32,9 @@ A multi-file JavaScript Discord bot built with **discord.js v14** (CommonJS) —
 | Automod | `/automod`, `/automod-setup`, `/automod-words add\|remove\|list`, `/automod-exempt add-role\|remove-role\|add-channel\|remove-channel\|list` — spam, banned words, link/invite blocking |
 | Suggestions | `/suggest` (modal), `/suggestions-setup`, `/suggest-status` — 👍/👎 voting, staff Approve/Deny/Implement |
 | Economy | `/balance`, `/daily`, `/work`, `/pay`, `/eco-leaderboard`, `/shop`, `/shop-add`, `/deposit`, `/withdraw` — wallet + bank, shop roles |
+| Casino | `/slots`, `/blackjack`, `/roulette`, `/gamble-coinflip`, `/gamble-dice` — same wallet balance, min bet 10 / max 10,000 |
+| Inventory & Trading | `/buy`, `/sell`, `/inventory`, `/open-crate`, `/use`, `/trade`, `/trade-cancel` — crates, daily items, daily deals, atomic player trades |
+| Bot Tracking | `/botflags`, `/botflag`, `/botflag-clear`, `/bottrack` (staff) — join scoring, raid watch, Staff → Bot Tracking page |
 | Starboard | `/starboard-setup` — starred messages posted to a starboard channel |
 | Custom Commands | `/custom-add`, `/custom-remove`, `/custom-list` — trigger words with stored replies |
 | Message Logging | `/modlog-setup` — deleted/edited messages logged to a modlog channel |
@@ -36,6 +43,7 @@ A multi-file JavaScript Discord bot built with **discord.js v14** (CommonJS) —
 | Auto-role | `/autorole set\|remove\|view\|sticky` — join role + sticky roles |
 | Scheduled | `/schedule`, `/schedule-list`, `/schedule-cancel`, `/remindme` — DB-backed, survives restarts |
 | FAQ | `/faq-add`, `/faq-remove`, `/faq-list` — auto-responder for common questions |
+| Presence | `/presence set\|reset\|list` (owner) — rotating Discord status with live stats |
 | Help | `/help` — grouped command list with a category select menu |
 
 ## Project structure
@@ -80,7 +88,7 @@ discord-bot/
 
 1. **Install dependencies:** `npm install`
 2. **Start the dashboard:** `npm run dashboard`
-3. **Open the wizard:** on first run the dashboard prints a one-time setup link to the console and writes the token to `setup-token.txt` — open `http://localhost:3000/setup?token=<token>` (or `https://your-domain/setup?token=<token>` behind a reverse proxy). The token is single-use: presenting it starts your setup session and invalidates it.
+3. **Open the wizard:** on first run the dashboard prints a one-time setup link to the console and writes the token to `setup-token.txt` — open `http://localhost:3010/setup?token=<token>` (or `https://your-domain/setup?token=<token>` behind a reverse proxy). The token is single-use: presenting it starts your setup session and invalidates it.
 4. **Follow the 8 steps:** Welcome → Discord (token/client ID/secret/owner ID, with a **Test connection** button — an invalid token can't be saved) → Database (MySQL connection test + optional auto-run of `sql/schema.sql`) → Dashboard (port, session secret with a generate button, redirect URI auto-filled) → Streaming APIs (optional) → Steam API (optional) → Backups & misc (backup time, 30-day retention, embed color, queue size, sharding) → Review & finish (secrets masked) → **Save** writes `config.json` (mode 0600, preserving fields the wizard didn't ask about) and sets `setupComplete: true`, disabling the wizard. Then run `npm run deploy`, `npm start`, `npm run dashboard` as shown on the finish screen.
 5. **Re-running setup:** after first setup the wizard only opens for the bot owner (logged-in owner session). To re-run from scratch, set `setupComplete: false` in `config.json` and restart the dashboard for a fresh one-time token.
 
@@ -106,7 +114,7 @@ discord-bot/
      "steam": { "apiKey": "YOUR_STEAM_API_KEY_HERE" },
      "streams": { "checkIntervalMinutes": 5, "twitch": { "clientId": "", "clientSecret": "" }, "youtube": { "apiKey": "" }, "announceOfflineMessage": false },
      "gameServers": { "checkIntervalMinutes": 5, "custom": [] },
-     "dashboard": { "clientSecret": "", "redirectUri": "http://localhost:3000/callback", "sessionSecret": "CHANGE_ME_TO_A_LONG_RANDOM_STRING", "port": 3000, "invitePermissions": 1099951041558 }
+     "dashboard": { "clientSecret": "", "redirectUri": "http://localhost:3010/callback", "sessionSecret": "CHANGE_ME_TO_A_LONG_RANDOM_STRING", "port": 3010, "invitePermissions": 1099951041558 }
    }
    ```
 3. **MySQL:** create the database, then `mysql -u <user> -p discord_bot < sql/schema.sql`. Fill in the `database` section. **Fallback:** if MySQL is unconfigured or unreachable, the bot logs a warning at startup and keeps running — commands still work, logging/stats/tickets/streams/giveaways/leveling are skipped.
@@ -195,8 +203,8 @@ Checked against `ownerId` in `config.json` (anyone else gets an ephemeral owner-
 
 ## Dashboard (Dyno-style web GUI)
 
-`npm run dashboard` → http://localhost:3000. **Auth:** Discord OAuth2 (same app as the bot). Log in, and the dashboard fetches your guilds — it shows **only guilds where you have Manage Guild AND the bot is a member**. No login = no access.
-**Setup:** in the Developer Portal → OAuth2, add redirect URI `http://localhost:3000/callback` (or your `dashboard.redirectUri`), copy the **Client Secret** → `config.json` `dashboard.clientSecret`, and set a long random `dashboard.sessionSecret`. Fill `dashboard.port` (default 3000).
+`npm run dashboard` → http://localhost:3010. **Auth:** Discord OAuth2 (same app as the bot). Log in, and the dashboard fetches your guilds — it shows **only guilds where you have Manage Guild AND the bot is a member**. No login = no access.
+**Setup:** in the Developer Portal → OAuth2, add redirect URI `http://localhost:3010/callback` (or your `dashboard.redirectUri`), copy the **Client Secret** → `config.json` `dashboard.clientSecret`, and set a long random `dashboard.sessionSecret`. Fill `dashboard.port` (default 3010).
 **Pages:** Home / server picker (grid with icons) → per-server settings, one page per module: General (welcome/log channels, embed color), Moderation (warn threshold + auto-action, log channel), Tickets (category, support role, log channel, recent tickets), Server Stats, Streams (list/add/remove), Music (DJ role), Leveling (level-up messages, role rewards), Reaction Roles, Game Servers. **Add to Server** button is in the header on every page and on the home page — it opens Discord's OAuth2 invite flow in a new tab, built from `config.json` `clientId` (never hardcoded) with `dashboard.invitePermissions`.
 **API:** `GET/POST /api/guilds/:id/settings`, `/api/guilds/:id/streamers`, `/api/guilds/:id/tickets` — all auth-checked per guild, inputs validated server-side (channels/roles must actually exist in that guild). Security: express-session + Helmet + rate limiting; the bot token and DB password are **never** in frontend code or API responses. The dashboard reads/writes the same MySQL tables as the bot, and the bot picks up changes within 60s (settings cache TTL).
 
@@ -212,7 +220,7 @@ The invite URL is `https://discord.com/oauth2/authorize?client_id=<clientId>&per
 ## Nginx deployment (reverse proxy)
 
 Serve the dashboard on a public domain over HTTPS with Nginx — this is also how the setup wizard is reached through a domain. Full walkthrough + config live in `deploy/nginx/` (`ace-bot.conf` + `README.md`).
-- **Config:** copy `deploy/nginx/ace-bot.conf` to `/etc/nginx/sites-available/ace-bot`, symlink it into `sites-enabled`, replace `bot.example.com` with your domain, `sudo nginx -t && sudo systemctl reload nginx`. The server block listens on 80 (redirects to HTTPS) and 443 with `ssl_certificate` placeholders, proxies `/` to `http://127.0.0.1:3000` with `Host`, `X-Real-IP`, `X-Forwarded-For`, `X-Forwarded-Proto` headers, `proxy_http_version 1.1` + WebSocket Upgrade headers, and `client_max_body_size 10m`.
+- **Config:** copy `deploy/nginx/ace-bot.conf` to `/etc/nginx/sites-available/ace-bot`, symlink it into `sites-enabled`, replace `bot.example.com` with your domain, `sudo nginx -t && sudo systemctl reload nginx`. The server block listens on 80 (redirects to HTTPS) and 443 with `ssl_certificate` placeholders, proxies `/` to `http://127.0.0.1:3010` with `Host`, `X-Real-IP`, `X-Forwarded-For`, `X-Forwarded-Proto` headers, `proxy_http_version 1.1` + WebSocket Upgrade headers, and `client_max_body_size 10m`.
 - **Free cert:** `sudo apt install certbot python3-certbot-nginx && sudo certbot --nginx -d bot.example.com` (fills in the cert paths and auto-renews).
 - **Dashboard side:** set `dashboard.publicUrl` to `https://bot.example.com` (and `dashboard.setupViaDomain: true`) in `config.json`, and add `https://bot.example.com/callback` as an OAuth2 redirect in the Developer Portal. Express `trust proxy` is set (`app.set('trust proxy', 1)`), so secure session cookies work when `X-Forwarded-Proto` is `https`, and rate limiting (including the `/setup` limit) keys off the real client IP from `X-Forwarded-For`. OAuth redirect URI, invite links, and setup links use `dashboard.publicUrl` when set, falling back to `http://localhost:<port>`.
 - **First-run via domain:** start the dashboard, copy the one-time token from the console output or `setup-token.txt`, and open `https://bot.example.com/setup?token=<token>`.
@@ -286,6 +294,125 @@ Members submit ideas with `/suggest` (modal: title + details). The suggestion is
 - **Voting:** one vote per user, changeable — voting the same way again removes your vote. Counts are recalculated from `suggestion_votes` on every vote and the embed is edited in place, so the DB and the embed can never drift.
 - **Review:** admins or the application reviewer role (`application_reviewer_role_id`) can approve/deny/mark implemented from the embed buttons or the dashboard Suggestions tab (status filter + review buttons). Reviewing updates the status, edits the embed (buttons removed once decided), and DMs the suggester.
 - Commands: `/suggest` (any member — modal; the confirmation reply is ephemeral, the suggestion post itself is public), `/suggestions-setup <channel>` (admin), `/suggest-status` (your own suggestions, ephemeral). Dashboard Suggestions tab: channel setting, list with status filter, Approve/Deny/Implement buttons (embed edited + DM sent via Discord REST).
+
+## Economy
+
+Per-server currency, all in MySQL (`economy_users` wallet + bank, `economy_transactions` audit trail, `shop_items`). New users start with the configured starting balance (default 100 coins, global default in `config.json` `economy.startingBalance`).
+- **Earning:** `/daily` (once per 24h, random 100–500 coins by default), `/work` (once per hour, random 50–250 coins + a random job flavor line). Amounts are per-server settings (dashboard Economy tab).
+- **Spending / moving:** `/pay @user amount` (wallet to wallet — no negatives, can't pay yourself or bots), `/deposit [amount]` and `/withdraw [amount]` (wallet ↔ bank; no amount = all), `/shop` (list; `/shop buy:<id>` buys it) and `/shop-add` (admin — name, price, optional description and role granted on purchase).
+- **Checking:** `/balance [user]` (wallet, bank, total), `/eco-leaderboard` (top 10 richest by wallet + bank).
+- Dashboard Economy tab: starting balance, daily/work min–max, currency name/emoji, and shop-item management (add/remove). All economy command replies are ephemeral.
+
+## Casino
+
+Casino games spend the **same wallet balance** as the rest of the economy (`economy_users.balance` — no second currency, no separate balance). Earn coins with `/work` and `/daily`, then gamble them. The bank does **not** count toward a bet — use `/withdraw` first if your coins are in the bank.
+- **Games:** `/slots <bet>` (3-reel 🍒🍋🍇💎7️⃣⭐ — three of a kind: 💎💎💎 x10, 7️⃣7️⃣7️⃣ x7, any other trio x5; two of a kind x2), `/blackjack <bet>` (Hit / Stand buttons, dealer draws to 17, blackjack pays 3:2, win x2, push returns the bet), `/roulette <bet> <red|black|green|number 0-36>` (red/black x2, green 0 x14, exact number x35), `/gamble-coinflip <bet> <heads|tails>` (x2), `/gamble-dice <bet> <1-6>` (exact guess x5).
+  - `/coinflip` and `/dice` (fun commands, no bet) still exist unchanged — the casino versions are the separate `/gamble-coinflip` and `/gamble-dice` commands so the fun ones never touch your balance.
+- **Limits:** minimum bet 10 coins, maximum bet 10,000 coins (global defaults `config.json` `economy.minBet` / `economy.maxBet`). The bet is deducted **before** the game resolves and winnings are credited after, so a lost bet is already gone if the bot restarts mid-game. Every win/loss is written to `economy_transactions` (`casino_win` / `casino_loss`, plus `casino_push` for a blackjack push).
+- **Cooldown:** 5 seconds between casino games per user (in-memory; it only makes you wait, never bans). All casino replies are ephemeral — only you see your results. A blackjack hand auto-stands after 2 minutes of no button press.
+
+## Inventory, crates & daily items
+
+The shop is also an inventory system. Buying a non-role item puts it in your inventory (`inventory_items` table); role items still grant the Discord role directly. Everything uses the same wallet balance as `/work`, `/daily`, and the casino.
+- **Item types** (`shop_items.type`): `role` (grants `role_id`), `crate` (opened with `/open-crate`), `consumable` (used with `/use`), `collectible` (inventory only). `/shop-add` takes `type`, `emoji`, `sell_price`, and `crate_contents` (JSON) options.
+- **Crates:** Common (500), Rare (1,500), Legendary (5,000) — prices in `config.json` `economy.crates`. The three defaults are auto-created in a guild's shop the first time anyone opens `/shop` (or claims `/daily`). `/open-crate <item id>` rolls one weighted reward from the crate's `crate_contents` (coins and/or other shop items by name) — 10s cooldown per user. Crate contents format: `[{"kind":"coins","min":50,"max":150,"weight":60},{"kind":"item","item_name":"Rare Crate","weight":10}]`. Missing named rewards fall back to 100 coins.
+- **Daily items:** `/daily` grants coins plus one random daily reward. Loot table: 50% +50–150 bonus coins · 25% Common Crate · 15% Lucky Coin (consumable) · 7% Rare Crate · 2.5% Legendary Crate · 0.5% 2,500-coin jackpot.
+- **Daily deal:** one random shop item per guild per day is 25% off for everyone in that guild (`daily_deals` table, rotates at midnight) — highlighted with ⭐ in `/shop`, and `/buy` charges the discounted price.
+- **Buy & sell:** `/buy <item id> [quantity]` (wallet only; role items are one-at-a-time and refused if you already have the role), `/sell <item id> [quantity]` (sell-back price is the item's `sell_price`, or half the buy price by default — never above the buy price), `/inventory [user]` (items, quantities, sell values, wallet/bank). Role items can't be sold — they live as Discord roles, not inventory. Transactions: `shop_buy` / `shop_sell` / `crate_open` in `economy_transactions`.
+- **Consumables:** `/use <item id>` spends one. Currently only the Lucky Coin has an effect (random 50–200 coins); other consumables are kept, not consumed, until an effect is added for them.
+
+## Player-to-player trading
+
+`/trade @user` proposes a swap where **both sides offer something** — what you give (`give_coins` / `give_item` / `give_qty`) and what you want (`get_coins` / `get_item` / `get_qty`). Flow: (1) the proposal is posted **publicly** in the channel so the partner sees it; (2) the partner clicks **Accept** (or Decline); (3) the proposer clicks **Confirm swap**. The swap runs inside a single MySQL transaction (`src/utils/trading.js` `executeTrade` via `db.withTransaction`): both sides' coins and items are re-validated and moved atomically, so a failed trade can't duplicate anything. Trades expire after 60s; `/trade-cancel [trade id]` (or the Cancel button) backs out — nothing is swapped. Logged as `trade` rows in `economy_transactions`. Role items can't be traded.
+
+## Bot tracking
+
+`src/utils/botTracker.js` scores every new member on join (0–100) and logs suspicious ones to `bot_flags` + daily counts to `bot_join_stats` (tables in `sql/schema.sql`).
+- **Signals (points add up, capped at 100):** account age under 24h +40 (under 7 days +30) · default avatar +15 · username matches bot patterns (random letters/numbers, or nitro/steam/free/gift/crypto spam words) +25 · join burst — 5+ joins in 60s +25 · mass-join clustering — 3+ recent joins with accounts created within 10 minutes of each other +20.
+- **Thresholds:** score ≥ threshold (config `botTracking.threshold`, default 70; per-guild override `guild_settings.bot_threshold`) = auto-action; 40–69 = watchlist (logged, no action); below 40 = clean, not logged.
+- **Auto-action** (per guild, `guild_settings.bot_auto_action`): `flag` (default — log + optionally assign the Suspected Bot role, `guild_settings.bot_suspect_role_id`) / `kick` / `ban`. **Never ban by default.** If a kick/ban fails (permissions), the member is flagged instead. Flagged joins are posted to the modlog channel when one is set.
+- **What it can't see (honest limits):** Discord does not expose whether an account's email/phone is verified, so verification status is never checked directly — account age, avatar, and join bursts are proxies. Scores are heuristics, not proof: a real new user can trip them, which is why flag-only is the default and every flag is reviewable. Join-burst/clustering signals are in-memory (last 10 minutes, per process) — a restart clears the window, and sharded bots only see joins on their own shards.
+- **Commands (staff, ephemeral):** `/botflags [status]` (recent flags), `/botflag <user>` (full score breakdown), `/botflag-clear <user>` (marks reviewed, records who cleared it — the row is kept, not deleted), `/bottrack` (joins today/this week + raid-watch status).
+- **Dashboard:** Staff → Bot Tracking — pick a server, see the raid-watch status, edit threshold/auto-action/suspect role, review the flagged-accounts table (Clear / Kick / Ban from the page), and see joins vs flagged per day for the last 7 days.
+
+## Starboard
+
+When a message collects enough reactions of the configured star emoji, it is posted to the starboard channel as an embed (author, content, jump link, star count, first image attachment). The count updates as stars arrive; if it drops below the threshold the starboard post is deleted (the DB row is kept, marked removed). Bot messages and messages already in the starboard channel are ignored.
+- Tables: `starboard` (per guild); settings in `guild_premium_settings` (`starboard_channel_id`, `starboard_threshold` default 3, `starboard_emoji` default ⭐).
+- Command: `/starboard-setup <channel> [threshold] [emoji]` (admin). Dashboard Starboard tab: same settings. Needs the `GuildMessageReactions` intent + Message/Reaction partials (enabled in `index.js`) so reactions on older messages still count.
+
+## Custom Commands
+
+Per-server trigger words (`custom_commands` table): when a message starts with (or exactly equals) a registered trigger, the bot replies with the stored response and increments `use_count`.
+- Guards: triggers are a single lowercase word; triggers matching a built-in slash command name are refused; `@everyone`/`@here` in responses are stripped so a custom command can never mass-ping.
+- Commands (admin, ephemeral): `/custom-add <trigger> <response>`, `/custom-remove <trigger>`, `/custom-list`. Dashboard Custom Commands tab: add/remove/list.
+
+## Message Logging (modlog)
+
+Deleted and edited messages are stored in MySQL (`message_logs`) and posted as embeds to the configured modlog channel (author, channel, content excerpt / old vs new with a jump link). Only logs when a modlog channel is set. Content that looks like a token or password is redacted before it is stored or posted.
+- Command: `/modlog-setup [channel]` (admin — no channel = off). Dashboard Moderation tab: modlog channel setting.
+
+## AFK
+
+`/afk [reason]` marks you AFK (stored in `afk_users`); anyone who mentions you gets a small embed saying you're AFK since when and why. When you send any message, your AFK status clears and you get a one-time welcome-back note. The bot also tries to prefix your nickname with `[AFK]` (and revert it on return) when it has the Manage Nicknames permission — nickname failures never fail the command. `/afk-remove` clears it manually. Discord-only (no dashboard tab).
+
+## Polls
+
+`/poll <question> <option1> <option2> [option3..5] [duration]` posts a public poll embed with number-emoji reactions (1️⃣–5️⃣) and a live tally bar. One vote per user — reacting with a different number moves your vote, removing your reaction removes it. Counts live in MySQL (`polls`: options + votes as JSON) and the embed is re-rendered on every vote. `/poll-end <message_id>` (admin) ends a poll early, posts the winner, and removes the reactions. Duration accepts the same time formats as `/schedule` ("in 2h", "tomorrow 9am", "2026-11-14 15:00"); polls without a duration run until ended. Discord-only (no dashboard tab). Needs the `GuildMessageReactions` intent + partials (enabled in `index.js`).
+
+## Auto-role + Sticky Roles
+
+- **Auto-role:** `/autorole set <role>` gives every new member that role on join; `/autorole remove` turns it off; `/autorole view` shows the current settings. The bot refuses roles above its own highest role.
+- **Sticky roles:** `/autorole sticky <enabled>` — when on, a leaving member's assignable roles are saved (`sticky_roles` table) and restored if they rejoin (only roles that still exist and the bot can assign).
+- Settings live in `guild_premium_settings` (`autorole_id`, `sticky_roles_enabled`). Dashboard Roles tab: auto-role dropdown + sticky toggle.
+
+## Scheduled Messages & Reminders
+
+- **Scheduled messages:** `/schedule <channel> <time> <content> [title]` (admin) — posts the message (or an embed, when a title is given) at the time. `/schedule-list` (admin) shows pending items; `/schedule-cancel <id>` (admin) cancels one. Times: "in 2h" / "in 30m" / "in 3d", "tomorrow 9am", "2026-11-14 15:00", or a bare clock ("21:30" = today, or tomorrow if passed).
+- **Reminders:** `/remindme <time> <text>` — the bot DMs you at the time; if your DMs are closed it posts in the channel instead.
+- Everything is stored in MySQL (`scheduled_messages`, `reminders`) and sent by a 1-minute loop (`src/utils/scheduler.js`, started on ready), so scheduled items survive restarts. Dashboard Scheduled tab: pending list + cancel.
+
+## FAQ Auto-Responder
+
+When a chat message matches a trigger phrase, the bot replies in-channel with the stored answer (embed) — public by design, that's the point. `contains` fires when the phrase appears anywhere in the message (case-insensitive); `exact` only when the whole message equals the phrase. First match in creation order wins; only one FAQ reply per message.
+- Order of checks: custom commands run first — a message that matched a custom command never also triggers an FAQ. Slash-command-looking messages, bots, and DMs are skipped, and FAQ replies never trigger other FAQ/custom responses (no loops).
+- Guards: max 50 FAQ entries per guild, trigger max 100 chars, response max 2000 chars, `@everyone`/`@here` stripped from responses.
+- Commands (admin, confirmations ephemeral): `/faq-add <trigger> <response> [match_type]`, `/faq-remove <trigger>`, `/faq-list` (shows match type + use counts). Dashboard FAQ tab: add/remove/list with a match-type dropdown.
+- Table: `faq_responses` in `sql/premium.sql` (see note below).
+
+## Presence (bot status)
+
+The bot's Discord status rotates through activity templates showing live stats — global for the bot, NOT per-server. Rotation runs on every shard (each shard sets its own presence from the same templates; guild/user counts are gathered across shards via `broadcastEval`/`fetchClientValues`).
+- **Templates:** `config.json` `presence.activities` (default: `Watching {guilds} servers`, `Listening to /help`, `Playing with {users} users`, `Watching {commands} commands`). Each entry is a string (defaults to Watching) or a `{text, type}` object; type is one of Playing / Watching / Listening / Competing. Rotation interval: `presence.rotateSeconds` (default 60, minimum 10).
+- **Placeholders** (filled live on every rotation): `{guilds}` (server count), `{users}` (total member count across guilds), `{commands}` (total slash commands), `{uptime}`, `{version}` (from `package.json` — currently v1.1.2).
+- **Commands** (owner-only, ephemeral): `/presence set <text> [type]` (one-off override, holds until the next rotation or `/presence reset`), `/presence reset` (back to rotating templates), `/presence list` (templates with live-filled values + what it's showing now).
+- **Dashboard Staff → Bot overview:** Presence section shows the current activity (written to the `presence_state` table on every rotation so the standalone dashboard can see it), a **Rotate now** button (sets a flag the bot picks up within a minute), and a template editor (one per line, `Type: text` or plain text) saved to `config.json` `presence.activities` via a staff-only API — the bot re-reads `config.json` from disk on every rotation tick, so edits apply without a restart. `/status` and `/botstats` also show the bot version (from `package.json`).
+
+## Premium tables
+
+The premium features above (economy, casino, inventory/crates/trading, starboard, custom commands, message logs, AFK, polls, auto-role/sticky roles, scheduled messages/reminders, FAQ) live in **`sql/premium.sql`** — a separate file from `sql/schema.sql` so premium additions merge cleanly. Bot tracking (`bot_flags`, `bot_join_stats`) lives in `sql/schema.sql` with the core tables. Run it alongside `schema.sql` on a fresh install:
+```
+mysql -u <user> -p <database> < sql/schema.sql
+mysql -u <user> -p <database> < sql/premium.sql
+```
+Per-server premium settings (starboard, modlog, auto-role, economy tuning) live in `guild_premium_settings`, managed by `src/utils/premiumSettings.js` (60s cache, same pattern as `guildSettings.js`). The first-run setup wizard auto-runs both `schema.sql` and `premium.sql` when "auto-run schema" is on.
+
+## Updating the changelog
+
+Every feature or fix ships with a changelog entry — the dashboard `/version` page renders from `CHANGELOG.md`, so it stays in sync automatically:
+- Add a new `## [x.y.z] - YYYY-MM-DD` entry at the **top** of `CHANGELOG.md` (above the previous release), with `### Added` / `### Changed` / `### Fixed` sections and one bullet per change.
+- Bump `package.json` `version` to match the new entry — `/botstats`, `/status`, the presence `{version}` placeholder, and the `/version` page header all read it from `package.json`, so they update together.
+- Never list a version in the changelog that isn't in `package.json`, and never show a version on the dashboard that isn't in the changelog.
+
+## Dashboard JavaScript
+
+The dashboard is a JavaScript-driven web app, not just server-rendered pages (vanilla JS, no framework — `dashboard/public/app.js` + per-page modules in `dashboard/public/js/`). EJS still renders the initial HTML, and every form keeps its `method`/`action`, so with JS disabled the browser POSTs normally and the server redirects back with `?saved=1` (plain-POST fallback).
+- **`app.js`** (loaded on every page): toast notifications (`Settings saved` / error toasts), `AceBot.postJSON` / `getJSON` / `del` fetch helpers, `formToJSON` (checkboxes → booleans, `levelRoles` JSON parsed with a clear error), interception of `form[action^="/api/"]` (save via fetch, toast, no reload), `refreshSection(selector)` (re-fetch the page HTML, swap one list container — no full reload), `removeRow`, `refreshEvery` (auto-refresh while the tab is visible).
+- **`js/settings.js`**: per-server settings page — live previews (stream template, welcome/goodbye) update as you type; streamer add/edit/remove/refresh, application forms + review queue, suggestions filter + review, shop / custom commands / FAQ / scheduled lists save via fetch with toasts and refresh just their list; deletes confirm + remove the row from the DOM; the Commands tab loads via fetch and toggles apply immediately.
+- **`js/staff.js`**: staff area — command/feature toggles apply immediately; staff add/remove, backup-now, presence rotate/templates, broadcast (with a live embed preview as you type); overview stats auto-refresh every 30s from `/api/staff/overview`; errors/backups/bot-flags lists have refresh buttons; bot-flag Clear/Kick/Ban act via fetch and refresh the flags list.
+- **`js/setup.js`**: the wizard navigates client-side — submit a step (or click a sidebar step) and the next step's HTML is fetched and swapped in with `history.pushState`; test-connection buttons still hit the server via fetch; back/forward buttons work.
+- **`js/docs.js`**: the `/docs` search box filters command rows, guide cards, and FAQ items client-side, no server round-trip.
+- **JSON endpoints for live refresh** (all auth-checked): `GET /api/staff/overview`, `GET /api/staff/errors`, `GET /api/staff/backups`, `GET /api/staff/botflags`, `GET /api/guilds/:id/invites`, plus the existing per-guild list endpoints (`/streamers`, `/applications`, `/suggestions`, `/shop`, `/custom-commands`, `/faq`, `/scheduled`, `/commands`).
 
 ## API keys — where to get them
 

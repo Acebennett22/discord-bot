@@ -106,7 +106,8 @@
       <button class="btn" type="submit">Save template</button>
     </form>
 
-    <h2>Watched streamers</h2>
+    <h2>Watched streamers <button class="btn ghost" type="button" data-refresh-section="#streamers-list">🔄 Refresh</button></h2>
+    <div id="streamers-list">
     <% if (!streamers.length) { %><p class="muted">None yet — add one below.</p><% } %>
     <table><tr><th></th><th>Streamer</th><th>Platform</th><th>Announcements</th><th>Ping role</th><th>Live channel</th><th></th></tr>
     <% streamers.forEach(s => { %>
@@ -135,6 +136,7 @@
         </form>
       </td></tr>
     <% }); %></table>
+    </div>
 
     <h2>Add a streamer</h2>
     <form id="add-streamer-form">
@@ -201,7 +203,8 @@
       </select>
       <br><br><button class="btn" type="submit">Save reviewer role</button>
     </form>
-    <h2>Forms</h2>
+    <h2>Forms <button class="btn ghost" type="button" data-refresh-section="#app-forms-list">🔄 Refresh</button></h2>
+    <div id="app-forms-list">
     <% if (!applicationForms.length) { %><p class="muted">No forms yet.</p><% } %>
     <table><tr><th>ID</th><th>Name</th><th>Status</th><th>Pending</th><th>Total</th><th>Review channel</th><th>Role on accept</th><th></th></tr>
     <% applicationForms.forEach(f => { %>
@@ -211,6 +214,7 @@
       <td><%= f.role_to_grant ? '@' + (roles.find(r => r.id === f.role_to_grant)?.name || f.role_to_grant) : '—' %></td>
       <td><button class="btn ghost" data-app-form-toggle="<%= f.id %>" data-app-form-open="<%= f.is_open ? 0 : 1 %>"><%= f.is_open ? 'Close' : 'Open' %></button></td></tr>
     <% }); %></table>
+    </div>
     <h2>Create a form</h2>
     <form id="create-app-form">
       <label>Name</label>
@@ -226,7 +230,8 @@
       <br><br><button class="btn" type="submit">Create form</button>
     </form>
     <p id="app-form-result" class="muted"></p>
-    <h2>Review queue (pending)</h2>
+    <h2>Review queue (pending) <button class="btn ghost" type="button" data-refresh-section="#app-queue-list">🔄 Refresh</button></h2>
+    <div id="app-queue-list">
     <% if (!pendingApplications.length) { %><p class="muted">Nothing pending. 🎉</p><% } %>
     <% pendingApplications.forEach(a => { %>
       <div class="card" style="text-align:left;margin-bottom:12px">
@@ -238,6 +243,7 @@
         <button class="btn danger" data-app-review="<%= a.id %>" data-app-decision="denied">❌ Deny</button>
       </div>
     <% }); %>
+    </div>
     <% } %>
 
     <% if (module === 'invites') { %>
@@ -253,13 +259,15 @@
       <br><br><button class="btn" type="submit">Save invite settings</button>
     </form>
     <p class="muted">The bot needs Manage Server permission to fetch the invite list — without it, joins show as "unknown invite".</p>
-    <h2>Leaderboard</h2>
+    <h2>Leaderboard <button class="btn ghost" type="button" data-refresh-section="#invites-list">🔄 Refresh</button></h2>
+    <div id="invites-list">
     <% if (!inviteLeaderboard.length) { %><p class="muted">No invites tracked yet.</p><% } %>
     <table><tr><th>#</th><th>User</th><th>Valid</th><th>Total</th><th>Leaves</th><th>Fake</th></tr>
     <% inviteLeaderboard.forEach((r, i) => { %><tr><td><%= i + 1 %></td><td>&lt;@<%= r.user_id %>&gt;</td><td><strong><%= r.valid_invites %></strong></td><td><%= r.total_invites %></td><td><%= r.leaves %></td><td><%= r.fake_invites %></td></tr><% }); %></table>
     <h2>Per-user stats</h2>
     <table><tr><th>User</th><th>Valid</th><th>Total</th><th>Leaves</th><th>Fake</th><th>Updated</th></tr>
     <% inviteStats.forEach(r => { %><tr><td>&lt;@<%= r.user_id %>&gt;</td><td><%= r.valid_invites %></td><td><%= r.total_invites %></td><td><%= r.leaves %></td><td><%= r.fake_invites %></td><td><%= r.updated_at %></td></tr><% }); %></table>
+    </div>
     <% } %>
 
     <% if (module === 'gameservers') { %>
@@ -288,10 +296,12 @@
       <input type="text" name="economyCurrencyEmoji" value="<%= premiumSettings?.economyCurrencyEmoji || '🪙' %>" maxlength="32">
       <br><br><button class="btn" type="submit">Save economy settings</button>
     </form>
-    <h2>Shop items</h2>
+    <h2>Shop items <button class="btn ghost" type="button" data-refresh-section="#shop-list">🔄 Refresh</button></h2>
+    <div id="shop-list">
     <% if (!shopItems.length) { %><p class="muted">Shop is empty — add an item below (or /shop-add in Discord).</p><% } %>
     <table><tr><th>ID</th><th>Item</th><th>Price</th><th>Role on buy</th><th></th></tr>
     <% shopItems.forEach(i => { %><tr><td>#<%= i.id %></td><td><strong><%= i.name %></strong><% if (i.description) { %><br><span class="muted"><%= i.description %></span><% } %></td><td><%= i.price %></td><td><%= i.role_id ? '@' + (roles.find(r => r.id === i.role_id)?.name || i.role_id) : '—' %></td><td><button class="btn danger" data-remove-shop="<%= i.id %>">Remove</button></td></tr><% }); %></table>
+    </div>
     <h2>Add a shop item</h2>
     <form id="add-shop-form">
       <label>Name</label><input type="text" name="name" required maxlength="128">
@@ -324,8 +334,10 @@
     <h1>Custom Commands</h1>
     <p class="muted">Trigger words: when a message starts with (or exactly equals) a trigger, the bot replies with the stored response. Triggers can't collide with built-in slash commands, and @everyone/@here are stripped from responses. Same list as /custom-add, /custom-remove, /custom-list in Discord.</p>
     <% if (!customCommands.length) { %><p class="muted">No custom commands yet.</p><% } %>
+    <div id="custom-list">
     <table><tr><th>Trigger</th><th>Response</th><th>Uses</th><th></th></tr>
     <% customCommands.forEach(c => { %><tr><td><strong><%= c.trigger_word %></strong></td><td><%= c.response.slice(0, 200) %></td><td><%= c.use_count %></td><td><button class="btn danger" data-remove-custom="<%= c.trigger_word %>">Remove</button></td></tr><% }); %></table>
+    </div>
     <h2>Add a custom command</h2>
     <form id="add-custom-form">
       <label>Trigger (single word, lowercase)</label><input type="text" name="trigger" required maxlength="64">
@@ -339,8 +351,10 @@
     <h1>FAQ Auto-Responder</h1>
     <p class="muted">When a message matches a trigger phrase, the bot replies in-channel with the stored answer. <code>contains</code> fires when the phrase appears anywhere in the message; <code>exact</code> only when the whole message equals it. First match wins; FAQ replies never trigger other FAQ/custom responses. Max 50 per server. Same list as /faq-add, /faq-remove, /faq-list in Discord.</p>
     <% if (!faqs.length) { %><p class="muted">No FAQ responses yet.</p><% } %>
+    <div id="faq-list">
     <table><tr><th>Trigger</th><th>Match</th><th>Response</th><th>Uses</th><th></th></tr>
     <% faqs.forEach(f => { %><tr><td><strong><%= f.trigger_phrase %></strong></td><td><%= f.match_type %></td><td><%= f.response.slice(0, 200) %></td><td><%= f.use_count %></td><td><button class="btn danger" data-remove-faq="<%= f.id %>">Remove</button></td></tr><% }); %></table>
+    </div>
     <h2>Add an FAQ response</h2>
     <form id="add-faq-form">
       <label>Trigger phrase</label><input type="text" name="trigger" required maxlength="100">
@@ -356,8 +370,10 @@
     <h1>Scheduled Messages</h1>
     <p class="muted">Messages scheduled with /schedule post automatically at their time — stored in MySQL, so they survive restarts. Reminders (/remindme) are DM'd to the user (or posted in-channel if DMs are closed).</p>
     <% if (!scheduledMessages.length) { %><p class="muted">Nothing scheduled.</p><% } %>
+    <div id="scheduled-list">
     <table><tr><th>ID</th><th>Channel</th><th>Send at</th><th>Message</th><th></th></tr>
     <% scheduledMessages.forEach(s => { %><tr><td>#<%= s.id %></td><td>#<%= (channels.find(c => c.id === s.channel_id)?.name || s.channel_id) %></td><td><%= s.send_at %></td><td><%= (s.content || (() => { try { return JSON.parse(s.embed_json).title; } catch { return '(embed)'; } })()).slice(0, 120) %></td><td><button class="btn danger" data-cancel-scheduled="<%= s.id %>">Cancel</button></td></tr><% }); %></table>
+    </div>
     <p class="muted">Schedule new messages with <code>/schedule</code> in Discord (times like "in 2h", "tomorrow 9am", "2026-11-14 15:00").</p>
     <% } %>
 
@@ -402,7 +418,7 @@
     <% if (module === 'automod') { %>
     <h1>Automod</h1>
     <p class="muted">Spam detection, banned words, and link/invite blocking. Exempt roles and channels bypass every check; admins are always exempt. The configured action (delete / warn / timeout) applies to every Automod hit. Same settings as /automod-setup in Discord.</p>
-    <% if (!automodSettings || !automodSettings.enabled) { %><p>Automod is currently <strong>❌ disabled</strong> in this server.</p><% } else { %><p>Automod is currently <strong>✅ enabled</strong> in this server.</p><% } %>
+    <p id="automod-status"><% if (!automodSettings || !automodSettings.enabled) { %>Automod is currently <strong>❌ disabled</strong> in this server.<% } else { %>Automod is currently <strong>✅ enabled</strong> in this server.<% } %></p>
     <form id="automod-form">
       <label class="toggle"><input type="checkbox" name="enabled" value="true" <%= automodSettings?.enabled ? 'checked' : '' %>><span class="track"></span><span>Automod enabled</span></label>
       <label>Spam: max messages</label>
@@ -435,10 +451,12 @@
       <br><br><button class="btn" type="submit">Save Automod settings</button>
     </form>
     <p id="automod-result" class="muted"></p>
-    <h2>Recent Automod actions</h2>
+    <h2>Recent Automod actions <button class="btn ghost" type="button" data-refresh-section="#automod-actions-list">🔄 Refresh</button></h2>
+    <div id="automod-actions-list">
     <% if (!automodActions.length) { %><p class="muted">No Automod actions logged yet.</p><% } %>
     <table><tr><th>When</th><th>User</th><th>Action</th><th>Reason</th><th>Message</th></tr>
     <% automodActions.forEach(a => { %><tr><td><%= a.created_at %></td><td>&lt;@<%= a.user_id %>&gt;</td><td><%= a.action %></td><td><%= a.reason %></td><td><%= (a.message_excerpt || '').slice(0, 80) %></td></tr><% }); %></table>
+    </div>
     <% } %>
 
     <% if (module === 'suggestions') { %>
@@ -451,7 +469,7 @@
       </select>
       <br><br><button class="btn" type="submit">Save suggestions channel</button>
     </form>
-    <h2>All suggestions</h2>
+    <h2>All suggestions <button class="btn ghost" type="button" data-refresh-section="#suggestions-list">🔄 Refresh</button></h2>
     <p>
       <button class="btn ghost" data-sugg-filter="pending">Pending</button>
       <button class="btn ghost" data-sugg-filter="approved">Approved</button>
@@ -477,196 +495,7 @@
   </section>
 </div>
 
-<script>
-// Forms post JSON to the API (the API is the single source of truth).
-document.querySelectorAll('form[action^="/api/"]').forEach(form => {
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const btn = form.querySelector('button[type=submit]');
-    const original = btn ? btn.textContent : '';
-    if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
-    const data = {};
-    new FormData(form).forEach((v, k) => { data[k] = v; });
-    form.querySelectorAll('input[type=checkbox]').forEach(cb => { if (!data[cb.name]) data[cb.name] = false; });
-    if (data.levelRoles) { try { data.levelRoles = JSON.parse(data.levelRoles); } catch { alert('levelRoles must be valid JSON'); if (btn) { btn.textContent = original; btn.disabled = false; } return; } }
-    const res = await fetch(form.action, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-    if (res.ok) window.location.href = window.location.pathname + '?saved=1';
-    else { alert('Save failed: ' + (await res.text())); if (btn) { btn.textContent = original; btn.disabled = false; } }
-  });
-});
-</script>
-<script>
-const guildId = '<%= guild.id %>';
-// Live template preview
-const tplInput = document.getElementById('template-input');
-const tplPreview = document.getElementById('template-preview');
-function updatePreview() {
-  const v = tplInput ? tplInput.value : '';
-  tplPreview.textContent = (v || '🔴 LIVE: {name}')
-    .replaceAll('{name}', 'ExampleStreamer').replaceAll('{game}', 'Just Chatting').replaceAll('{title}', 'Chilling with chat');
-}
-if (tplInput) { tplInput.addEventListener('input', updatePreview); updatePreview(); }
-// Streamer add/edit/remove/refresh
-const sResult = document.getElementById('streamer-result');
-const addS = document.getElementById('add-streamer-form');
-if (addS) addS.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const fd = new FormData(addS);
-  const res = await fetch(`/api/guilds/${guildId}/streamers`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(fd)) });
-  if (res.ok) window.location.reload();
-  else { const j = await res.json().catch(() => ({})); sResult.textContent = '❌ ' + (j.error || 'Failed to add streamer.'); }
-});
-document.querySelectorAll('[data-remove-streamer]').forEach(btn => btn.addEventListener('click', async () => {
-  if (!confirm('Remove this streamer?')) return;
-  const res = await fetch(`/api/guilds/${guildId}/streamers/${btn.dataset.removeStreamer}`, { method: 'DELETE' });
-  if (res.ok) window.location.reload();
-}));
-document.querySelectorAll('[data-refresh-streamer]').forEach(btn => btn.addEventListener('click', async () => {
-  btn.textContent = 'Checking…';
-  const res = await fetch(`/api/guilds/${guildId}/streamers/${btn.dataset.refreshStreamer}/refresh`, { method: 'POST' });
-  const j = await res.json().catch(() => ({}));
-  if (res.ok) { alert(j.live ? `🔴 LIVE${j.title ? ' — ' + j.title : ''}` : '⚫ Offline right now.'); window.location.reload(); }
-  else { alert('Check failed: ' + (j.error || 'unknown error')); btn.textContent = 'Refresh'; }
-}));
-document.querySelectorAll('[data-edit-streamer]').forEach(btn => btn.addEventListener('click', () => {
-  const row = document.getElementById('edit-row-' + btn.dataset.editStreamer);
-  row.style.display = row.style.display === 'none' ? '' : 'none';
-}));
-document.querySelectorAll('.edit-streamer-form').forEach(form => form.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const fd = new FormData(form);
-  const res = await fetch(`/api/guilds/${guildId}/streamers/${form.dataset.streamerId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(fd)) });
-  if (res.ok) window.location.reload();
-  else { const j = await res.json().catch(() => ({})); alert('Failed: ' + (j.error || 'unknown error')); }
-}));
-// Applications tab
-const createAppForm = document.getElementById('create-app-form');
-if (createAppForm) createAppForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const fd = new FormData(createAppForm);
-  const res = await fetch(`/api/guilds/${guildId}/applications/forms`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: fd.get('name'), description: fd.get('description'), questions: String(fd.get('questions')).split('\n'), roleToGrant: fd.get('roleToGrant') || null, reviewChannelId: fd.get('reviewChannelId') }) });
-  if (res.ok) window.location.reload();
-  else { const j = await res.json().catch(() => ({})); document.getElementById('app-form-result').textContent = '❌ ' + (j.error || 'Failed.'); }
-});
-document.querySelectorAll('[data-app-form-toggle]').forEach(btn => btn.addEventListener('click', async () => {
-  const res = await fetch(`/api/guilds/${guildId}/applications/forms/${btn.dataset.appFormToggle}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ isOpen: btn.dataset.appFormOpen === '1' }) });
-  if (res.ok) window.location.reload();
-}));
-document.querySelectorAll('[data-app-review]').forEach(btn => btn.addEventListener('click', async () => {
-  const note = document.getElementById('note-' + btn.dataset.appReview)?.value || '';
-  const res = await fetch(`/api/guilds/${guildId}/applications/${btn.dataset.appReview}/review`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ decision: btn.dataset.appDecision, note }) });
-  if (res.ok) window.location.reload(); else alert('Failed: ' + (await res.text()));
-}));
-// Welcome / goodbye live previews
-function welcomePreview(text) {
-  return (text || 'Welcome to {server}, {user}! You are member #{membercount}.')
-    .replaceAll('{user}', '@Ace').replaceAll('{username}', 'Ace')
-    .replaceAll('{server}', 'Your Server').replaceAll('{membercount}', '42');
-}
-const wTpl = document.getElementById('welcome-template');
-const wPrev = document.getElementById('welcome-preview');
-if (wTpl) { wTpl.addEventListener('input', () => { wPrev.textContent = welcomePreview(wTpl.value); }); wPrev.textContent = welcomePreview(wTpl.value); }
-const gTpl = document.getElementById('goodbye-template');
-const gPrev = document.getElementById('goodbye-preview');
-if (gTpl) { gTpl.addEventListener('input', () => { gPrev.textContent = welcomePreview(gTpl.value); }); gPrev.textContent = welcomePreview(gTpl.value); }
-// Automod form (JSON API)
-const automodForm = document.getElementById('automod-form');
-if (automodForm) automodForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const fd = new FormData(automodForm);
-  const body = {
-    enabled: fd.get('enabled') === 'true',
-    spamMaxMessages: parseInt(fd.get('spamMaxMessages'), 10),
-    spamWindowSeconds: parseInt(fd.get('spamWindowSeconds'), 10),
-    spamAction: fd.get('spamAction'),
-    spamTimeoutMinutes: parseInt(fd.get('spamTimeoutMinutes'), 10),
-    blockLinks: fd.get('blockLinks') === 'true',
-    blockInvites: fd.get('blockInvites') === 'true',
-    logChannelId: fd.get('logChannelId') || '',
-    bannedWords: String(fd.get('bannedWords') || '').split('\n'),
-    exemptRoles: fd.getAll('exemptRoles'),
-    exemptChannels: fd.getAll('exemptChannels'),
-  };
-  const res = await fetch(`/api/guilds/${guildId}/automod`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-  if (res.ok) window.location.href = window.location.pathname + '?saved=1';
-  else { const j = await res.json().catch(() => ({})); document.getElementById('automod-result').textContent = '❌ ' + (j.error || 'Failed to save.'); }
-});
-// Suggestions: status filter + review buttons
-document.querySelectorAll('[data-sugg-filter]').forEach(btn => btn.addEventListener('click', async () => {
-  const status = btn.dataset.suggFilter;
-  const res = await fetch(`/api/guilds/${guildId}/suggestions${status ? '?status=' + status : ''}`);
-  const rows = await res.json().catch(() => []);
-  const list = document.getElementById('suggestions-list');
-  if (!rows.length) { list.innerHTML = '<p class="muted">No suggestions with that status.</p>'; return; }
-  list.innerHTML = rows.map(s => `<div class="card" style="text-align:left;margin-bottom:12px"><strong>#${s.id} — ${s.title}</strong> · &lt;@${s.user_id}&gt; · ${s.status} · 👍 ${s.votes_up} · 👎 ${s.votes_down}<br><p>${s.text}</p>${s.status === 'pending' ? `<button class="btn green" data-sugg-review="${s.id}" data-sugg-decision="approved">✅ Approve</button> <button class="btn danger" data-sugg-review="${s.id}" data-sugg-decision="denied">❌ Deny</button> <button class="btn" data-sugg-review="${s.id}" data-sugg-decision="implemented">🚀 Mark implemented</button>` : ''}</div>`).join('');
-  bindSuggReview();
-}));
-function bindSuggReview() {
-  document.querySelectorAll('[data-sugg-review]').forEach(btn => btn.addEventListener('click', async () => {
-    const res = await fetch(`/api/guilds/${guildId}/suggestions/${btn.dataset.suggReview}/review`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ decision: btn.dataset.suggDecision }) });
-    if (res.ok) window.location.reload(); else alert('Failed: ' + (await res.text()));
-  }));
-}
-bindSuggReview();
-// Commands tab (JS-driven)
-const cmdList = document.getElementById('commands-list');
-if (cmdList) {
-  fetch(`/api/guilds/${guildId}/commands`).then(r => r.json()).then(rows => {
-    let html = '<table><tr><th>Command</th><th>Category</th><th>Enabled in this server</th></tr>';
-    rows.forEach(c => {
-      html += `<tr><td>/${c.name}</td><td>${c.category}</td><td>${c.globallyDisabled ? 'Disabled globally by staff' : `<label class="toggle"><input type="checkbox" data-guild-command="${c.name}" ${c.enabled ? 'checked' : ''}><span class="track"></span></label>`}</td></tr>`;
-    });
-    cmdList.innerHTML = html + '</table>';
-    cmdList.querySelectorAll('[data-guild-command]').forEach(cb => cb.addEventListener('change', async () => {
-      const res = await fetch(`/api/guilds/${guildId}/commands`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ commandName: cb.dataset.guildCommand, enabled: cb.checked }) });
-      if (!res.ok) { alert('Failed to save.'); cb.checked = !cb.checked; }
-    }));
-  });
-}
-// Premium tabs: shop / custom commands / FAQ / scheduled
-const addShop = document.getElementById('add-shop-form');
-if (addShop) addShop.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const fd = new FormData(addShop);
-  const res = await fetch(`/api/guilds/${guildId}/shop`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(fd)) });
-  if (res.ok) window.location.reload();
-  else { const j = await res.json().catch(() => ({})); document.getElementById('shop-result').textContent = '❌ ' + (j.error || 'Failed.'); }
-});
-document.querySelectorAll('[data-remove-shop]').forEach(btn => btn.addEventListener('click', async () => {
-  if (!confirm('Remove this shop item?')) return;
-  const res = await fetch(`/api/guilds/${guildId}/shop/${btn.dataset.removeShop}`, { method: 'DELETE' });
-  if (res.ok) window.location.reload();
-}));
-const addCustom = document.getElementById('add-custom-form');
-if (addCustom) addCustom.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const fd = new FormData(addCustom);
-  const res = await fetch(`/api/guilds/${guildId}/custom-commands`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(fd)) });
-  if (res.ok) window.location.reload();
-  else { const j = await res.json().catch(() => ({})); document.getElementById('custom-result').textContent = '❌ ' + (j.error || 'Failed.'); }
-});
-document.querySelectorAll('[data-remove-custom]').forEach(btn => btn.addEventListener('click', async () => {
-  if (!confirm(`Remove custom command "${btn.dataset.removeCustom}"?`)) return;
-  const res = await fetch(`/api/guilds/${guildId}/custom-commands/${encodeURIComponent(btn.dataset.removeCustom)}`, { method: 'DELETE' });
-  if (res.ok) window.location.reload();
-}));
-const addFaq = document.getElementById('add-faq-form');
-if (addFaq) addFaq.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const fd = new FormData(addFaq);
-  const res = await fetch(`/api/guilds/${guildId}/faq`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(fd)) });
-  if (res.ok) window.location.reload();
-  else { const j = await res.json().catch(() => ({})); document.getElementById('faq-result').textContent = '❌ ' + (j.error || 'Failed.'); }
-});
-document.querySelectorAll('[data-remove-faq]').forEach(btn => btn.addEventListener('click', async () => {
-  if (!confirm('Remove this FAQ response?')) return;
-  const res = await fetch(`/api/guilds/${guildId}/faq/${btn.dataset.removeFaq}`, { method: 'DELETE' });
-  if (res.ok) window.location.reload();
-}));
-document.querySelectorAll('[data-cancel-scheduled]').forEach(btn => btn.addEventListener('click', async () => {
-  if (!confirm('Cancel this scheduled message?')) return;
-  const res = await fetch(`/api/guilds/${guildId}/scheduled/${btn.dataset.cancelScheduled}`, { method: 'DELETE' });
-  if (res.ok) window.location.reload();
-}));
-</script>
+<script>window.ACEBOT_PAGE = { page: 'settings', guildId: '<%= guild.id %>' };</script>
+<script src="/js/settings.js" defer></script>
+
 <%- include('partials/footer') %>

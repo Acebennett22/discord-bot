@@ -1,5 +1,5 @@
 // Web dashboard (Dyno-style): Discord OAuth2 login, per-server settings pages.
-// Runs SEPARATELY from the bot:  npm run dashboard   (default http://localhost:3000)
+// Runs SEPARATELY from the bot:  npm run dashboard   (default http://localhost:3010)
 // Reads/writes the same MySQL guild_settings / streamers / tickets tables the
 // bot uses — the bot picks up dashboard changes within 60s (guildSettings TTL).
 // SECURITY: never put the bot token or DB password in frontend code or any API
@@ -39,7 +39,7 @@ for (const cat of fs.readdirSync(path.join(__dirname, 'commands'))) {
 COMMAND_CATALOG.sort((a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name));
 
 const app = express();
-const PORT = (config.dashboard && config.dashboard.port) || 3000;
+const PORT = (config.dashboard && config.dashboard.port) || 3010;
 const REDIRECT_URI = (config.dashboard && config.dashboard.redirectUri) || `http://localhost:${PORT}/callback`;
 
 // Behind a reverse proxy (Nginx/Caddy/Cloudflare): trust X-Forwarded-* so
@@ -160,7 +160,7 @@ function maskSecret(v) {
 // Redirect everything to the wizard while first-run setup is incomplete.
 app.use((req, res, next) => {
   if (!setupNeeded()) return next();
-  if (req.path.startsWith('/setup') || req.path === '/style.css' || req.path === '/favicon.svg') return next();
+  if (req.path.startsWith('/setup') || req.path === '/style.css' || req.path === '/favicon.svg' || req.path === '/version' || req.path === '/docs' || req.path.startsWith('/js/') || req.path === '/app.js') return next();
   return res.redirect('/setup');
 });
 
@@ -257,9 +257,16 @@ app.post('/setup/:step', requireSetupAccess, async (req, res) => {
       });
       await conn.query('SELECT 1');
       if (body.autoRunSchema === 'on' || body.autoRunSchema === true) {
-        const schema = fs.readFileSync(path.join(__dirname, '..', 'sql', 'schema.sql'), 'utf8');
-        const statements = schema.split(';').map((s) => s.trim()).filter((s) => s && !s.startsWith('--'));
-        for (const stmt of statements) { await conn.query(stmt).catch(() => {}); }
+        for (const schemaFile of ['schema.sql', 'premium.sql']) {
+          const schema = fs.readFileSync(path.join(__dirname, '..', 'sql', schemaFile), 'utf8');
+          // Split on ';', then strip full-line comments from each chunk
+          // (a chunk starting with '--' may still contain a CREATE TABLE
+          // after the header comment — the old filter dropped those).
+          const statements = schema.split(';')
+            .map((s) => s.split('\n').filter((line) => !line.trim().startsWith('--')).join('\n').trim())
+            .filter(Boolean);
+          for (const stmt of statements) { await conn.query(stmt).catch(() => {}); }
+        }
       }
     } catch (e) {
       return fail(`MySQL connection failed: ${e.message}`);
@@ -288,7 +295,7 @@ app.post('/setup/finish', requireSetupAccess, async (req, res) => {
   next.clientId = (d.clientId || '').trim();
   next.ownerId = (d.ownerId || '').trim();
   const publicBase = (current.dashboard?.publicUrl || '').replace(/\/$/, '');
-  next.dashboard = { ...(current.dashboard || {}), clientSecret: (d.clientSecret || '').trim(), sessionSecret: d.sessionSecret || crypto.randomBytes(32).toString('hex'), port: parseInt(d.port, 10) || 3000, redirectUri: d.redirectUri || (publicBase ? `${publicBase}/callback` : `http://localhost:${parseInt(d.port, 10) || 3000}/callback`) };
+  next.dashboard = { ...(current.dashboard || {}), clientSecret: (d.clientSecret || '').trim(), sessionSecret: d.sessionSecret || crypto.randomBytes(32).toString('hex'), port: parseInt(d.port, 10) || 3010, redirectUri: d.redirectUri || (publicBase ? `${publicBase}/callback` : `http://localhost:${parseInt(d.port, 10) || 3010}/callback`) };
   next.database = { ...(current.database || {}), host: d.dbHost || 'localhost', port: parseInt(d.dbPort, 10) || 3306, user: d.dbUser || 'discord_bot', password: d.dbPassword || '', database: d.dbName || 'discord_bot' };
   next.streams = { ...(current.streams || {}), twitch: { ...(current.streams?.twitch || {}), clientId: d.twitchClientId || '', clientSecret: d.twitchClientSecret || '' }, youtube: { ...(current.streams?.youtube || {}), apiKey: d.youtubeApiKey || '' } };
   next.steam = { ...(current.steam || {}), apiKey: d.steamApiKey || '' };
@@ -334,6 +341,22 @@ app.post('/setup/api/test-db', requireSetupAccess, async (req, res) => {
 });
 
 // --- Auth routes ---------------------------------------------------------------
+// Public version/changelog page: header version from package.json, entries
+// parsed from CHANGELOG.md (see src/utils/changelog.js). Never shows a
+// version that isn't in CHANGELOG.md — entries come only from that file.
+app.get('/version', (req, res) => {
+  const { loadChangelog } = require('./utils/changelog');
+  const { version } = require('../package.json');
+  res.render('version', { user: req.session.user || null, guilds: [], inviteUrl: inviteUrl(), isStaff: false, version, entries: loadChangelog() });
+});
+
+// Public wiki/docs page: static content from docs/content.json + the command
+// reference generated live from src/commands (see src/utils/docs.js).
+app.get('/docs', (req, res) => {
+  const { getContent, groupedCommands } = require('./utils/docs');
+  res.render('docs', { user: req.session.user || null, inviteUrl: inviteUrl(), isStaff: false, content: getContent(), groups: groupedCommands() });
+});
+
 app.get('/', (req, res) => {
   if (!req.session.user) return res.render('home', { user: null, guilds: [], inviteUrl: inviteUrl(), isStaff: false });
   res.redirect('/servers');
@@ -457,6 +480,11 @@ app.get('/api/guilds/:id/settings', requireAuth, requireGuildAccess, async (req,
 
 app.post('/api/guilds/:id/settings', requireAuth, requireGuildAccess, async (req, res) => {
   const body = req.body || {};
+  // No-JS fallback: a plain form POST sends urlencoded data — checkboxes
+  // arrive as 'on' instead of JSON true. Normalize, and redirect back to
+  // the settings page with ?saved=1 instead of returning JSON.
+  const isFormPost = req.is('application/x-www-form-urlencoded');
+  for (const k of ['serverStatsEnabled', 'levelUpMessages', 'welcomeEnabled', 'goodbyeEnabled']) if (body[k] === 'on') body[k] = 'true';
   const { channels, roles } = await guildChannelsRoles(req.params.id).catch(() => ({ channels: [], roles: [] }));
   const channelIds = new Set(channels.map((c) => c.id));
   const roleIds = new Set(roles.map((r) => r.id));
@@ -506,6 +534,10 @@ app.post('/api/guilds/:id/settings', requireAuth, requireGuildAccess, async (req
   }
   const { saved, settings } = await setGuildSettings(req.params.id, patch);
   if (!saved) return res.status(503).json({ error: 'Settings saved in memory only — MySQL is not connected.' });
+  if (isFormPost) {
+    const back = (req.get('Referer') || `/guilds/${req.params.id}`).split('?')[0];
+    return res.redirect(`${back}?saved=1`);
+  }
   res.json({ ok: true, settings });
 });
 
@@ -773,6 +805,9 @@ app.get('/api/guilds/:id/premium', requireAuth, requireGuildAccess, async (req, 
 
 app.post('/api/guilds/:id/premium', requireAuth, requireGuildAccess, async (req, res) => {
   const body = req.body || {};
+  // No-JS fallback (see the settings endpoint above).
+  const isFormPost = req.is('application/x-www-form-urlencoded');
+  if (body.stickyRolesEnabled === 'on') body.stickyRolesEnabled = 'true';
   const { channels, roles } = await guildChannelsRoles(req.params.id).catch(() => ({ channels: [], roles: [] }));
   const channelIds = new Set(channels.map((c) => c.id));
   const roleIds = new Set(roles.map((r) => r.id));
@@ -798,6 +833,10 @@ app.post('/api/guilds/:id/premium', requireAuth, requireGuildAccess, async (req,
   if ('economyCurrencyEmoji' in body && typeof body.economyCurrencyEmoji === 'string' && body.economyCurrencyEmoji.trim()) patch.economyCurrencyEmoji = body.economyCurrencyEmoji.trim().slice(0, 32);
   const { saved, settings } = await premiumUtils.setPremiumSettings(req.params.id, patch);
   if (!saved) return res.status(503).json({ error: 'Settings saved in memory only — MySQL is not connected.' });
+  if (isFormPost) {
+    const back = (req.get('Referer') || `/guilds/${req.params.id}`).split('?')[0];
+    return res.redirect(`${back}?saved=1`);
+  }
   res.json({ ok: true, settings });
 });
 
@@ -900,6 +939,50 @@ app.delete('/api/guilds/:id/scheduled/:msgId', requireAuth, requireGuildAccess, 
 });
 
 
+// --- Presence (Staff area) ---
+// The dashboard runs standalone, so it can't set the bot's presence
+// directly: the current activity is read from the presence_state table
+// (written by the bot on every rotation), "rotate now" sets a flag the bot
+// checks each tick, and template edits are written to config.json — the
+// bot re-reads config.json from disk on every rotation tick.
+const ACTIVITY_TYPE_NAMES = ['Playing', 'Watching', 'Listening', 'Competing'];
+
+function parsePresenceTemplates(raw) {
+  if (typeof raw !== 'string') return null;
+  const lines = raw.split('\n').map((l) => l.trim()).filter(Boolean).slice(0, 20);
+  if (!lines.length) return null;
+  const activities = [];
+  for (const line of lines) {
+    const m = /^(Playing|Watching|Listening|Competing)\s*:\s*(.+)$/i.exec(line);
+    if (m) activities.push({ text: m[2].trim().slice(0, 128), type: m[1][0].toUpperCase() + m[1].slice(1).toLowerCase() });
+    else activities.push(line.slice(0, 128));
+  }
+  return activities;
+}
+
+app.post('/api/staff/presence/rotate', requireStaff, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable — the bot checks the rotate flag in MySQL.' });
+  await db.query('INSERT INTO presence_state (id, rotate_requested_at) VALUES (1, NOW()) ON DUPLICATE KEY UPDATE rotate_requested_at = NOW()');
+  await staffUtils.audit(req.session.user.id, 'presence.rotate', '', 'rotate now requested');
+  res.json({ ok: true });
+});
+
+app.post('/api/staff/presence/templates', requireStaff, async (req, res) => {
+  const activities = parsePresenceTemplates(req.body?.templates);
+  if (!activities) return res.status(400).json({ error: 'Add at least one template (one per line).' });
+  const configPath = path.join(__dirname, '..', 'config.json');
+  let current;
+  try { current = JSON.parse(fs.readFileSync(configPath, 'utf8')); }
+  catch { return res.status(500).json({ error: 'Could not read config.json.' }); }
+  current.presence = { ...(current.presence || {}), rotateSeconds: current.presence?.rotateSeconds ?? 60, activities };
+  try { fs.writeFileSync(configPath, JSON.stringify(current, null, 2) + '\n'); }
+  catch (e) { return res.status(500).json({ error: `Could not write config.json: ${e.message}` }); }
+  Object.assign(config, current); // update this process's in-memory config too
+  await staffUtils.audit(req.session.user.id, 'presence.templates', '', `${activities.length} templates saved`);
+  res.json({ ok: true, activities });
+});
+
+
 // --- Staff area (owner + approved staff only) --------------------------------
 app.get('/staff', requireStaff, async (req, res) => {
   const data = { botConnected: false, shardInfo: 'Bot not connected — the dashboard runs standalone (npm run dashboard), separate from the bot process. Shard/live status comes from the bot itself; totals below come from the MySQL logs.' };
@@ -913,7 +996,9 @@ app.get('/staff', requireStaff, async (req, res) => {
     const recent = await db.query('SELECT guild_id, user_id, username, command_name, success, error_message, created_at FROM command_logs ORDER BY id DESC LIMIT 50') || [];
     const errors = recent.filter((r) => !r.success);
     const errors24h = (await db.query("SELECT COUNT(*) AS c FROM error_logs WHERE created_at >= NOW() - INTERVAL 24 HOUR"))?.[0]?.c ?? 0;
-    Object.assign(data, { totalCommands, totalGuilds, songs, totalUsers, topCommands, topGuilds, recent, errors, errors24h });
+    const presenceRows = await db.query('SELECT current_text, current_type, updated_at FROM presence_state WHERE id = 1') || [];
+    const presenceState = presenceRows[0] || null;
+    Object.assign(data, { totalCommands, totalGuilds, songs, totalUsers, topCommands, topGuilds, recent, errors, errors24h, presenceState, presenceTemplates: (config.presence?.activities || []) });
   }
   res.render('staff', { user: req.session.user, section: 'overview', data, isStaff: true, inviteUrl: inviteUrl(), saved: req.query.saved === '1' });
 });
@@ -994,6 +1079,153 @@ app.post('/api/staff/backup-now', requireStaff, async (req, res) => {
   if (!result.ok) return res.status(500).json({ error: result.error });
   await staffUtils.audit(req.session.user.id, 'backup.manual', result.filename, `${result.sizeBytes} bytes`);
   res.json({ ok: true, filename: result.filename, sizeBytes: result.sizeBytes });
+});
+
+// --- Bot tracking (staff) ------------------------------------------------------
+// Settings are per-guild (guild_settings.bot_*); the page lists the guilds
+// the bot is in and lets staff review flags for one guild at a time.
+const botTracker = require('./utils/botTracker');
+
+async function botGuilds() {
+  try {
+    const r = await discordApi.get('/users/@me/guilds', { headers: botHeaders() });
+    return r.data || [];
+  } catch { return []; }
+}
+
+app.get('/staff/bottracking', requireStaff, async (req, res) => {
+  const guilds = await botGuilds();
+  const guildId = req.query.guild || guilds[0]?.id || '';
+  let flags = [];
+  let stats = [];
+  let botSettings = null;
+  if (db.isEnabled() && guildId) {
+    flags = await botTracker.getRecentFlags(guildId, 50) || [];
+    stats = await botTracker.getJoinStats(guildId, 7) || [];
+    botSettings = await getGuildSettings(guildId);
+  }
+  const raid = guildId ? botTracker.raidWatchStatus(guildId) : null;
+  res.render('staff', { user: req.session.user, section: 'bottracking', data: { guilds, guildId, flags, stats, botSettings, raid, defaults: botTracker.botTrackingConfig() }, isStaff: true, inviteUrl: inviteUrl(), saved: req.query.saved === '1' });
+});
+
+app.get('/api/staff/botflags', requireStaff, async (req, res) => {
+  const guildId = req.query.guild || '';
+  const status = ['open', 'reviewed', 'cleared'].includes(req.query.status) ? req.query.status : null;
+  if (!guildId) return res.json({ flags: [], stats: [] });
+  const flags = await botTracker.getRecentFlags(guildId, 50, status) || [];
+  const stats = await botTracker.getJoinStats(guildId, 7) || [];
+  res.json({ flags, stats, raid: botTracker.raidWatchStatus(guildId) });
+});
+
+app.post('/api/staff/botflags/:id/clear', requireStaff, async (req, res) => {
+  if (!db.isEnabled()) return res.status(500).json({ error: 'Database unavailable.' });
+  const rows = await db.query('SELECT * FROM bot_flags WHERE id = ?', [req.params.id]) || [];
+  const flag = rows[0];
+  if (!flag) return res.status(404).json({ error: 'Flag not found.' });
+  await db.query("UPDATE bot_flags SET status = 'reviewed', reviewed_by = ? WHERE id = ?", [req.session.user.id, flag.id]);
+  await staffUtils.audit(req.session.user.id, 'botflag.clear', String(flag.user_id), `flag #${flag.id} score ${flag.score}`);
+  res.json({ ok: true });
+});
+
+async function botFlagAction(req, res, action) {
+  if (!db.isEnabled()) return res.status(500).json({ error: 'Database unavailable.' });
+  const rows = await db.query('SELECT * FROM bot_flags WHERE id = ?', [req.params.id]) || [];
+  const flag = rows[0];
+  if (!flag) return res.status(404).json({ error: 'Flag not found.' });
+  try {
+    if (action === 'kick') await discordApi.delete(`/guilds/${flag.guild_id}/members/${flag.user_id}`, { headers: botHeaders() });
+    else await discordApi.put(`/guilds/${flag.guild_id}/bans/${flag.user_id}`, { delete_message_days: 0, reason: `Bot tracking: suspicion score ${flag.score}` }, { headers: botHeaders() });
+  } catch (err) {
+    return res.status(500).json({ error: `Discord ${action} failed: ${err.response?.data?.message || err.message}` });
+  }
+  await db.query("UPDATE bot_flags SET status = 'reviewed', action_taken = ?, reviewed_by = ? WHERE id = ?", [action, req.session.user.id, flag.id]);
+  await staffUtils.audit(req.session.user.id, `botflag.${action}`, String(flag.user_id), `flag #${flag.id} score ${flag.score}`);
+  res.json({ ok: true });
+}
+app.post('/api/staff/botflags/:id/kick', requireStaff, (req, res) => botFlagAction(req, res, 'kick'));
+app.post('/api/staff/botflags/:id/ban', requireStaff, (req, res) => botFlagAction(req, res, 'ban'));
+
+app.post('/api/staff/bottracking/settings', requireStaff, async (req, res) => {
+  const { guildId, threshold, autoAction, suspectRoleId } = req.body || {};
+  if (!guildId) return res.status(400).json({ error: 'guildId is required.' });
+  if (threshold != null && (threshold < 0 || threshold > 100)) return res.status(400).json({ error: 'Threshold must be 0–100.' });
+  if (autoAction && !['flag', 'kick', 'ban'].includes(autoAction)) return res.status(400).json({ error: 'autoAction must be flag, kick, or ban.' });
+  const saved = await setGuildSettings(guildId, {
+    botThreshold: threshold == null || threshold === '' ? null : parseInt(threshold, 10),
+    botAutoAction: autoAction || 'flag',
+    botSuspectRoleId: suspectRoleId || '',
+  });
+  if (!saved.saved) return res.status(500).json({ error: 'Database unavailable — settings kept in memory only.' });
+  await staffUtils.audit(req.session.user.id, 'bottracking.settings', guildId, `threshold=${threshold} action=${autoAction}`);
+  res.json({ ok: true });
+});
+
+// Plain-POST fallback for the bot-tracking settings form (no-JS browsers):
+// same save as the API above, then back to the page with ?saved=1.
+app.post('/staff/bottracking/settings', requireStaff, async (req, res) => {
+  const { guildId, threshold, autoAction, suspectRoleId } = req.body || {};
+  if (!guildId) return res.redirect('/staff/bottracking?saved=0');
+  await setGuildSettings(guildId, {
+    botThreshold: threshold == null || threshold === '' ? null : parseInt(threshold, 10),
+    botAutoAction: ['flag', 'kick', 'ban'].includes(autoAction) ? autoAction : 'flag',
+    botSuspectRoleId: suspectRoleId || '',
+  });
+  await staffUtils.audit(req.session.user.id, 'bottracking.settings', guildId, `threshold=${threshold} action=${autoAction} (form POST)`);
+  res.redirect(`/staff/bottracking?guild=${encodeURIComponent(guildId)}&saved=1`);
+});
+
+// --- Staff JSON endpoints for the client-side JS layer --------------------------
+// (live refresh without full-page reloads; same data as the server-rendered pages)
+app.get('/api/staff/overview', requireStaff, async (req, res) => {
+  const data = { guilds: 0, errors24h: 0, presence: null, commandsUsed: 0, joinsToday: 0, flaggedToday: 0 };
+  if (db.isEnabled()) {
+    try {
+      const g = await discordApi.get('/users/@me/guilds', { headers: botHeaders() });
+      data.guilds = (g.data || []).length;
+    } catch {}
+    const e = await db.query("SELECT COUNT(*) AS n FROM error_logs WHERE created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)") || [];
+    data.errors24h = e[0]?.n || 0;
+    const p = await db.query('SELECT current_text, current_type, updated_at FROM presence_state ORDER BY id DESC LIMIT 1') || [];
+    data.presence = p[0] || null;
+    const c = await db.query('SELECT SUM(commands_used) AS n FROM guild_stats') || [];
+    data.commandsUsed = c[0]?.n || 0;
+    const j = await db.query('SELECT SUM(total_joins) AS t, SUM(flagged_joins) AS f FROM bot_join_stats WHERE date = CURDATE()') || [];
+    data.joinsToday = j[0]?.t || 0;
+    data.flaggedToday = j[0]?.f || 0;
+  }
+  res.json(data);
+});
+
+app.get('/api/staff/errors', requireStaff, async (req, res) => {
+  if (!db.isEnabled()) return res.json({ errors: [] });
+  const { level, command } = req.query;
+  const where = [];
+  const params = [];
+  if (level && ['error', 'warn', 'info'].includes(level)) { where.push('level = ?'); params.push(level); }
+  if (command) { where.push('command_name = ?'); params.push(command); }
+  const rows = await db.query(
+    `SELECT id, level, shard_id, guild_id, command_name, user_id, message, created_at, resolved FROM error_logs ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY id DESC LIMIT 100`,
+    params) || [];
+  res.json({ errors: rows });
+});
+
+app.get('/api/staff/backups', requireStaff, async (req, res) => {
+  const logs = db.isEnabled() ? (await db.query('SELECT * FROM backup_logs ORDER BY id DESC LIMIT 30') || []) : [];
+  let files = [];
+  try {
+    files = fs.readdirSync(BACKUP_DIR).filter((f) => f.endsWith('.sql.gz')).map((f) => {
+      const st = fs.statSync(path.join(BACKUP_DIR, f));
+      return { name: f, size: st.size, mtime: st.mtime };
+    }).sort((a, b) => b.mtime - a.mtime);
+  } catch {}
+  res.json({ logs, files, retentionDays: retentionDays(), scheduleTime: (config.backups?.time || '03:00') });
+});
+
+app.get('/api/guilds/:id/invites', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.json({ leaderboard: [], stats: [] });
+  const leaderboard = await db.query('SELECT user_id, total_invites, valid_invites, leaves, fake_invites FROM user_invites WHERE guild_id = ? ORDER BY valid_invites DESC, total_invites DESC LIMIT 10', [req.params.id]) || [];
+  const stats = await db.query('SELECT user_id, total_invites, valid_invites, leaves, fake_invites, updated_at FROM user_invites WHERE guild_id = ? ORDER BY valid_invites DESC LIMIT 50', [req.params.id]) || [];
+  res.json({ leaderboard, stats });
 });
 
 app.get('/staff/broadcast', requireOwner, async (req, res) => {

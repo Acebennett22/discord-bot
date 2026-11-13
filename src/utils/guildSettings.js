@@ -22,6 +22,9 @@ const DEFAULTS = {
   applicationReviewerRoleId: '',
   inviteLogChannelId: '',
   inviteMinAccountAgeDays: null,
+  botThreshold: null,
+  botAutoAction: 'flag',
+  botSuspectRoleId: '',
 };
 
 const DEFAULT_WELCOME_MESSAGE = 'Welcome to {server}, {user}! You are member #{membercount}.';
@@ -36,6 +39,7 @@ const COLUMNS = [
   'level_up_messages', 'level_roles', 'server_stats_enabled', 'server_stats_channels',
   'live_channel_name_template', 'application_reviewer_role_id',
   'invite_log_channel_id', 'invite_min_account_age_days',
+  'bot_threshold', 'bot_auto_action', 'bot_suspect_role_id',
 ];
 
 async function getGuildSettings(guildId) {
@@ -73,6 +77,9 @@ async function getGuildSettings(guildId) {
         applicationReviewerRoleId: r.application_reviewer_role_id || '',
         inviteLogChannelId: r.invite_log_channel_id || '',
         inviteMinAccountAgeDays: r.invite_min_account_age_days,
+        botThreshold: r.bot_threshold,
+        botAutoAction: r.bot_auto_action || 'flag',
+        botSuspectRoleId: r.bot_suspect_role_id || '',
       };
     }
   }
@@ -101,6 +108,9 @@ async function setGuildSettings(guildId, patch) {
     next.applicationReviewerRoleId || null,
     next.inviteLogChannelId || null,
     next.inviteMinAccountAgeDays ?? null,
+    next.botThreshold ?? null,
+    next.botAutoAction || 'flag',
+    next.botSuspectRoleId || null,
   ];
   // COLUMNS.length columns, values.length params — keep them in sync.
   if (values.length !== COLUMNS.length) throw new Error(`guildSettings column/param mismatch: ${COLUMNS.length} columns, ${values.length} values`);

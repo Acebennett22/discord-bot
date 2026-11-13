@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { infoEmbed, errorEmbed } = require('../../utils/embeds');
 const db = require('../../utils/database');
+const { version: BOT_VERSION } = require('../../../package.json');
 
 module.exports = {
   data: new SlashCommandBuilder().setName('botstats').setDescription('Show bot statistics from the database (commands, songs, uptime).'),
@@ -15,6 +16,7 @@ module.exports = {
       : 'No commands logged yet.';
     const uptimeS = Math.floor(interaction.client.uptime / 1000);
     return interaction.reply({ ephemeral: true, embeds: [infoEmbed('Bot statistics', [
+      `**Bot version:** v${BOT_VERSION}`,
       `**Total commands used:** ${stats.totalCommands}`,
       `**Successful:** ${stats.successes}`,
       `**Songs played:** ${stats.songsPlayed}`,

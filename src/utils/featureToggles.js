@@ -18,7 +18,7 @@ const COMMAND_FEATURES = {
   'welcome-setup': 'welcome', 'welcome-toggle': 'welcome', 'goodbye-setup': 'welcome', 'goodbye-toggle': 'welcome', 'welcome-test': 'welcome',
   'automod': 'automod', 'automod-setup': 'automod', 'automod-words': 'automod', 'automod-exempt': 'automod',
   'suggest': 'suggestions', 'suggestions-setup': 'suggestions', 'suggest-status': 'suggestions',
-  'balance': 'economy', 'daily': 'economy', 'work': 'economy', 'pay': 'economy', 'eco-leaderboard': 'economy', 'shop': 'economy', 'shop-add': 'economy', 'deposit': 'economy', 'withdraw': 'economy',
+  'balance': 'economy', 'daily': 'economy', 'work': 'economy', 'pay': 'economy', 'eco-leaderboard': 'economy', 'shop': 'economy', 'shop-add': 'economy', 'deposit': 'economy', 'withdraw': 'economy', 'slots': 'casino', 'blackjack': 'casino', 'roulette': 'casino', 'gamble-coinflip': 'casino', 'gamble-dice': 'casino', 'buy': 'economy', 'sell': 'economy', 'inventory': 'economy', 'open-crate': 'economy', 'use': 'economy', 'trade': 'trading', 'trade-cancel': 'trading', 'botflags': 'bottracking', 'botflag': 'bottracking', 'botflag-clear': 'bottracking', 'bottrack': 'bottracking',
   'starboard-setup': 'starboard',
   'custom-add': 'customcommands', 'custom-remove': 'customcommands', 'custom-list': 'customcommands',
   'modlog-setup': 'modlog',
@@ -27,9 +27,10 @@ const COMMAND_FEATURES = {
   'autorole': 'autorole',
   'schedule': 'scheduler', 'schedule-list': 'scheduler', 'schedule-cancel': 'scheduler', 'remindme': 'scheduler',
   'faq-add': 'faq', 'faq-remove': 'faq', 'faq-list': 'faq',
+  'presence': 'presence',
 };
 
-const FEATURES = ['music', 'tickets', 'leveling', 'giveaways', 'streams', 'gameservers', 'serverstats', 'reactionroles', 'applications', 'invites', 'welcome', 'automod', 'suggestions', 'economy', 'starboard', 'customcommands', 'modlog', 'afk', 'polls', 'autorole', 'scheduler', 'faq'];
+const FEATURES = ['music', 'tickets', 'leveling', 'giveaways', 'streams', 'gameservers', 'serverstats', 'reactionroles', 'applications', 'invites', 'welcome', 'automod', 'suggestions', 'economy', 'starboard', 'customcommands', 'modlog', 'afk', 'polls', 'autorole', 'scheduler', 'faq', 'presence', 'casino', 'trading', 'bottracking'];
 
 async function isEnabled(table, key, guildId) {
   if (!db.isEnabled()) return true;

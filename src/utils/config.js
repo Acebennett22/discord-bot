@@ -69,11 +69,27 @@ config.leveling.cooldownSeconds = config.leveling.cooldownSeconds || 60;
 config.gameServers = config.gameServers || {};
 config.gameServers.checkIntervalMinutes = config.gameServers.checkIntervalMinutes || 5;
 config.gameServers.custom = config.gameServers.custom || [];
+config.economy = config.economy || {};
+config.economy.startingBalance = config.economy.startingBalance ?? 100;
+config.economy.dailyMin = config.economy.dailyMin ?? 100;
+config.economy.dailyMax = config.economy.dailyMax ?? 500;
+config.economy.workMin = config.economy.workMin ?? 50;
+config.economy.workMax = config.economy.workMax ?? 250;
+config.economy.currencyName = config.economy.currencyName || 'coins';
+config.economy.currencyEmoji = config.economy.currencyEmoji || '🪙';
+config.presence = config.presence || {};
+config.presence.rotateSeconds = config.presence.rotateSeconds ?? 60;
+config.presence.activities = config.presence.activities || [
+  'Watching {guilds} servers',
+  'Listening to /help',
+  'Playing with {users} users',
+  'Watching {commands} commands',
+];
 config.steam = config.steam || {};
 config.staffUserIds = config.staffUserIds || [];
 config.dashboard = config.dashboard || {};
-config.dashboard.port = config.dashboard.port || 3000;
-config.dashboard.redirectUri = config.dashboard.redirectUri || 'http://localhost:3000/callback';
+config.dashboard.port = config.dashboard.port || 3010;
+config.dashboard.redirectUri = config.dashboard.redirectUri || 'http://localhost:3010/callback';
 config.dashboard.invitePermissions = config.dashboard.invitePermissions || 1099951041558;
 config.streams = config.streams || {};
 config.streams.checkIntervalMinutes = config.streams.checkIntervalMinutes || 5;

@@ -5,7 +5,7 @@ const { startStreamChecker } = require('../utils/streamNotifier');
 const { startGiveawayChecker } = require('../utils/giveaways');
 const { startGameServerChecker } = require('../utils/gameServers');
 const { initInviteTracker } = require('../utils/inviteTracker');
-const { startBackupSchedule } = require('../scripts/backup-db');
+const { startBackupSchedule } = require('../../scripts/backup-db');
 
 module.exports = {
   name: Events.ClientReady,

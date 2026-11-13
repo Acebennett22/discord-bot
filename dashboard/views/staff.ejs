@@ -10,6 +10,7 @@
       <a href="/staff/broadcast" class="<%= section === 'broadcast' ? 'active' : '' %>">📣 Broadcast</a>
       <a href="/staff/errors" class="<%= section === 'errors' || section === 'error-detail' ? 'active' : '' %>">🐛 Errors</a>
       <a href="/staff/backups" class="<%= section === 'backups' ? 'active' : '' %>">💾 Backups</a>
+      <a href="/staff/bottracking" class="<%= section === 'bottracking' ? 'active' : '' %>">🤖 Bot Tracking</a>
       <a href="/servers">← Back to servers</a>
     </nav>
   </aside>
@@ -17,8 +18,9 @@
     <% if (saved) { %><div class="toast">✅ Saved.</div><% } %>
 
     <% if (section === 'errors') { %>
-      <h1>Error logs</h1>
+      <h1>Error logs <button class="btn ghost" type="button" data-refresh-section="#errors-list">🔄 Refresh</button></h1>
       <p class="muted">Every error/warn the bot logs lands in the MySQL <code>error_logs</code> table (and in <code>logs/bot-errors.log</code> on the host). Filter below, click an entry for the full stack trace.</p>
+      <div id="errors-list">
       <form method="get" action="/staff/errors" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
         <div><label>Level</label><select name="level"><option value="">all</option><option value="error" <%= data.filters.level === 'error' ? 'selected' : '' %>>error</option><option value="warn" <%= data.filters.level === 'warn' ? 'selected' : '' %>>warn</option><option value="info" <%= data.filters.level === 'info' ? 'selected' : '' %>>info</option></select></div>
         <div><label>Command/event</label><input type="text" name="command" value="<%= data.filters.command %>"></div>
@@ -32,6 +34,7 @@
         <td><a class="btn ghost" href="/staff/errors/<%= e.id %>">Details</a></td></tr>
       <% }); %></table>
       <% if (!data.errors.length) { %><p class="muted">No errors match. 🎉</p><% } %>
+      </div>
     <% } %>
 
     <% if (section === 'error-detail') { %>
@@ -43,15 +46,8 @@
       <p><%= data.error.message %></p>
       <% if (data.error.stack) { %><h2>Stack trace</h2><pre style="background:#111214;border:1px solid var(--border);border-radius:10px;padding:14px;overflow:auto;font-size:12px"><%= data.error.stack %></pre><% } %>
       <% if (data.error.context) { %><h2>Context</h2><pre style="background:#111214;border:1px solid var(--border);border-radius:10px;padding:14px;overflow:auto;font-size:12px"><%= data.error.context %></pre><% } %>
-      <% if (!data.error.resolved) { %><button class="btn green" id="resolve-error">✅ Mark resolved</button><% } %>
+      <% if (!data.error.resolved) { %><button class="btn green" id="resolve-error" data-resolve-url="/api/staff/errors/<%= data.error.id %>/resolve">✅ Mark resolved</button><% } %>
       <a class="btn ghost" href="/staff/errors">← Back to errors</a>
-      <script>
-      const rb = document.getElementById('resolve-error');
-      if (rb) rb.addEventListener('click', async () => {
-        const res = await fetch('/api/staff/errors/<%= data.error.id %>/resolve', { method: 'POST' });
-        if (res.ok) window.location.reload(); else alert('Failed.');
-      });
-      </script>
     <% } %>
 
     <% if (section === 'backups') { %>
@@ -59,21 +55,38 @@
       <p class="muted">Daily backup at <strong><%= data.scheduleTime %></strong> (node-cron, in the bot process). Retention: keep the last <strong><%= data.retentionDays %> days</strong> — older files are deleted automatically after a successful new backup. Backups live in <code>backups/</code> (git-ignored, never uploaded to Drive).</p>
       <button class="btn" id="backup-now">💾 Backup now</button>
       <p id="backup-result" class="muted"></p>
-      <h2>Backup files on disk</h2>
+      <h2>Backup files on disk <button class="btn ghost" type="button" data-refresh-section="#backup-files">🔄 Refresh</button></h2>
+      <div id="backup-files">
       <% if (!data.files.length) { %><p class="muted">No backup files yet.</p><% } %>
       <table><tr><th>File</th><th>Size</th><th>Created</th><th></th></tr>
       <% data.files.forEach(f => { %><tr><td><code><%= f.name %></code></td><td><%= (f.size / 1024).toFixed(1) %> KB</td><td><%= f.mtime %></td><td><a class="btn ghost" href="/staff/backups/download/<%= f.name %>">Download</a></td></tr><% }); %></table>
+      </div>
       <h2>Backup run log</h2>
+      <div id="backup-logs">
       <table><tr><th>File</th><th>Size</th><th>Status</th><th>When</th><th>Error</th></tr>
       <% data.logs.forEach(l => { %><tr><td><%= l.filename || '—' %></td><td><%= l.size_bytes ? (l.size_bytes / 1024).toFixed(1) + ' KB' : '—' %></td><td><%= l.status %></td><td><%= l.created_at %></td><td><%= l.error_message || '' %></td></tr><% }); %></table>
+      </div>
       <p class="muted">Restore: <code>node scripts/restore-db.js &lt;file&gt; --confirm</code> (overwrites the database), or manually: <code>gunzip -c backups/&lt;file&gt; | mysql -u user -p database</code>.</p>
     <% } %>
 
     <% if (section === 'overview') { %>
       <h1>Bot overview</h1>
       <p class="muted"><%= data.shardInfo %></p>
-      <p><strong>Errors in the last 24h:</strong> <%= data.errors24h ?? '—' %> — <a href="/staff/errors">view errors</a></p>
-      <p><strong>Total guilds:</strong> <%= data.totalGuilds ?? '—' %> &nbsp;·&nbsp; <strong>Total users seen:</strong> <%= data.totalUsers ?? '—' %> &nbsp;·&nbsp; <strong>Commands run:</strong> <%= data.totalCommands ?? '—' %> &nbsp;·&nbsp; <strong>Songs played:</strong> <%= data.songs ?? '—' %></p>
+      <p><strong>Errors in the last 24h:</strong> <span data-overview="errors24h"><%= data.errors24h ?? '—' %></span> — <a href="/staff/errors">view errors</a></p>
+      <p><strong>Total guilds:</strong> <span data-overview="guilds"><%= data.totalGuilds ?? '—' %></span> &nbsp;·&nbsp; <strong>Total users seen:</strong> <%= data.totalUsers ?? '—' %> &nbsp;·&nbsp; <strong>Commands run:</strong> <span data-overview="commandsUsed"><%= data.totalCommands ?? '—' %></span> &nbsp;·&nbsp; <strong>Songs played:</strong> <%= data.songs ?? '—' %></p>
+      <p class="muted">Live stats refresh automatically every 30 seconds. Joins today: <span data-overview="joinsToday">—</span> · flagged today: <span data-overview="flaggedToday">—</span></p>
+      <h2>Presence (bot status)</h2>
+      <p class="muted">The bot's Discord status rotates through the templates below (placeholders: <code>{guilds}</code> <code>{users}</code> <code>{commands}</code> <code>{uptime}</code> <code>{version}</code>). Global, not per-server. The bot re-reads config.json every rotation, so template edits apply without a restart.</p>
+      <p><strong>Currently showing:</strong> <span data-overview="presence"><%= data.presenceState ? `${data.presenceState.current_type || ''} ${data.presenceState.current_text || ''} <span class="muted">(as of ${data.presenceState.updated_at})</span>` : '— (bot hasn\'t reported an activity yet, or the DB is down)' %></span></p>
+      <button class="btn" id="presence-rotate">🔄 Rotate now</button>
+      <p id="presence-rotate-result" class="muted"></p>
+      <form id="presence-templates-form">
+        <label>Activity templates (one per line — plain text defaults to Watching, or <code>Type: text</code>, e.g. <code>Playing: with {users} users</code>)</label>
+        <textarea name="templates" rows="5"><% (data.presenceTemplates || []).forEach(t => { %><%= typeof t === 'string' ? t : `${t.type}: ${t.text}` %>
+<% }); %></textarea>
+        <br><br><button class="btn" type="submit">Save templates</button>
+      </form>
+      <p id="presence-templates-result" class="muted"></p>
       <h2>Top commands</h2>
       <% if (!data.topCommands || !data.topCommands.length) { %><p class="muted">No command logs yet.</p><% } %>
       <table><tr><th>Command</th><th>Uses</th></tr>
@@ -114,11 +127,13 @@
       <p class="muted">Owner only. The owner is always staff implicitly. Bootstrap staff can also be listed in config.json <code>staffUserIds</code>.</p>
       <p><strong>Owner ID:</strong> <code><%= data.ownerId || 'not set in config.json' %></code></p>
       <h2>Current staff</h2>
+      <div id="staff-list">
       <table><tr><th>User ID</th><th>Role</th><th>Added by</th><th></th></tr>
       <% data.staff.forEach(s => { %>
         <tr><td><%= s.user_id %></td><td><%= s.role %></td><td><%= s.added_by || '—' %></td>
         <td><button class="btn danger" data-remove-staff="<%= s.user_id %>">Remove</button></td></tr>
       <% }); %></table>
+      </div>
       <h2>Add staff</h2>
       <form id="add-staff-form">
         <label>Discord user ID</label>
@@ -150,56 +165,68 @@
         <label class="toggle"><input type="checkbox" name="confirm" value="true" required><span class="track"></span><span>I confirm — send this announcement</span></label>
         <br><button class="btn danger" type="submit">Send broadcast</button>
       </form>
+      <div id="broadcast-preview" class="card" style="text-align:left;margin-top:14px;display:none">
+        <p class="muted" style="margin-top:0">Live preview (updates as you type)</p>
+        <h3 data-preview-title style="margin:0 0 6px"></h3>
+        <p data-preview-body style="margin:0;white-space:pre-wrap"></p>
+      </div>
       <p id="broadcast-result" class="muted"></p>
+    <% } %>
+
+    <% if (section === 'bottracking') { %>
+      <h1>🤖 Bot tracking</h1>
+      <p class="muted">Every join is scored 0–100 (account age, default avatar, spammy/random username, join bursts, creation clustering). Score ≥ threshold = auto-action; 40–69 = watchlist (logged, no action); below 40 = clean, not logged. Scores are heuristics, not proof — review before kicking or banning. The bot cannot see whether an account's email/phone is verified; age + avatar + bursts are proxies.</p>
+      <form method="get" action="/staff/bottracking" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
+        <div><label>Server</label><select name="guild">
+          <% data.guilds.forEach(g => { %><option value="<%= g.id %>" <%= data.guildId === g.id ? 'selected' : '' %>><%= g.name %></option><% }); %>
+        </select></div>
+        <div><button class="btn" type="submit">Show</button></div>
+        <button class="btn ghost" type="button" id="botflags-refresh">🔄 Refresh</button>
+      </form>
+      <% if (data.raid) { %>
+        <p><strong>Raid watch:</strong> <%= data.raid.inRaidWindow ? `🚨 ACTIVE — ${data.raid.joinsLastWindow} joins in the last ${data.raid.windowSeconds}s (threshold ${data.raid.raidThreshold})` : `calm — ${data.raid.joinsLastWindow} joins in the last ${data.raid.windowSeconds}s` %></p>
+      <% } %>
+      <h2>Settings for this server</h2>
+      <form method="post" action="/staff/bottracking/settings" id="bottracking-settings-form">
+        <input type="hidden" name="guildId" value="<%= data.guildId %>">
+        <label>Score threshold (default <%= data.defaults.threshold %>)</label>
+        <input type="number" name="threshold" min="0" max="100" value="<%= data.botSettings?.botThreshold ?? '' %>" placeholder="<%= data.defaults.threshold %>">
+        <label>Auto-action at/above threshold (default: flag only — never ban by default)</label>
+        <select name="autoAction">
+          <option value="flag" <%= (data.botSettings?.botAutoAction || 'flag') === 'flag' ? 'selected' : '' %>>Flag only (log + optional suspect role)</option>
+          <option value="kick" <%= data.botSettings?.botAutoAction === 'kick' ? 'selected' : '' %>>Kick</option>
+          <option value="ban" <%= data.botSettings?.botAutoAction === 'ban' ? 'selected' : '' %>>Ban</option>
+        </select>
+        <label>Suspected Bot role ID (optional — given instead of kicking when action is "flag")</label>
+        <input type="text" name="suspectRoleId" value="<%= data.botSettings?.botSuspectRoleId || '' %>" placeholder="Role ID">
+        <br><br><button class="btn" type="submit">Save bot-tracking settings</button>
+      </form>
+      <p id="bottracking-settings-result" class="muted"></p>
+      <h2>Flagged accounts</h2>
+      <div id="botflags-list">
+      <% if (!data.flags.length) { %><p class="muted">No flagged accounts in this server yet.</p><% } %>
+      <table><tr><th>User</th><th>Score</th><th>Signals</th><th>Action</th><th>Status</th><th>When</th><th></th></tr>
+      <% data.flags.forEach(f => { %>
+        <tr data-botflag-row="<%= f.id %>"><td>&lt;@<%= f.user_id %>&gt;</td><td><strong><%= f.score %>/100</strong></td><td><%= (f.reason || '').slice(0, 160) %></td><td><%= f.action_taken || 'flag' %></td><td><%= f.status %></td><td><%= f.flagged_at %></td>
+        <td style="white-space:nowrap">
+          <% if (f.status === 'open') { %>
+            <button class="btn ghost" data-botflag-clear="<%= f.id %>">Clear</button>
+            <button class="btn danger" data-botflag-kick="<%= f.id %>" data-botflag-user="<%= f.user_id %>">Kick</button>
+            <button class="btn danger" data-botflag-ban="<%= f.id %>" data-botflag-user="<%= f.user_id %>">Ban</button>
+          <% } else { %><span class="muted">reviewed<%= f.reviewed_by ? ' by ' + f.reviewed_by : '' %></span><% } %>
+        </td></tr>
+      <% }); %></table>
+      </div>
+      <h2>Joins vs flagged — last 7 days</h2>
+      <div id="botflags-stats">
+      <% if (!data.stats.length) { %><p class="muted">No join stats yet.</p><% } %>
+      <table><tr><th>Date</th><th>Total joins</th><th>Flagged</th><th>At/above threshold</th></tr>
+      <% data.stats.forEach(s => { %><tr><td><%= String(s.date).slice(0, 10) %></td><td><%= s.total_joins %></td><td><%= s.flagged_joins %></td><td><%= s.bot_joins %></td></tr><% }); %></table>
+      </div>
     <% } %>
   </section>
 </div>
-<script>
-async function postJSON(url, data) {
-  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-}
-document.querySelectorAll('input[data-command]').forEach(cb => cb.addEventListener('change', async () => {
-  try { await postJSON('/api/staff/commands', { commandName: cb.dataset.command, enabled: cb.checked }); }
-  catch (e) { alert('Failed: ' + e.message); cb.checked = !cb.checked; }
-}));
-document.querySelectorAll('input[data-feature]').forEach(cb => cb.addEventListener('change', async () => {
-  try { await postJSON('/api/staff/features', { feature: cb.dataset.feature, enabled: cb.checked }); }
-  catch (e) { alert('Failed: ' + e.message); cb.checked = !cb.checked; }
-}));
-const addForm = document.getElementById('add-staff-form');
-if (addForm) addForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const fd = new FormData(addForm);
-  try { await postJSON('/api/staff/users', { userId: fd.get('userId'), role: fd.get('role') }); window.location.reload(); }
-  catch (err) { alert('Failed: ' + err.message); }
-});
-document.querySelectorAll('[data-remove-staff]').forEach(btn => btn.addEventListener('click', async () => {
-  if (!confirm('Remove this staff member?')) return;
-  const res = await fetch('/api/staff/users/' + btn.dataset.removeStaff, { method: 'DELETE' });
-  if (res.ok) window.location.reload(); else alert('Failed: ' + await res.text());
-}));
-const backupBtn = document.getElementById('backup-now');
-if (backupBtn) backupBtn.addEventListener('click', async () => {
-  const out = document.getElementById('backup-result');
-  out.textContent = 'Backing up…';
-  try {
-    const r = await postJSON('/api/staff/backup-now', {});
-    out.textContent = `✅ Saved ${r.filename} (${(r.sizeBytes / 1024).toFixed(1)} KB).`;
-    setTimeout(() => window.location.reload(), 1000);
-  } catch (err) { out.textContent = '❌ Failed: ' + err.message; }
-});
-const bForm = document.getElementById('broadcast-form');
-if (bForm) bForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const fd = new FormData(bForm);
-  const out = document.getElementById('broadcast-result');
-  out.textContent = 'Sending…';
-  try {
-    const r = await postJSON('/api/staff/broadcast', { guildId: fd.get('guildId'), channelId: fd.get('channelId'), channelName: fd.get('channelName'), title: fd.get('title'), body: fd.get('body'), confirm: fd.get('confirm') === 'true' });
-    out.textContent = `✅ Sent to ${r.sent} of ${r.attempted} channels.`;
-  } catch (err) { out.textContent = '❌ Failed: ' + err.message; }
-});
-</script>
+<script>window.ACEBOT_PAGE = { page: 'staff' };</script>
+<script src="/js/staff.js" defer></script>
+
 <%- include('partials/footer') %>

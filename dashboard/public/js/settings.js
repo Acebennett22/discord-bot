@@ -1,0 +1,280 @@
+// Per-server settings page (dashboard/views/settings.ejs).
+// All list mutations go through fetch + toast, then either remove the row
+// from the DOM or refresh just that list's container (AceBot.refreshSection
+// re-fetches this page's HTML and swaps one element — no full reload).
+// Handlers use event delegation on document, so buttons inside a refreshed
+// container keep working without re-binding. The generic settings forms
+// (action=/api/...) are handled by app.js (toast "Settings saved").
+(function () {
+  'use strict';
+  const guildId = (window.ACEBOT_PAGE && window.ACEBOT_PAGE.guildId) || '';
+  const api = (p) => `/api/guilds/${guildId}${p}`;
+
+  function showResult(id, msg, ok) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = msg;
+    if (ok) AceBot.toast(msg.replace(/^❌ /, ''));
+  }
+
+  // --- Live previews (update as you type) ---
+  function initPreviews() {
+    const tplInput = document.getElementById('template-input');
+    const tplPreview = document.getElementById('template-preview');
+    const updateTpl = () => {
+      if (!tplInput || !tplPreview) return;
+      tplPreview.textContent = (tplInput.value || '🔴 LIVE: {name}')
+        .replaceAll('{name}', 'ExampleStreamer').replaceAll('{game}', 'Just Chatting').replaceAll('{title}', 'Chilling with chat');
+    };
+    if (tplInput) { tplInput.addEventListener('input', updateTpl); updateTpl(); }
+
+    const welcomePreview = (text) => (text || 'Welcome to {server}, {user}! You are member #{membercount}.')
+      .replaceAll('{user}', '@Ace').replaceAll('{username}', 'Ace')
+      .replaceAll('{server}', 'Your Server').replaceAll('{membercount}', '42');
+    const wTpl = document.getElementById('welcome-template');
+    const wPrev = document.getElementById('welcome-preview');
+    if (wTpl && wPrev) { wTpl.addEventListener('input', () => { wPrev.textContent = welcomePreview(wTpl.value); }); wPrev.textContent = welcomePreview(wTpl.value); }
+    const gTpl = document.getElementById('goodbye-template');
+    const gPrev = document.getElementById('goodbye-preview');
+    if (gTpl && gPrev) { gTpl.addEventListener('input', () => { gPrev.textContent = welcomePreview(gTpl.value); }); gPrev.textContent = welcomePreview(gTpl.value); }
+  }
+
+  // --- Submit handlers (delegated) ---
+  async function handleSubmit(e) {
+    const form = e.target;
+    if (!form || form.tagName !== 'FORM') return;
+    const id = form.id;
+    const handlers = {
+      'add-streamer-form': async () => {
+        const fd = new FormData(form);
+        await AceBot.postJSON(api('/streamers'), Object.fromEntries(fd));
+        AceBot.toast('Streamer added');
+        await AceBot.refreshSection('#streamers-list');
+        form.reset();
+      },
+      'create-app-form': async () => {
+        const fd = new FormData(form);
+        await AceBot.postJSON(api('/applications/forms'), {
+          name: fd.get('name'), description: fd.get('description'),
+          questions: String(fd.get('questions')).split('\n'),
+          roleToGrant: fd.get('roleToGrant') || null, reviewChannelId: fd.get('reviewChannelId'),
+        });
+        AceBot.toast('Application form created');
+        await AceBot.refreshSection('#app-forms-list');
+        form.reset();
+      },
+      'automod-form': async () => {
+        const fd = new FormData(form);
+        const body = {
+          enabled: fd.get('enabled') === 'true',
+          spamMaxMessages: parseInt(fd.get('spamMaxMessages'), 10),
+          spamWindowSeconds: parseInt(fd.get('spamWindowSeconds'), 10),
+          spamAction: fd.get('spamAction'),
+          spamTimeoutMinutes: parseInt(fd.get('spamTimeoutMinutes'), 10),
+          blockLinks: fd.get('blockLinks') === 'true',
+          blockInvites: fd.get('blockInvites') === 'true',
+          logChannelId: fd.get('logChannelId') || '',
+          bannedWords: String(fd.get('bannedWords') || '').split('\n'),
+          exemptRoles: fd.getAll('exemptRoles'),
+          exemptChannels: fd.getAll('exemptChannels'),
+        };
+        await AceBot.postJSON(api('/automod'), body);
+        const status = document.getElementById('automod-status');
+        if (status) status.innerHTML = `Automod is currently <strong>${body.enabled ? '✅ enabled' : '❌ disabled'}</strong> in this server.`;
+        AceBot.toast('Settings saved');
+      },
+      'add-shop-form': async () => {
+        const fd = new FormData(form);
+        await AceBot.postJSON(api('/shop'), Object.fromEntries(fd));
+        AceBot.toast('Shop item added');
+        await AceBot.refreshSection('#shop-list');
+        form.reset();
+      },
+      'add-custom-form': async () => {
+        const fd = new FormData(form);
+        await AceBot.postJSON(api('/custom-commands'), Object.fromEntries(fd));
+        AceBot.toast('Custom command added');
+        await AceBot.refreshSection('#custom-list');
+        form.reset();
+      },
+      'add-faq-form': async () => {
+        const fd = new FormData(form);
+        await AceBot.postJSON(api('/faq'), Object.fromEntries(fd));
+        AceBot.toast('FAQ response added');
+        await AceBot.refreshSection('#faq-list');
+        form.reset();
+      },
+    };
+    if (!handlers[id]) return; // generic API forms are handled by app.js
+    e.preventDefault();
+    const btn = form.querySelector('button[type=submit]');
+    const original = btn ? btn.textContent : '';
+    if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
+    try { await handlers[id](); }
+    catch (err) {
+      const resultIds = { 'add-streamer-form': 'streamer-result', 'create-app-form': 'app-form-result', 'automod-form': 'automod-result', 'add-shop-form': 'shop-result', 'add-custom-form': 'custom-result', 'add-faq-form': 'faq-result' };
+      showResult(resultIds[id], '❌ ' + err.message, false);
+      AceBot.toast('Failed: ' + err.message, 'error');
+    } finally {
+      if (btn) { btn.textContent = original; btn.disabled = false; }
+    }
+  }
+
+  // --- Click handlers (delegated) ---
+  async function handleClick(e) {
+    const refreshBtn = e.target.closest('[data-refresh-section]');
+    if (refreshBtn) {
+      refreshBtn.textContent = 'Refreshing…';
+      const ok = await AceBot.refreshSection(refreshBtn.dataset.refreshSection);
+      AceBot.toast(ok ? 'Refreshed' : 'Refresh failed — reload the page to retry', ok ? 'success' : 'error');
+      if (!ok) refreshBtn.textContent = '🔄 Refresh';
+      return;
+    }
+    const editBtn = e.target.closest('[data-edit-streamer]');
+    if (editBtn) {
+      const row = document.getElementById('edit-row-' + editBtn.dataset.editStreamer);
+      if (row) row.style.display = row.style.display === 'none' ? '' : 'none';
+      return;
+    }
+    const rmStreamer = e.target.closest('[data-remove-streamer]');
+    if (rmStreamer) {
+      if (!AceBot.confirmAction('Remove this streamer?')) return;
+      try {
+        await AceBot.del(api(`/streamers/${rmStreamer.dataset.removeStreamer}`));
+        AceBot.removeRow(rmStreamer);
+        AceBot.toast('Streamer removed');
+      } catch (err) { AceBot.toast('Failed: ' + err.message, 'error'); }
+      return;
+    }
+    const refStreamer = e.target.closest('[data-refresh-streamer]');
+    if (refStreamer) {
+      refStreamer.textContent = 'Checking…';
+      try {
+        const j = await AceBot.postJSON(api(`/streamers/${refStreamer.dataset.refreshStreamer}/refresh`), {});
+        AceBot.toast(j.live ? `🔴 LIVE${j.title ? ' — ' + j.title : ''}` : '⚫ Offline right now.', j.live ? 'success' : 'info');
+        await AceBot.refreshSection('#streamers-list');
+      } catch (err) { AceBot.toast('Check failed: ' + err.message, 'error'); refStreamer.textContent = 'Refresh'; }
+      return;
+    }
+    const appToggle = e.target.closest('[data-app-form-toggle]');
+    if (appToggle) {
+      try {
+        const res = await fetch(api(`/applications/forms/${appToggle.dataset.appFormToggle}`), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ isOpen: appToggle.dataset.appFormOpen === '1' }) });
+        if (!res.ok) throw new Error(await res.text());
+        AceBot.toast(appToggle.dataset.appFormOpen === '1' ? 'Form opened' : 'Form closed');
+        await AceBot.refreshSection('#app-forms-list');
+      } catch (err) { AceBot.toast('Failed: ' + err.message, 'error'); }
+      return;
+    }
+    const appReview = e.target.closest('[data-app-review]');
+    if (appReview) {
+      const note = document.getElementById('note-' + appReview.dataset.appReview)?.value || '';
+      try {
+        await AceBot.postJSON(api(`/applications/${appReview.dataset.appReview}/review`), { decision: appReview.dataset.appDecision, note });
+        AceBot.toast(`Application ${appReview.dataset.appDecision}`);
+        await AceBot.refreshSection('#app-queue-list');
+      } catch (err) { AceBot.toast('Failed: ' + err.message, 'error'); }
+      return;
+    }
+    const suggFilter = e.target.closest('[data-sugg-filter]');
+    if (suggFilter) {
+      const status = suggFilter.dataset.suggFilter;
+      try {
+        const rows = await AceBot.getJSON(api(`/suggestions${status ? '?status=' + status : ''}`));
+        renderSuggestions(rows);
+      } catch (err) { AceBot.toast('Failed: ' + err.message, 'error'); }
+      return;
+    }
+    const suggReview = e.target.closest('[data-sugg-review]');
+    if (suggReview) {
+      try {
+        await AceBot.postJSON(api(`/suggestions/${suggReview.dataset.suggReview}/review`), { decision: suggReview.dataset.suggDecision });
+        AceBot.toast(`Suggestion ${suggReview.dataset.suggDecision}`);
+        await AceBot.refreshSection('#suggestions-list');
+      } catch (err) { AceBot.toast('Failed: ' + err.message, 'error'); }
+      return;
+    }
+    const rmShop = e.target.closest('[data-remove-shop]');
+    if (rmShop) {
+      if (!AceBot.confirmAction('Remove this shop item?')) return;
+      try { await AceBot.del(api(`/shop/${rmShop.dataset.removeShop}`)); AceBot.removeRow(rmShop); AceBot.toast('Shop item removed'); }
+      catch (err) { AceBot.toast('Failed: ' + err.message, 'error'); }
+      return;
+    }
+    const rmCustom = e.target.closest('[data-remove-custom]');
+    if (rmCustom) {
+      if (!AceBot.confirmAction(`Remove custom command "${rmCustom.dataset.removeCustom}"?`)) return;
+      try { await AceBot.del(api(`/custom-commands/${encodeURIComponent(rmCustom.dataset.removeCustom)}`)); AceBot.removeRow(rmCustom); AceBot.toast('Custom command removed'); }
+      catch (err) { AceBot.toast('Failed: ' + err.message, 'error'); }
+      return;
+    }
+    const rmFaq = e.target.closest('[data-remove-faq]');
+    if (rmFaq) {
+      if (!AceBot.confirmAction('Remove this FAQ response?')) return;
+      try { await AceBot.del(api(`/faq/${rmFaq.dataset.removeFaq}`)); AceBot.removeRow(rmFaq); AceBot.toast('FAQ response removed'); }
+      catch (err) { AceBot.toast('Failed: ' + err.message, 'error'); }
+      return;
+    }
+    const cancelSched = e.target.closest('[data-cancel-scheduled]');
+    if (cancelSched) {
+      if (!AceBot.confirmAction('Cancel this scheduled message?')) return;
+      try { await AceBot.del(api(`/scheduled/${cancelSched.dataset.cancelScheduled}`)); AceBot.removeRow(cancelSched); AceBot.toast('Scheduled message cancelled'); }
+      catch (err) { AceBot.toast('Failed: ' + err.message, 'error'); }
+      return;
+    }
+  }
+
+  function suggCard(s) {
+    const pending = s.status === 'pending';
+    return `<div class="card" style="text-align:left;margin-bottom:12px"><strong>#${AceBot.esc(s.id)} — ${AceBot.esc(s.title)}</strong> · &lt;@${AceBot.esc(s.user_id)}&gt; · ${AceBot.esc(s.status)} · 👍 ${s.votes_up} · 👎 ${s.votes_down}<br><p>${AceBot.esc(s.text)}</p>${pending ? `<button class="btn green" data-sugg-review="${s.id}" data-sugg-decision="approved">✅ Approve</button> <button class="btn danger" data-sugg-review="${s.id}" data-sugg-decision="denied">❌ Deny</button> <button class="btn" data-sugg-review="${s.id}" data-sugg-decision="implemented">🚀 Mark implemented</button>` : ''}</div>`;
+  }
+
+  function renderSuggestions(rows) {
+    const list = document.getElementById('suggestions-list');
+    if (!list) return;
+    list.innerHTML = rows.length ? rows.map(suggCard).join('') : '<p class="muted">No suggestions with that status.</p>';
+  }
+
+  // --- Commands tab (JS-driven list + immediate toggles) ---
+  async function initCommandsTab() {
+    const cmdList = document.getElementById('commands-list');
+    if (!cmdList) return;
+    try {
+      const rows = await AceBot.getJSON(api('/commands'));
+      let html = '<table><tr><th>Command</th><th>Category</th><th>Enabled in this server</th></tr>';
+      rows.forEach((c) => {
+        html += `<tr><td>/${AceBot.esc(c.name)}</td><td>${AceBot.esc(c.category)}</td><td>${c.globallyDisabled ? 'Disabled globally by staff' : `<label class="toggle"><input type="checkbox" data-guild-command="${AceBot.esc(c.name)}" ${c.enabled ? 'checked' : ''}><span class="track"></span></label>`}</td></tr>`;
+      });
+      cmdList.innerHTML = html + '</table>';
+    } catch { cmdList.innerHTML = '<p class="muted">Could not load commands.</p>'; }
+  }
+
+  async function handleChange(e) {
+    const cb = e.target.closest('[data-guild-command]');
+    if (!cb) return;
+    try {
+      await AceBot.postJSON(api('/commands'), { commandName: cb.dataset.guildCommand, enabled: cb.checked });
+      AceBot.toast(`/${cb.dataset.guildCommand} ${cb.checked ? 'enabled' : 'disabled'} in this server`);
+    } catch (err) { AceBot.toast('Failed to save.', 'error'); cb.checked = !cb.checked; }
+  }
+
+  // Edit-streamer forms live inside the (refreshable) streamers list.
+  async function handleEditSubmit(e) {
+    const form = e.target;
+    if (!form.classList || !form.classList.contains('edit-streamer-form')) return;
+    e.preventDefault();
+    const fd = new FormData(form);
+    try {
+      const res = await fetch(api(`/streamers/${form.dataset.streamerId}`), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(fd)) });
+      if (!res.ok) throw new Error(await res.text());
+      AceBot.toast('Streamer updated');
+      await AceBot.refreshSection('#streamers-list');
+    } catch (err) { AceBot.toast('Failed: ' + err.message, 'error'); }
+  }
+
+  document.addEventListener('submit', handleSubmit);
+  document.addEventListener('submit', handleEditSubmit);
+  document.addEventListener('click', handleClick);
+  document.addEventListener('change', handleChange);
+  initPreviews();
+  initCommandsTab();
+})();

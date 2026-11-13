@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require('discord.js');
 const os = require('os');
 const { infoEmbed } = require('../../utils/embeds');
+const { version: BOT_VERSION } = require('../../../package.json');
 
 function formatUptime(ms) {
   const s = Math.floor(ms / 1000);
@@ -13,6 +14,7 @@ module.exports = {
     const client = interaction.client;
     const mem = process.memoryUsage();
     const embed = infoEmbed('Bot status', [
+      `**Bot version:** v${BOT_VERSION}`,
       `**Bot uptime:** ${formatUptime(client.uptime)}`,
       `**Host uptime:** ${formatUptime(os.uptime() * 1000)}`,
       `**Guilds:** ${client.guilds.cache.size}`,

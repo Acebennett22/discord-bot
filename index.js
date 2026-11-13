@@ -1,6 +1,6 @@
 // Entry point — Ace's multi-file Discord bot (discord.js v14, CommonJS).
 // Config lives in config.json at the project root (see config.example.json).
-const { Client, Collection, GatewayIntentBits } = require('discord.js');
+const { Client, Collection, GatewayIntentBits, Partials } = require('discord.js');
 const config = require('./src/utils/config');
 const db = require('./src/utils/database');
 const { loadCommands } = require('./src/handlers/commandHandler');
@@ -15,10 +15,14 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildMessageReactions,
     GatewayIntentBits.GuildVoiceStates,
     GatewayIntentBits.GuildPresences,
     GatewayIntentBits.MessageContent,
   ],
+  // Partials let reaction handlers (starboard, polls) work on messages
+  // sent before the bot started / not in cache.
+  partials: [Partials.Message, Partials.Reaction, Partials.User, Partials.Channel],
 });
 
 client.commands = new Collection();

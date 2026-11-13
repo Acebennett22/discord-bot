@@ -159,8 +159,33 @@ async function closePool() {
   if (pool) { try { await pool.end(); } catch {} pool = null; enabled = false; }
 }
 
+// Run fn inside a real MySQL transaction: fn receives a query(sql, params)
+// bound to one pooled connection. Commit on success, rollback on any
+// error (rethrown). Used for atomic swaps (trades) so a failed trade can
+// never duplicate items or coins. Returns fn's return value, or null if
+// the DB is unavailable.
+async function withTransaction(fn) {
+  if (!enabled || !pool) return null;
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const txQuery = async (sql, params = []) => {
+      const [rows] = await conn.execute(sql, params);
+      return rows;
+    };
+    const result = await fn(txQuery);
+    await conn.commit();
+    return result;
+  } catch (err) {
+    try { await conn.rollback(); } catch {}
+    throw err;
+  } finally {
+    conn.release();
+  }
+}
+
 module.exports = {
-  initDatabase, isEnabled, query, logCommand,
+  initDatabase, isEnabled, query, logCommand, withTransaction,
   incrementSongsPlayed, incrementMembersJoined, incrementWarns,
   getGlobalStats, getGuildStats, getUserStats, getTopCommands, getTopUsers,
   closePool,

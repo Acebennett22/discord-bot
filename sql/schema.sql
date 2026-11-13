@@ -75,6 +75,9 @@ CREATE TABLE IF NOT EXISTS guild_settings (
   application_reviewer_role_id VARCHAR(32) NULL,
   invite_log_channel_id VARCHAR(32) NULL,
   invite_min_account_age_days INT NULL,
+  bot_threshold INT NULL,
+  bot_auto_action ENUM('flag','kick','ban') NOT NULL DEFAULT 'flag',
+  bot_suspect_role_id VARCHAR(32) NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (guild_id)
@@ -420,3 +423,48 @@ CREATE TABLE IF NOT EXISTS suggestion_votes (
 --     ADD COLUMN goodbye_message TEXT NULL,
 --     ADD COLUMN goodbye_enabled TINYINT(1) NOT NULL DEFAULT 1,
 --     ADD COLUMN suggestion_channel_id VARCHAR(32) NULL;
+--
+-- Bot tracking (added 2026-11-13): per-guild auto-action settings.
+--   ALTER TABLE guild_settings
+--     ADD COLUMN bot_threshold INT NULL,
+--     ADD COLUMN bot_auto_action ENUM('flag','kick','ban') NOT NULL DEFAULT 'flag',
+--     ADD COLUMN bot_suspect_role_id VARCHAR(32) NULL;
+--
+-- Inventory/shop item types (added 2026-11-13): shop_items columns
+-- emoji/type/sell_price/crate_contents are in sql/premium.sql; on an
+-- existing database run:
+--   ALTER TABLE shop_items
+--     ADD COLUMN emoji VARCHAR(16) NULL,
+--     ADD COLUMN type ENUM('role','crate','consumable','collectible') NOT NULL DEFAULT 'collectible',
+--     ADD COLUMN sell_price INT UNSIGNED NULL,
+--     ADD COLUMN crate_contents JSON NULL;
+
+-- Bot tracking: suspicion flags for accounts that look like bots.
+-- score 0-100 from the signals in src/utils/botTracker.js; status open
+-- until a staff member clears it (/botflag-clear or the dashboard).
+CREATE TABLE IF NOT EXISTS bot_flags (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  guild_id VARCHAR(32) NOT NULL,
+  user_id VARCHAR(32) NOT NULL,
+  reason VARCHAR(512) NULL,
+  score INT UNSIGNED NOT NULL DEFAULT 0,
+  details JSON NULL,
+  action_taken VARCHAR(16) NULL,
+  flagged_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  reviewed_by VARCHAR(32) NULL,
+  status ENUM('open','reviewed','cleared') NOT NULL DEFAULT 'open',
+  PRIMARY KEY (id),
+  INDEX idx_bot_flags_guild (guild_id),
+  INDEX idx_bot_flags_user (guild_id, user_id),
+  INDEX idx_bot_flags_status (guild_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Bot tracking: daily join counts per guild (total / bot-score / flagged).
+CREATE TABLE IF NOT EXISTS bot_join_stats (
+  guild_id VARCHAR(32) NOT NULL,
+  date DATE NOT NULL,
+  total_joins INT UNSIGNED NOT NULL DEFAULT 0,
+  bot_joins INT UNSIGNED NOT NULL DEFAULT 0,
+  flagged_joins INT UNSIGNED NOT NULL DEFAULT 0,
+  PRIMARY KEY (guild_id, date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

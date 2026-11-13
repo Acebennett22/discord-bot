@@ -1,0 +1,69 @@
+<%- include('partials/header') %>
+<section class="hero">
+  <h1>📖 Ace Bot Wiki</h1>
+  <p>Everything server owners and members need to use the bot — getting started, every slash command, step-by-step feature guides, and answers to common questions. The command list below is generated live from the bot's own command files, so it never lists a command that doesn't exist.</p>
+  <div class="actions">
+    <a class="btn" href="/login">Login with Discord</a>
+    <a class="btn ghost" href="/invite" target="_blank" rel="noopener">➕ Add to Server</a>
+    <a class="btn ghost" href="/version">Changelog</a>
+  </div>
+  <p style="margin-top:18px"><input type="search" id="docs-search" placeholder="🔍 Search the wiki — commands, guides, FAQ…" style="width:100%;max-width:560px"></p>
+  <p class="muted" id="docs-search-result"></p>
+</section>
+
+<div id="docs-content">
+<section class="card" style="text-align:left;margin-bottom:16px" data-searchable>
+  <h2 style="margin-top:0"><%= content.gettingStarted.title %></h2>
+  <p><%= content.gettingStarted.intro %></p>
+  <ol>
+    <% content.gettingStarted.steps.forEach(s => { %>
+      <li style="margin-bottom:12px"><strong><%= s.title %></strong><br><%= s.body %></li>
+    <% }); %>
+  </ol>
+</section>
+
+<section style="margin-bottom:16px" data-searchable>
+  <h2>⌨️ Command reference</h2>
+  <p class="muted">Who can use it: <strong>Everyone</strong> (any member) · <strong>Moderator</strong> (needs a moderation permission) · <strong>Admin</strong> (needs Manage Server or Administrator) · <strong>Staff</strong> (bot owner + approved staff) · <strong>Owner</strong> (bot owner only). All command replies are ephemeral — only you see them — except the public posts a command is meant to make.</p>
+  <% groups.forEach(g => { %>
+    <div class="card" style="text-align:left;margin-bottom:16px" data-searchable data-category="<%= g.category %>">
+      <h3 style="margin-top:0"><%= g.category %></h3>
+      <table>
+        <tr><th>Command</th><th>What it does</th><th>Who</th></tr>
+        <% g.commands.forEach(c => { %>
+          <tr data-command-row="<%= c.name %>">
+            <td><code>/<%= c.name %></code><% if (c.subcommands.length) { %><br><span class="muted"><%= c.subcommands.join(' · ') %></span><% } %></td>
+            <td><%= c.description %></td>
+            <td><%= c.audience %></td>
+          </tr>
+        <% }); %>
+      </table>
+    </div>
+  <% }); %>
+</section>
+
+<section style="margin-bottom:16px" data-searchable>
+  <h2>📚 Feature guides</h2>
+  <% content.guides.forEach(g => { %>
+    <div class="card" style="text-align:left;margin-bottom:16px" data-searchable data-guide="<%= g.id %>">
+      <h3 style="margin-top:0"><%= g.title %></h3>
+      <ol>
+        <% g.steps.forEach(s => { %><li style="margin-bottom:6px"><%= s %></li><% }); %>
+      </ol>
+    </div>
+  <% }); %>
+</section>
+
+<section style="margin-bottom:16px" data-searchable>
+  <h2>❓ Frequently asked questions</h2>
+  <% content.faq.forEach(item => { %>
+    <div class="card" style="text-align:left;margin-bottom:12px" data-searchable data-faq>
+      <h3 style="margin-top:0"><%= item.q %></h3>
+      <p><%= item.a %></p>
+    </div>
+  <% }); %>
+</section>
+</div>
+<script>window.ACEBOT_PAGE = { page: 'docs' };</script>
+<script src="/js/docs.js" defer></script>
+<%- include('partials/footer') %>

@@ -1,6 +1,6 @@
 # Nginx reverse proxy for the Ace Bot dashboard
 
-Serves the dashboard (localhost:3000) on a public domain over HTTPS, e.g. `https://bot.example.com`. This is also how the first-run setup wizard is reached through a domain.
+Serves the dashboard (localhost:3010) on a public domain over HTTPS, e.g. `https://bot.example.com`. This is also how the first-run setup wizard is reached through a domain.
 
 ## Steps
 
