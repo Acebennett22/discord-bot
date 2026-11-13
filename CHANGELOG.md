@@ -126,6 +126,91 @@ version below must match a `package.json` version, and the dashboard
 ### Added
 - Tempban (1.9.1) — `/tempban @user <duration> [reason] [delete_days]` — temporary bans with durations like `12h`, `7d`, `2w`, `30d`, auto-unbanned by a 5-minute expiry timer (plus once at startup). `/tempban-list` (active tempbans with banned-by, reason, and expiry) and `/tempban-cancel` (admin-only early unban). New `temp_bans` table; expiry processing only unbans users who are still banned and logs failures instead of crashing. Guards against tempbanning the server owner, yourself, or anyone with a higher/equal top role. Dashboard Moderation tab: active tempbans with cancel buttons.
 
+## [1.8.9] - 2026-11-13
+
+### Added
+- Rank card image (1.8.9) — `/rank` now posts a 900×300 rank card image (avatar, username, level, XP progress bar, leaderboard rank, total messages) in the same theme as the welcome card, reusing the canvas setup; the text embed is the fallback if canvas fails. Total messages counts every message since this feature was added (`user_levels.messages` — add the column on existing installs: `ALTER TABLE user_levels ADD COLUMN messages INT UNSIGNED NOT NULL DEFAULT 0;`). Dashboard Leveling tab: rank card preview with sample data.
+
+## [1.8.8] - 2026-11-13
+
+### Added
+- Inactive-member re-engagement (1.8.8) — `/reengage-setup enable [days] [channel]` (admin) turns on a daily job (10:00) that DMs members inactive for N days (default 30) a friendly "we miss you" message — at most once per member per 30 days, never bots, never members who joined less than N days ago, never members who opted out with `/reengage-optout` (anyone). `/reengage-preview` (admin) shows who would be messaged without sending anything. Activity is read from the data the bot actually records: `user_levels.last_xp_at` (last message that earned XP), `voice_sessions` (last voice session), `user_stats.last_seen` (last slash-command use). Logs in `reengage_logs`, opt-outs in `reengage_optouts`; dashboard Analytics page shows the inactive count and last-run summary.
+
+## [1.8.7] - 2026-11-13
+
+### Added
+- Auto-publish announcements (1.8.7) — `/autopublish add|remove|list` (admin) manages announcement channels that auto-publish. Messages posted in a configured announcement channel (type GUILD_ANNOUNCEMENT) are crossposted automatically. Bot messages and already-published messages are skipped; failures go to the error log. Channels in `guild_settings.autopublish_channels` (JSON); dashboard Announcements tab.
+
+## [1.8.6] - 2026-11-13
+
+### Added
+- Message bookmarks (1.8.6) — `/bookmark add <message_id or link> [note]` saves a message to your own list (only messages in channels you can read); `/bookmark list` shows yours (ephemeral, with jump links); `/bookmark remove <id>` removes one. A message context-menu command "Bookmark message" is also registered. Only a 500-character excerpt is stored — never the full message body. Bookmarks in `bookmarks`.
+
+## [1.8.5] - 2026-11-13
+
+### Added
+- AFK voice channel auto-create (1.8.5) — `/afkchannel-setup` (admin) sets the primary AFK channel and the max users (default 10). When the primary AFK channel reaches max users, the bot creates a second AFK voice channel ("AFK 2") in the same category; when it empties, it's deleted. If the primary is empty for 10 minutes and a secondary exists and is also empty, the secondary is deleted. Settings in `guild_settings` (`afk_autocreate_enabled`, `afk_channel_id`, `afk_max_users`); dashboard Temp VC tab.
+
+## [1.8.4] - 2026-11-13
+
+### Added
+- Invite rewards (1.8.4) — `/invitereward add <invites> <role|coins> <value>` (admin), `/invitereward list`, `/invitereward remove <invites>`. When a member's valid invite count reaches a configured milestone, the reward (role or coins to their economy wallet) grants automatically — once per milestone — and they're DM'd, plus a post in the invite log channel if set. Fake joins never count. `/myinviterewards` shows progress to the next reward. Milestones in `invite_rewards`, grants in `invite_reward_grants`; dashboard Invites tab lists them with add/remove.
+
+## [1.8.3] - 2026-11-13
+
+### Added
+- Auto-role on level — announcement side (1.8.3) — level role rewards already auto-grant on level-up (1.3.5); this version adds the announcement channel. `/levelup-channel set <channel>` (admin) picks where the bot posts an embed when someone levels up AND gains a role; `/levelup-channel view` / `clear` manage it. `/levelrewards` already shows which roles auto-grant at which levels. Channel in `guild_settings.levelup_channel_id`; dashboard Leveling tab has the dropdown + reward roles list.
+
+## [1.8.2] - 2026-11-13
+
+### Added
+- Ticket ratings (1.8.2) — when a ticket closes, the creator is DM'd a 1–5 star prompt (buttons) with an optional comment modal. If their DMs are closed the prompt is skipped silently and the skip is logged. `/ticket-ratings` (staff) shows the average rating, count, and recent ratings with comments; dashboard Staff → Tickets page has the average card + ratings table. Ratings in `ticket_ratings`.
+
+## [1.8.1] - 2026-11-13
+
+### Added
+- Poll results chart (1.8.1) — when a poll ends, the results message includes a bar chart (node-canvas, already installed for the welcome cards) with each option's vote count and percentage. `/poll-results <message_id or link>` shows any poll's results with the chart, live or ended. Final tallies are stored in `polls.final_counts` so results survive restarts (add the column on existing installs: `ALTER TABLE polls ADD COLUMN final_counts JSON NULL;`). Dashboard Polls tab shows past polls with charts.
+
+## [1.7.8] - 2026-11-13
+
+### Added
+- Embed builder (1.7.8) — `/embed create` (admin) — modal (title, description, color), then a second modal for image/footer/channel — posts the finished embed to the chosen channel. `/embed edit <message_id or link>` (admin) edits an existing bot-posted embed in place. Built embeds stored in the `embeds` table; dashboard Embeds tab lists them with edit (form) and delete.
+
+## [1.7.7] - 2026-11-13
+
+### Added
+- Snipe (1.7.7) — `/snipe [channel]` and `/editsnipe [channel]` (staff only) show the last deleted message / last edited message's before-and-after as an embed. In-memory only — deleted message content is never written to the database or the error log — kept per channel for 10 minutes. If nothing recent, the bot says so.
+
+## [1.7.6] - 2026-11-13
+
+### Added
+- Custom status roles (1.7.6) — `/statusrole add <text> <role>` (admin), `/statusrole remove <text>`, `/statusrole list`. On presence update, if a member's custom status contains the trigger text (case-insensitive) the role is granted; when it stops containing it, the role is removed. A 10-minute sweep catches missed updates. Guards: the role must sit below the bot's highest role; bots never get status roles. Honest note: custom statuses only update when Discord sends a presence update, so there can be a delay. Rules in `status_roles`; dashboard Roles tab lists them with add/remove.
+
+## [1.7.5] - 2026-11-13
+
+### Added
+- Image-only starboard (1.7.5) — `/starboard-image-setup` (admin) sets a separate image channel + threshold (default 3). Same star-reaction flow as the main starboard, but only messages with image/video attachments qualify — they post as a large-image embed in the image channel. If no image channel is set, image posts go to the main starboard as before. Settings in `guild_settings` (`image_starboard_channel_id`, `image_starboard_threshold`); dashboard Starboard tab.
+
+## [1.7.4] - 2026-11-13
+
+### Added
+- AFK voice kick (1.7.4) — `/afkvoice-setup` (admin) enables it, sets the minutes threshold (default 30) and the AFK channel (blank = disconnect instead). On voice state changes the bot tracks when a member goes mute/deafened; a 5-minute timer moves members muted/deafened continuously longer than the threshold to the AFK channel. Never moves bots, members already in the AFK channel, or holders of a configurable exempt role. Moves logged to `afk_voice_moves` + modlog if set. Dashboard Moderation tab has the settings.
+
+## [1.7.3] - 2026-11-13
+
+### Added
+- Slowmode presets (1.7.3) — `/slowmode set <seconds> [channel]` (admin) applies immediately; `/slowmode-schedule <channel> <day_seconds> <night_seconds> <night_start> <night_end>` (admin) sets a day/night schedule — a 15-minute timer applies the right value for the current hour. `/slowmode-schedule-remove <channel>` (admin). Schedules in `slowmode_schedules`; dashboard Moderation tab lists and edits them.
+
+## [1.7.2] - 2026-11-13
+
+### Added
+- Event scheduler (1.7.2) — `/event create <title> <date/time> [description] [channel]` (staff) posts an embed with Going / Maybe / Can't go buttons; `/event list`, `/event cancel <id>` (admin). A 1-minute timer sends RSVP'd members (Going/Maybe) a DM reminder 1 hour before — channel mention if their DMs are closed — and posts a "starting now" message in the channel. Events in `scheduled_events`, RSVPs in `event_rsvps`. Dashboard Events tab lists upcoming events with RSVP counts and can create/cancel them.
+
+## [1.7.1] - 2026-11-13
+
+### Added
+- Wordle / daily games (1.7.1) — `/wordle` — one game per user per day, same word for everyone in the server (seeded from date + guild id, like daily trivia). Guess via modal (5 letters, 6 guesses), green/yellow/grey-square feedback, win/lose embed, streak tracked (consecutive winning days; a loss or missed day resets to 0). `/wordle-leaderboard` shows top streaks/wins. The word list is `src/data/words.json`: 1,200 common answers + 14,855 allowed guesses, from the open tabatkins/wordle-list and first20hours/google-10000-english lists — not hand-written. Games in `wordle_games`. Dashboard Games tab shows today's word (staff only) and the leaderboard.
+
 ## [1.6.6] - 2026-11-13
 
 ### Added

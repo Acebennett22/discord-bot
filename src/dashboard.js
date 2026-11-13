@@ -420,7 +420,7 @@ app.get('/servers', requireAuth, async (req, res) => {
 });
 
 // --- Per-server settings pages (one per module) --------------------------------
-const MODULES = ['general', 'moderation', 'tickets', 'serverstats', 'streams', 'music', 'leveling', 'reactionroles', 'gameservers', 'commands', 'applications', 'invites', 'welcome', 'automod', 'suggestions', 'economy', 'starboard', 'customcommands', 'faq', 'scheduled', 'roles', 'verification', 'counting', 'tempvc', 'birthdays', 'analytics', 'giveaways', 'ai', 'modmail', 'games', 'emojis', 'media', 'threads', 'confessions'];
+const MODULES = ['general', 'moderation', 'tickets', 'serverstats', 'streams', 'music', 'leveling', 'reactionroles', 'gameservers', 'commands', 'applications', 'invites', 'welcome', 'automod', 'suggestions', 'economy', 'starboard', 'customcommands', 'faq', 'scheduled', 'roles', 'verification', 'counting', 'tempvc', 'birthdays', 'analytics', 'giveaways', 'ai', 'modmail', 'games', 'emojis', 'media', 'threads', 'confessions', 'events', 'embeds', 'polls', 'announcements'];
 
 app.get('/guilds/:id', requireAuth, requireGuildAccess, (req, res) => res.redirect(`/guilds/${req.params.id}/general`));
 
@@ -481,6 +481,17 @@ app.get('/guilds/:id/:module', requireAuth, requireGuildAccess, async (req, res)
   let milestoneSettings = null;
   let milestoneNext = null;
   let translateSettings = null;
+  // 1.7.x / 1.8.x tabs.
+  let scheduledEventsList = [];
+  let wordleLeaderboard = [];
+  let wordleToday = null;
+  let slowmodeSchedules = [];
+  let statusRoleRules = [];
+  let builtEmbeds = [];
+  let pastPolls = [];
+  let ticketRatingStats = null;
+  let inviteRewardList = [];
+  let inactiveMembers = null;
   if (db.isEnabled()) {
     streamers = await db.query('SELECT * FROM streamers WHERE guild_id = ?', [id]) || [];
     tickets = await db.query('SELECT * FROM tickets WHERE guild_id = ? ORDER BY id DESC LIMIT 20', [id]) || [];
@@ -607,12 +618,67 @@ app.get('/guilds/:id/:module', requireAuth, requireGuildAccess, async (req, res)
       milestoneNext = memberCount !== null ? (await milestones.nextMilestone(id, memberCount)).next : null;
       translateSettings = await translate.getTranslateSettings(id);
     }
+    // 1.7.x / 1.8.x tabs: events, wordle (games), slowmode (moderation),
+    // status roles (roles), built embeds, past polls, ticket ratings,
+    // invite rewards, inactive members (analytics).
+    if (module === 'events') {
+      const events = require('./utils/scheduledEvents');
+      scheduledEventsList = await events.listUpcomingEvents(id, 20);
+      for (const ev of scheduledEventsList) ev.rsvpCounts = await events.getRsvpCounts(ev.id);
+    }
+    if (module === 'games') {
+      const wordle = require('./utils/wordle');
+      wordleLeaderboard = await wordle.getWordleLeaderboard(id, 10);
+      wordleToday = wordle.dailyWord(id, new Date());
+    }
+    if (module === 'moderation') {
+      const { listSchedules } = require('./utils/slowmode');
+      slowmodeSchedules = await listSchedules(id).catch(() => []);
+    }
+    if (module === 'roles') {
+      const { getStatusRoles } = require('./utils/statusRoles');
+      statusRoleRules = await getStatusRoles(id);
+    }
+    if (module === 'embeds') {
+      const { listEmbeds } = require('./utils/customEmbeds');
+      builtEmbeds = await listEmbeds(id, 50);
+    }
+    if (module === 'polls') {
+      pastPolls = await db.query('SELECT * FROM polls WHERE guild_id = ? ORDER BY created_at DESC LIMIT 20', [id]) || [];
+      for (const p of pastPolls) {
+        try { p.options = JSON.parse(p.options); p.votes = JSON.parse(p.votes || '{}'); } catch { p.options = []; p.votes = {}; }
+        try { p.finalCounts = p.final_counts ? JSON.parse(p.final_counts) : null; } catch { p.finalCounts = null; }
+      }
+    }
+    if (module === 'tickets') {
+      const { getRatingStats } = require('./utils/ticketRatings');
+      ticketRatingStats = await getRatingStats(id);
+    }
+    if (module === 'invites') {
+      const { getInviteRewards } = require('./utils/inviteRewards');
+      inviteRewardList = await getInviteRewards(id);
+    }
+    if (module === 'analytics') {
+      // Inactive members (1.8.8): full count via the REST member list
+      // (first 1,000 members — the API page size). Best effort; a missing
+      // bot token or a huge server leaves it null instead of breaking
+      // the page.
+      try {
+        const { findInactiveMembers } = require('./utils/reengage');
+        const res = await discordApi.get(`/guilds/${id}/members?limit=1000`, { headers: botHeaders() }).catch(() => null);
+        const list = res?.data || [];
+        const map = new Map();
+        for (const m of list) map.set(m.user.id, { id: m.user.id, user: { bot: !!m.user.bot }, joinedAt: m.joined_at ? new Date(m.joined_at) : null });
+        inactiveMembers = await findInactiveMembers({ id, members: { fetch: async () => map, cache: map } }, settings.reengageDays || 30);
+      } catch { inactiveMembers = null; }
+    }
   }
   res.render('settings', {
     user: req.session.user, guild: req.guildMeta, module, settings,
     channels, roles, streamers, tickets, gameServers, applicationForms, pendingApplications, inviteLeaderboard, inviteStats, automodSettings, automodActions, suggestions, premiumSettings, shopItems, customCommands, faqs, scheduledMessages, countingSettings, birthdays, reactionRoleMappings, analyticsData, giveaways, aiUsage, aiConfigured, mcWidgets, voiceStats, voiceRate, colorRoles, modmailThreads, modmailBlocks, playlists, triviaSettings, triviaLeaderboard, roleMenus, milestoneSettings, milestoneNext, translateSettings, ticketPanels, inviteRoleRules, prestigeLeaderboard, countdowns, emojis, workJobs, recentRobs, tempBans, lotteryStatus, lotteryDraws, serverRules, inviteUrl: inviteUrl(),
     saved: req.query.saved === '1', isStaff: await staffFlag(req),
     commandCatalog: COMMAND_CATALOG,
+    scheduledEventsList, wordleLeaderboard, wordleToday, slowmodeSchedules, statusRoleRules, builtEmbeds, pastPolls, ticketRatingStats, inviteRewardList, inactiveMembers,
     commandToggles: db.isEnabled() ? (await db.query('SELECT command_name, enabled FROM command_toggles WHERE guild_id = ?', [id]) || []) : [],
   });
 });
@@ -628,7 +694,7 @@ app.post('/api/guilds/:id/settings', requireAuth, requireGuildAccess, async (req
   // arrive as 'on' instead of JSON true. Normalize, and redirect back to
   // the settings page with ?saved=1 instead of returning JSON.
   const isFormPost = req.is('application/x-www-form-urlencoded');
-  for (const k of ['serverStatsEnabled', 'levelUpMessages', 'welcomeEnabled', 'goodbyeEnabled', 'verificationEnabled', 'welcomeImageEnabled', 'welcomeImageOnly', 'aiEnabled', 'modmailEnabled', 'djEnabled', 'djOnlySkip', 'music247Enabled', 'robberyEnabled', 'newMemberLinkEnabled', 'welcomeDmEnabled', 'antinukeEnabled']) if (body[k] === 'on') body[k] = 'true';
+  for (const k of ['serverStatsEnabled', 'levelUpMessages', 'welcomeEnabled', 'goodbyeEnabled', 'verificationEnabled', 'welcomeImageEnabled', 'welcomeImageOnly', 'aiEnabled', 'modmailEnabled', 'djEnabled', 'djOnlySkip', 'music247Enabled', 'robberyEnabled', 'newMemberLinkEnabled', 'welcomeDmEnabled', 'antinukeEnabled', 'afkVoiceEnabled', 'afkAutocreateEnabled', 'reengageEnabled']) if (body[k] === 'on') body[k] = 'true';
   const { channels, roles } = await guildChannelsRoles(req.params.id).catch(() => ({ channels: [], roles: [] }));
   const channelIds = new Set(channels.map((c) => c.id));
   const roleIds = new Set(roles.map((r) => r.id));
@@ -766,6 +832,43 @@ app.post('/api/guilds/:id/settings', requireAuth, requireGuildAccess, async (req
     if (!Number.isNaN(n) && n >= 0 && n <= 23) patch.birthdayAnnounceHour = n;
   }
   if ('bumpChannelId' in body) setChannel('bumpChannelId', body.bumpChannelId);
+  // 1.7.x / 1.8.x settings: level-up announcement channel (1.8.3), AFK
+  // voice (1.7.4), image starboard (1.7.5), AFK auto-create (1.8.5),
+  // auto-publish (1.8.7), re-engagement (1.8.8).
+  if ('levelupChannelId' in body) setChannel('levelupChannelId', body.levelupChannelId);
+  if ('afkVoiceEnabled' in body) patch.afkVoiceEnabled = body.afkVoiceEnabled === true || body.afkVoiceEnabled === 'true';
+  if ('afkVoiceMinutes' in body) {
+    const n = parseInt(body.afkVoiceMinutes, 10);
+    if (!Number.isNaN(n) && n >= 5 && n <= 1440) patch.afkVoiceMinutes = n;
+  }
+  if ('afkVoiceChannelId' in body) {
+    const v = body.afkVoiceChannelId;
+    if (v === '' || channels.some((c) => c.id === v && c.type === 2)) patch.afkVoiceChannelId = v || '';
+  }
+  if ('afkVoiceExemptRoleId' in body) setRole('afkVoiceExemptRoleId', body.afkVoiceExemptRoleId);
+  if ('imageStarboardChannelId' in body) setChannel('imageStarboardChannelId', body.imageStarboardChannelId);
+  if ('imageStarboardThreshold' in body) {
+    const n = parseInt(body.imageStarboardThreshold, 10);
+    if (!Number.isNaN(n) && n >= 1 && n <= 25) patch.imageStarboardThreshold = n;
+  }
+  if ('afkAutocreateEnabled' in body) patch.afkAutocreateEnabled = body.afkAutocreateEnabled === true || body.afkAutocreateEnabled === 'true';
+  if ('afkChannelId' in body) {
+    const v = body.afkChannelId;
+    if (v === '' || channels.some((c) => c.id === v && c.type === 2)) patch.afkChannelId = v || '';
+  }
+  if ('afkMaxUsers' in body) {
+    const n = parseInt(body.afkMaxUsers, 10);
+    if (!Number.isNaN(n) && n >= 1 && n <= 99) patch.afkMaxUsers = n;
+  }
+  if ('autopublishChannels' in body && Array.isArray(body.autopublishChannels)) {
+    patch.autopublishChannels = body.autopublishChannels.filter((c) => channelIds.has(c) && channels.some((ch) => ch.id === c && ch.type === 5));
+  }
+  if ('reengageEnabled' in body) patch.reengageEnabled = body.reengageEnabled === true || body.reengageEnabled === 'true';
+  if ('reengageDays' in body) {
+    const n = parseInt(body.reengageDays, 10);
+    if (!Number.isNaN(n) && n >= 7 && n <= 180) patch.reengageDays = n;
+  }
+  if ('reengageChannelId' in body) setChannel('reengageChannelId', body.reengageChannelId);
   if ('levelRoles' in body && typeof body.levelRoles === 'object') {
     const clean = {};
     for (const [lvl, roleId] of Object.entries(body.levelRoles)) {
@@ -799,6 +902,144 @@ app.get('/api/guilds/:id/welcome-preview', requireAuth, requireGuildAccess, asyn
   if (!buf) return res.status(500).json({ error: 'Card generation failed.' });
   res.setHeader('Content-Type', 'image/png');
   res.send(buf);
+});
+
+// --- Rank card preview (1.8.9) -------------------------------------------------
+// Generates a sample rank card (sample avatar/name/stats) so admins can see
+// the look. Returns a PNG.
+app.get('/api/guilds/:id/rankcard-preview', requireAuth, requireGuildAccess, async (req, res) => {
+  const { generateRankCard, canvasAvailable } = require('./utils/rankCard');
+  if (!canvasAvailable) return res.status(503).json({ error: 'Canvas is not installed on the host — rank card images are unavailable.' });
+  const buf = await generateRankCard({
+    avatarUrl: null,
+    username: 'Ace',
+    level: 12,
+    xp: 340,
+    xpToNext: 500,
+    rank: 3,
+    totalMessages: 1284,
+  }).catch(() => null);
+  if (!buf) return res.status(500).json({ error: 'Card generation failed.' });
+  res.setHeader('Content-Type', 'image/png');
+  res.send(buf);
+});
+
+// --- Event scheduler API (1.7.2) ------------------------------------------------
+// Create an event from the dashboard (posts the embed + RSVP buttons via
+// the REST API, same as /event create) and cancel one.
+app.post('/api/guilds/:id/events', requireAuth, requireGuildAccess, async (req, res) => {
+  const { title, description, channelId, startsAt } = req.body || {};
+  if (!title || typeof title !== 'string' || title.length > 256) return res.status(400).json({ error: 'A title (max 256 chars) is required.' });
+  if (!channelId || !startsAt || Number.isNaN(new Date(startsAt).getTime())) return res.status(400).json({ error: 'A channel and a valid start time are required.' });
+  if (new Date(startsAt) <= new Date()) return res.status(400).json({ error: 'The start time must be in the future.' });
+  const events = require('./utils/scheduledEvents');
+  const eventId = await events.createEvent(req.params.id, channelId, title, description || null, new Date(startsAt), req.session.user?.id || null);
+  const event = await events.getEvent(eventId);
+  const msgRes = await discordApi.post(`/channels/${channelId}/messages`, {
+    embeds: [events.eventEmbed(event, { going: 0, maybe: 0, not_going: 0 }).toJSON()],
+    components: [events.eventRow(eventId).toJSON()],
+  }, { headers: botHeaders() }).catch(() => null);
+  if (!msgRes?.data?.id) return res.status(502).json({ error: 'Event saved but the message could not be posted — check the bot can send in that channel.' });
+  await db.query('UPDATE scheduled_events SET message_id = ? WHERE id = ?', [msgRes.data.id, eventId]);
+  res.json({ ok: true, id: eventId });
+});
+
+app.post('/api/guilds/:id/events/:eventId/cancel', requireAuth, requireGuildAccess, async (req, res) => {
+  const events = require('./utils/scheduledEvents');
+  const event = await events.getEvent(Number(req.params.eventId));
+  if (!event || event.guild_id !== req.params.id) return res.status(404).json({ error: 'Event not found in this server.' });
+  await events.cancelEvent(event.id);
+  if (event.message_id) {
+    await discordApi.delete(`/channels/${event.channel_id}/messages/${event.message_id}`, { headers: botHeaders() }).catch(() => {});
+  }
+  res.json({ ok: true });
+});
+
+// --- Slowmode schedules API (1.7.3) ----------------------------------------------
+app.post('/api/guilds/:id/slowmode-schedules', requireAuth, requireGuildAccess, async (req, res) => {
+  const { channelId, daySeconds, nightSeconds, nightStart, nightEnd } = req.body || {};
+  const day = parseInt(daySeconds, 10);
+  const night = parseInt(nightSeconds, 10);
+  const start = parseInt(nightStart, 10);
+  const end = parseInt(nightEnd, 10);
+  if (!channelId || [day, night, start, end].some((n) => Number.isNaN(n))) return res.status(400).json({ error: 'Channel, day/night seconds and night start/end hours are required.' });
+  if (day < 0 || day > 21600 || night < 0 || night > 21600) return res.status(400).json({ error: 'Slowmode seconds must be 0–21600.' });
+  if (start < 0 || start > 23 || end < 0 || end > 23) return res.status(400).json({ error: 'Night hours must be 0–23.' });
+  const { setSchedule } = require('./utils/slowmode');
+  await setSchedule(req.params.id, channelId, { name: 'default', daySeconds: day, nightSeconds: night, nightStart: start, nightEnd: end });
+  res.json({ ok: true });
+});
+
+app.post('/api/guilds/:id/slowmode-schedules/:channelId/remove', requireAuth, requireGuildAccess, async (req, res) => {
+  const { removeSchedule } = require('./utils/slowmode');
+  await removeSchedule(req.params.id, req.params.channelId);
+  res.json({ ok: true });
+});
+
+// --- Status roles API (1.7.6) ----------------------------------------------------
+app.post('/api/guilds/:id/statusroles', requireAuth, requireGuildAccess, async (req, res) => {
+  const { triggerText, roleId } = req.body || {};
+  if (!triggerText || typeof triggerText !== 'string' || triggerText.length > 128) return res.status(400).json({ error: 'Trigger text (max 128 chars) is required.' });
+  if (!roleId) return res.status(400).json({ error: 'A role is required.' });
+  const { addStatusRole } = require('./utils/statusRoles');
+  await addStatusRole(req.params.id, triggerText, roleId, req.session.user?.id || null);
+  res.json({ ok: true });
+});
+
+app.post('/api/guilds/:id/statusroles/:trigger/remove', requireAuth, requireGuildAccess, async (req, res) => {
+  const triggerText = decodeURIComponent(req.params.trigger || '');
+  if (!triggerText) return res.status(400).json({ error: 'Trigger text is required.' });
+  const { removeStatusRole } = require('./utils/statusRoles');
+  await removeStatusRole(req.params.id, triggerText);
+  res.json({ ok: true });
+});
+
+// --- Invite rewards API (1.8.4) --------------------------------------------------
+app.post('/api/guilds/:id/inviterewards', requireAuth, requireGuildAccess, async (req, res) => {
+  const { invites, type, roleId, coins } = req.body || {};
+  const n = parseInt(invites, 10);
+  if (Number.isNaN(n) || n < 1 || n > 10000) return res.status(400).json({ error: 'Invites must be 1–10000.' });
+  if (type !== 'role' && type !== 'coins') return res.status(400).json({ error: 'Type must be role or coins.' });
+  if (type === 'role' && !roleId) return res.status(400).json({ error: 'A role is required for role rewards.' });
+  if (type === 'coins' && (!coins || parseInt(coins, 10) < 1)) return res.status(400).json({ error: 'A coin amount is required for coin rewards.' });
+  const { addInviteReward } = require('./utils/inviteRewards');
+  await addInviteReward(req.params.id, n, type, roleId || null, parseInt(coins, 10) || null, req.session.user?.id || null);
+  res.json({ ok: true });
+});
+
+app.post('/api/guilds/:id/inviterewards/:invites/remove', requireAuth, requireGuildAccess, async (req, res) => {
+  const { removeInviteReward } = require('./utils/inviteRewards');
+  await removeInviteReward(req.params.id, parseInt(req.params.invites, 10));
+  res.json({ ok: true });
+});
+
+// --- Built embeds API (1.7.8) ----------------------------------------------------
+// Edit (form) or delete a built embed — updates the stored JSON and the
+// live Discord message via the REST API.
+app.post('/api/guilds/:id/embeds/:messageId/edit', requireAuth, requireGuildAccess, async (req, res) => {
+  const { title, description, color } = req.body || {};
+  const { getEmbedByMessage, updateEmbed, buildEmbedFromData } = require('./utils/customEmbeds');
+  const row = await getEmbedByMessage(req.params.id, req.params.messageId);
+  if (!row) return res.status(404).json({ error: 'Embed not found in this server.' });
+  let data;
+  try { data = JSON.parse(row.embed_json); } catch { data = {}; }
+  if (title !== undefined) data.title = String(title).slice(0, 256);
+  if (description !== undefined) data.description = String(description).slice(0, 4096);
+  if (color !== undefined && (/^#[0-9a-fA-F]{6}$/.test(color) || color === '')) data.color = color || data.color;
+  await updateEmbed(row.id, req.params.id, data);
+  await discordApi.patch(`/channels/${row.channel_id}/messages/${row.message_id}`, {
+    embeds: [buildEmbedFromData(data).toJSON()],
+  }, { headers: botHeaders() }).catch(() => {});
+  res.json({ ok: true });
+});
+
+app.post('/api/guilds/:id/embeds/:messageId/delete', requireAuth, requireGuildAccess, async (req, res) => {
+  const { getEmbedByMessage, deleteEmbed } = require('./utils/customEmbeds');
+  const row = await getEmbedByMessage(req.params.id, req.params.messageId);
+  if (!row) return res.status(404).json({ error: 'Embed not found in this server.' });
+  await deleteEmbed(row.id, req.params.id);
+  await discordApi.delete(`/channels/${row.channel_id}/messages/${row.message_id}`, { headers: botHeaders() }).catch(() => {});
+  res.json({ ok: true });
 });
 
 // --- Color roles API (1.4.4) ---------------------------------------------------

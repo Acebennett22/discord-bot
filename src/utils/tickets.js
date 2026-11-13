@@ -193,6 +193,12 @@ async function closeTicket(interaction, channel, ticket, reason, closedBy) {
       await creator.send({ embeds: [infoEmbed('Ticket closed', `Your ticket **#${channel.name}** was closed. Here's the transcript:`)], files: [{ attachment: transcript.filePath, name: transcript.filename }] }).catch(() => {});
     }
   }
+  // Ticket ratings (1.8.2): DM the creator a 1–5 star prompt. Skips silently
+  // when DMs are closed.
+  if (ticket?.user_id) {
+    const { promptRating } = require('./ticketRatings');
+    await promptRating(interaction.client, channel.guildId, ticket.id, ticket.user_id, channel.name).catch(() => {});
+  }
 
   await channel.send({ embeds: [infoEmbed('Ticket closed', `🔒 This ticket was closed by ${closedBy.tag}. Reason: ${reason || 'No reason given'}. The channel will be deleted in 60 seconds unless reopened.`)] }).catch(() => {});
 

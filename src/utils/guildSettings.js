@@ -72,6 +72,20 @@ const DEFAULTS = {
   robberyEnabled: true,
   newMemberLinkEnabled: false,
   newMemberLinkDays: 7,
+  afkVoiceEnabled: false,
+  afkVoiceMinutes: 30,
+  afkVoiceChannelId: '',
+  afkVoiceExemptRoleId: '',
+  imageStarboardChannelId: '',
+  imageStarboardThreshold: 3,
+  levelupChannelId: '',
+  afkAutocreateEnabled: false,
+  afkChannelId: '',
+  afkMaxUsers: 10,
+  autopublishChannels: [],
+  reengageEnabled: false,
+  reengageDays: 30,
+  reengageChannelId: '',
 };
 
 const DEFAULT_WELCOME_MESSAGE = 'Welcome to {server}, {user}! You are member #{membercount}.';
@@ -97,6 +111,9 @@ const COLUMNS = [
   'modmail_enabled', 'modmail_category_id',
   'voice_xp_per_minute',
   'media_channels', 'ghostping_enabled', 'ghostping_channel_id',
+  'thread_archive_minutes', 'confessions_enabled', 'confessions_channel_id',
+  'confessions_require_approval', 'birthday_role_id', 'streak_bonus_per_day',
+  'streak_milestone_bonuses',
   'dj_enabled', 'dj_only_skip', 'prestige_role_id',
   'music247_enabled', 'music247_channel_id', 'booster_role_id',
   'robbery_enabled', 'new_member_link_enabled', 'new_member_link_days',
@@ -104,6 +121,12 @@ const COLUMNS = [
   'lottery_ticket_price', 'lottery_channel_id',
   'antinuke_enabled', 'antinuke_action', 'antinuke_threshold',
   'antinuke_log_channel_id', 'antinuke_whitelist_roles',
+  'afk_voice_enabled', 'afk_voice_minutes', 'afk_voice_channel_id', 'afk_voice_exempt_role_id',
+  'image_starboard_channel_id', 'image_starboard_threshold',
+  'levelup_channel_id',
+  'afk_autocreate_enabled', 'afk_channel_id', 'afk_max_users',
+  'autopublish_channels',
+  'reengage_enabled', 'reengage_days', 'reengage_channel_id',
 ];
 
 async function getGuildSettings(guildId) {
@@ -191,6 +214,20 @@ async function getGuildSettings(guildId) {
         antinukeThreshold: r.antinuke_threshold ?? 5,
         antinukeLogChannelId: r.antinuke_log_channel_id || '',
         antinukeWhitelistRoles: (() => { try { const v = r.antinuke_whitelist_roles; return Array.isArray(v) ? v : (v ? JSON.parse(v) : []); } catch { return []; } })(),
+        afkVoiceEnabled: r.afk_voice_enabled === 1,
+        afkVoiceMinutes: r.afk_voice_minutes ?? 30,
+        afkVoiceChannelId: r.afk_voice_channel_id || '',
+        afkVoiceExemptRoleId: r.afk_voice_exempt_role_id || '',
+        imageStarboardChannelId: r.image_starboard_channel_id || '',
+        imageStarboardThreshold: r.image_starboard_threshold ?? 3,
+        levelupChannelId: r.levelup_channel_id || '',
+        afkAutocreateEnabled: r.afk_autocreate_enabled === 1,
+        afkChannelId: r.afk_channel_id || '',
+        afkMaxUsers: r.afk_max_users ?? 10,
+        autopublishChannels: (() => { try { const v = r.autopublish_channels; return Array.isArray(v) ? v : (v ? JSON.parse(v) : []); } catch { return []; } })(),
+        reengageEnabled: r.reengage_enabled === 1,
+        reengageDays: r.reengage_days ?? 30,
+        reengageChannelId: r.reengage_channel_id || '',
       };
     }
   }
@@ -269,6 +306,20 @@ async function setGuildSettings(guildId, patch) {
     next.antinukeThreshold ?? 5,
     next.antinukeLogChannelId || null,
     JSON.stringify(next.antinukeWhitelistRoles || []),
+    next.afkVoiceEnabled ? 1 : 0,
+    next.afkVoiceMinutes ?? 30,
+    next.afkVoiceChannelId || null,
+    next.afkVoiceExemptRoleId || null,
+    next.imageStarboardChannelId || null,
+    next.imageStarboardThreshold ?? 3,
+    next.levelupChannelId || null,
+    next.afkAutocreateEnabled ? 1 : 0,
+    next.afkChannelId || null,
+    next.afkMaxUsers ?? 10,
+    JSON.stringify(next.autopublishChannels || []),
+    next.reengageEnabled ? 1 : 0,
+    next.reengageDays ?? 30,
+    next.reengageChannelId || null,
   ];
   // COLUMNS.length columns, values.length params — keep them in sync.
   if (values.length !== COLUMNS.length) throw new Error(`guildSettings column/param mismatch: ${COLUMNS.length} columns, ${values.length} values`);

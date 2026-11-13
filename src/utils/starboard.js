@@ -33,21 +33,40 @@ async function handleStarChange(reaction, user, client) {
     if (message.channelId === settings.starboardChannelId) return; // never star the starboard itself
     if (reaction.emoji.name !== settings.starboardEmoji && reaction.emoji.toString() !== settings.starboardEmoji) return;
 
-    const starboardChannel = message.guild.channels.cache.get(settings.starboardChannelId)
-      || await message.guild.channels.fetch(settings.starboardChannelId).catch(() => null);
+    // Image-only starboard (1.7.5): messages with image/video attachments go
+    // to a separate channel (with the image large) when one is configured;
+    // otherwise they go to the main starboard as before.
+    let targetChannelId = settings.starboardChannelId;
+    let threshold = settings.starboardThreshold;
+    const hasMedia = message.attachments?.some((a) => a.contentType?.startsWith('image/') || a.contentType?.startsWith('video/') || /\.(png|jpe?g|gif|webp|mp4|mov)$/i.test(a.url || ''));
+    if (hasMedia) {
+      const { getGuildSettings } = require('./guildSettings');
+      const gs = await getGuildSettings(message.guild.id).catch(() => null);
+      if (gs?.imageStarboardChannelId) {
+        if (message.channelId === gs.imageStarboardChannelId) return;
+        targetChannelId = gs.imageStarboardChannelId;
+        threshold = gs.imageStarboardThreshold ?? 3;
+      }
+    }
+
+    const starboardChannel = message.guild.channels.cache.get(targetChannelId)
+      || await message.guild.channels.fetch(targetChannelId).catch(() => null);
     if (!starboardChannel?.isTextBased()) return;
 
     const count = reaction.count || 0;
     const rows = await db.query('SELECT * FROM starboard WHERE guild_id = ? AND message_id = ?', [message.guild.id, message.id]);
     const row = rows?.[0];
 
-    if (count >= settings.starboardThreshold) {
+    if (count >= threshold) {
       const jump = `https://discord.com/channels/${message.guild.id}/${message.channelId}/${message.id}`;
+      let existingMsg = null;
       if (row && row.starboard_message_id && !row.removed) {
+        existingMsg = await starboardChannel.messages.fetch(row.starboard_message_id).catch(() => null);
+      }
+      if (existingMsg) {
         // Update the existing starboard post's count.
         try {
-          const sbMsg = await starboardChannel.messages.fetch(row.starboard_message_id).catch(() => null);
-          if (sbMsg) await sbMsg.edit({ content: `${settings.starboardEmoji} **${count}** — [jump to message](${jump})`, embeds: [starboardEmbed(message, count, settings.starboardEmoji)] });
+          await existingMsg.edit({ content: `${settings.starboardEmoji} **${count}** — [jump to message](${jump})`, embeds: [starboardEmbed(message, count, settings.starboardEmoji)] });
         } catch {}
         await db.query('UPDATE starboard SET star_count = ?, removed = 0 WHERE id = ?', [count, row.id]);
       } else {

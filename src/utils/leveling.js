@@ -100,6 +100,13 @@ async function stopBoost(guildId) {
 
 async function awardXp(message) {
   if (!db.isEnabled() || !message.guild || message.author.bot) return null;
+  // Rank card (1.8.9): count every message for the total-messages field.
+  // Best-effort — the messages column was added in 1.8.9; a database that
+  // has not run the migration keeps working (the catch swallows it).
+  await db.query(
+    'INSERT INTO user_levels (user_id, guild_id, messages) VALUES (?, ?, 1) ON DUPLICATE KEY UPDATE messages = messages + 1',
+    [message.author.id, message.guildId],
+  ).catch(() => {});
   const cfg = config.leveling || {};
   const cooldown = (cfg.cooldownSeconds || 60) * 1000;
   const now = Date.now();
@@ -144,6 +151,17 @@ async function handleLevelUp(guild, member, oldLevel, newLevel, announceChannel)
         await member.roles.add(role).catch(() => {});
         granted.push(role.name);
       }
+    }
+  }
+  // Level-up announcement channel (1.8.3): when a member levels up AND gains
+  // a role, post an embed in the configured channel. Role auto-grant itself
+  // predates this (1.3.5); this version adds the announcement channel.
+  if (granted.length && settings.levelupChannelId) {
+    const announce = guild.channels.cache.get(settings.levelupChannelId)
+      || await guild.channels.fetch(settings.levelupChannelId).catch(() => null);
+    if (announce?.isTextBased()) {
+      const { infoEmbed } = require('./embeds');
+      await announce.send({ embeds: [infoEmbed('🎉 Level-up reward!', `${member} hit **level ${newLevel}** and earned the **${granted.join(', ')}** role${granted.length === 1 ? '' : 's'}!`)] }).catch(() => {});
     }
   }
   const dueReminders = await db.query(
@@ -207,9 +225,12 @@ async function getRank(userId, guildId) {
   if (!db.isEnabled()) return null;
   const rows = await db.query('SELECT xp, level FROM user_levels WHERE user_id = ? AND guild_id = ?', [userId, guildId]);
   const xp = rows?.[0]?.xp || 0;
+  // messages column added in 1.8.9 — best-effort on un-migrated databases.
+  const msgRows = await db.query('SELECT messages FROM user_levels WHERE user_id = ? AND guild_id = ?', [userId, guildId]).catch(() => null);
+  const messages = msgRows?.[0]?.messages || 0;
   const prestige = await getUserPrestige(userId, guildId);
   const rankRows = await db.query('SELECT COUNT(*) AS better FROM user_levels WHERE guild_id = ? AND xp > ?', [guildId, xp]);
-  return { xp, level: levelForXp(xp), rank: (rankRows?.[0]?.better || 0) + 1, prestige };
+  return { xp, level: levelForXp(xp), rank: (rankRows?.[0]?.better || 0) + 1, prestige, messages };
 }
 
 async function getLeaderboard(guildId, limit = 10) {

@@ -57,9 +57,24 @@ const COMMAND_FEATURES = {
   'prestige': 'leveling', 'prestige-leaderboard': 'leveling',
   'ticket-panel': 'tickets',
   'inviterole': 'invites',
+  'wordle': 'fun', 'wordle-leaderboard': 'fun',
+  'event': 'events',
+  'slowmode': 'moderation', 'slowmode-schedule': 'moderation', 'slowmode-schedule-remove': 'moderation',
+  'afkvoice-setup': 'moderation', 'afkchannel-setup': 'tempvc',
+  'starboard-image-setup': 'starboard',
+  'statusrole': 'statusroles',
+  'snipe': 'moderation', 'editsnipe': 'moderation',
+  'embed': 'embeds',
+  'poll-results': 'polls',
+  'ticket-ratings': 'tickets',
+  'levelup-channel': 'leveling',
+  'invitereward': 'invites', 'myinviterewards': 'invites',
+  'bookmark': 'bookmarks', 'Bookmark message': 'bookmarks',
+  'autopublish': 'announcements',
+  'reengage-setup': 'reengage', 'reengage-optout': 'reengage', 'reengage-preview': 'reengage',
 };
 
-const FEATURES = ['media', 'temproles', 'quotes', 'confessions','music', 'tickets', 'leveling', 'giveaways', 'streams', 'gameservers', 'serverstats', 'reactionroles', 'applications', 'invites', 'welcome', 'automod', 'suggestions', 'economy', 'starboard', 'customcommands', 'modlog', 'afk', 'polls', 'autorole', 'scheduler', 'faq', 'presence', 'casino', 'trading', 'bottracking', 'verification', 'counting', 'tempvc', 'birthdays', 'weather', 'ai', 'colorroles', 'modmail', 'fun', 'translate', 'emojis', 'countdowns'];
+const FEATURES = ['media', 'temproles', 'quotes', 'confessions','music', 'tickets', 'leveling', 'giveaways', 'streams', 'gameservers', 'serverstats', 'reactionroles', 'applications', 'invites', 'welcome', 'automod', 'suggestions', 'economy', 'starboard', 'customcommands', 'modlog', 'afk', 'polls', 'autorole', 'scheduler', 'faq', 'presence', 'casino', 'trading', 'bottracking', 'verification', 'counting', 'tempvc', 'birthdays', 'weather', 'ai', 'colorroles', 'modmail', 'fun', 'translate', 'emojis', 'countdowns', 'events', 'statusroles', 'embeds', 'bookmarks', 'announcements', 'reengage'];
 
 async function isEnabled(table, key, guildId) {
   if (!db.isEnabled()) return true;

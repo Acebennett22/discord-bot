@@ -116,6 +116,29 @@ CREATE TABLE IF NOT EXISTS guild_settings (
   weather_units ENUM('imperial','metric') NOT NULL DEFAULT 'imperial',
   lottery_ticket_price INT NOT NULL DEFAULT 100,
   lottery_channel_id VARCHAR(32) NULL,
+  dj_enabled TINYINT(1) NOT NULL DEFAULT 0,
+  dj_only_skip TINYINT(1) NOT NULL DEFAULT 1,
+  prestige_role_id VARCHAR(32) NULL,
+  music247_enabled TINYINT(1) NOT NULL DEFAULT 0,
+  music247_channel_id VARCHAR(32) NULL,
+  booster_role_id VARCHAR(32) NULL,
+  robbery_enabled TINYINT(1) NOT NULL DEFAULT 1,
+  new_member_link_enabled TINYINT(1) NOT NULL DEFAULT 0,
+  new_member_link_days INT NOT NULL DEFAULT 7,
+  afk_voice_enabled TINYINT(1) NOT NULL DEFAULT 0,
+  afk_voice_minutes INT NOT NULL DEFAULT 30,
+  afk_voice_channel_id VARCHAR(32) NULL,
+  afk_voice_exempt_role_id VARCHAR(32) NULL,
+  image_starboard_channel_id VARCHAR(32) NULL,
+  image_starboard_threshold INT NOT NULL DEFAULT 3,
+  levelup_channel_id VARCHAR(32) NULL,
+  afk_autocreate_enabled TINYINT(1) NOT NULL DEFAULT 0,
+  afk_channel_id VARCHAR(32) NULL,
+  afk_max_users INT NOT NULL DEFAULT 10,
+  autopublish_channels JSON NULL,
+  reengage_enabled TINYINT(1) NOT NULL DEFAULT 0,
+  reengage_days INT NOT NULL DEFAULT 30,
+  reengage_channel_id VARCHAR(32) NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (guild_id)
@@ -1165,3 +1188,182 @@ CREATE TABLE IF NOT EXISTS economy_users (
 --     ADD COLUMN daily_streak INT UNSIGNED NOT NULL DEFAULT 0,
 --     ADD COLUMN best_streak INT UNSIGNED NOT NULL DEFAULT 0,
 --     ADD COLUMN last_daily_date DATE NULL;
+
+-- v1.7.1 (2026-11-13): Wordle / daily games.
+CREATE TABLE IF NOT EXISTS wordle_games (
+  guild_id VARCHAR(32) NOT NULL,
+  user_id VARCHAR(32) NOT NULL,
+  date DATE NOT NULL,
+  word VARCHAR(5) NOT NULL,
+  guesses JSON NOT NULL,
+  won TINYINT(1) NOT NULL DEFAULT 0,
+  attempts INT UNSIGNED NOT NULL DEFAULT 0,
+  streak INT UNSIGNED NOT NULL DEFAULT 0,
+  PRIMARY KEY (guild_id, user_id, date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- v1.7.2 (2026-11-13): event scheduler.
+CREATE TABLE IF NOT EXISTS scheduled_events (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  guild_id VARCHAR(32) NOT NULL,
+  channel_id VARCHAR(32) NOT NULL,
+  title VARCHAR(256) NOT NULL,
+  description TEXT NULL,
+  starts_at TIMESTAMP NOT NULL,
+  created_by VARCHAR(32) NULL,
+  message_id VARCHAR(32) NULL,
+  status ENUM('upcoming','started','cancelled') NOT NULL DEFAULT 'upcoming',
+  reminded TINYINT(1) NOT NULL DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  INDEX idx_events_guild (guild_id, status, starts_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS event_rsvps (
+  event_id BIGINT UNSIGNED NOT NULL,
+  user_id VARCHAR(32) NOT NULL,
+  status ENUM('going','maybe','not_going') NOT NULL,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (event_id, user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- v1.7.3 (2026-11-13): slowmode presets (day/night schedule per channel).
+CREATE TABLE IF NOT EXISTS slowmode_schedules (
+  guild_id VARCHAR(32) NOT NULL,
+  channel_id VARCHAR(32) NOT NULL,
+  preset_name VARCHAR(64) NOT NULL DEFAULT 'default',
+  day_seconds INT UNSIGNED NOT NULL DEFAULT 0,
+  night_seconds INT UNSIGNED NOT NULL DEFAULT 0,
+  night_start_hour INT UNSIGNED NOT NULL DEFAULT 22,
+  night_end_hour INT UNSIGNED NOT NULL DEFAULT 8,
+  PRIMARY KEY (guild_id, channel_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- v1.7.4 (2026-11-13): AFK voice kick move log.
+CREATE TABLE IF NOT EXISTS afk_voice_moves (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  guild_id VARCHAR(32) NOT NULL,
+  user_id VARCHAR(32) NOT NULL,
+  from_channel_id VARCHAR(32) NULL,
+  to_channel_id VARCHAR(32) NULL,
+  disconnected TINYINT(1) NOT NULL DEFAULT 0,
+  moved_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  INDEX idx_afk_moves_guild (guild_id, moved_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- v1.7.6 (2026-11-13): custom status roles (trigger text -> role).
+CREATE TABLE IF NOT EXISTS status_roles (
+  guild_id VARCHAR(32) NOT NULL,
+  trigger_text VARCHAR(128) NOT NULL,
+  role_id VARCHAR(32) NOT NULL,
+  created_by VARCHAR(32) NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (guild_id, trigger_text)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- v1.7.8 (2026-11-13): embed builder (bot-posted embeds, re-editable).
+CREATE TABLE IF NOT EXISTS embeds (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  guild_id VARCHAR(32) NOT NULL,
+  message_id VARCHAR(32) NULL,
+  channel_id VARCHAR(32) NOT NULL,
+  embed_json JSON NOT NULL,
+  created_by VARCHAR(32) NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  INDEX idx_embeds_guild (guild_id, channel_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- v1.8.2 (2026-11-13): ticket ratings (1-5 stars + optional comment).
+CREATE TABLE IF NOT EXISTS ticket_ratings (
+  ticket_id BIGINT UNSIGNED NOT NULL,
+  guild_id VARCHAR(32) NOT NULL,
+  user_id VARCHAR(32) NOT NULL,
+  rating INT UNSIGNED NOT NULL,
+  comment TEXT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (ticket_id, user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- v1.8.4 (2026-11-13): invite rewards (milestones -> role or coins).
+CREATE TABLE IF NOT EXISTS invite_rewards (
+  guild_id VARCHAR(32) NOT NULL,
+  invites_required INT UNSIGNED NOT NULL,
+  reward_type ENUM('role','coins') NOT NULL,
+  role_id VARCHAR(32) NULL,
+  coins INT UNSIGNED NULL,
+  created_by VARCHAR(32) NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (guild_id, invites_required)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS invite_reward_grants (
+  guild_id VARCHAR(32) NOT NULL,
+  user_id VARCHAR(32) NOT NULL,
+  invites_required INT UNSIGNED NOT NULL,
+  granted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (guild_id, user_id, invites_required)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- v1.8.6 (2026-11-13): message bookmarks (excerpt only, max 500 chars).
+CREATE TABLE IF NOT EXISTS bookmarks (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  guild_id VARCHAR(32) NOT NULL,
+  user_id VARCHAR(32) NOT NULL,
+  message_id VARCHAR(32) NOT NULL,
+  channel_id VARCHAR(32) NOT NULL,
+  author_id VARCHAR(32) NULL,
+  content_excerpt VARCHAR(500) NULL,
+  note VARCHAR(256) NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  INDEX idx_bookmarks_user (guild_id, user_id, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- v1.8.8 (2026-11-13): inactive-member re-engagement log + opt-outs.
+CREATE TABLE IF NOT EXISTS reengage_logs (
+  guild_id VARCHAR(32) NOT NULL,
+  user_id VARCHAR(32) NOT NULL,
+  messaged_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (guild_id, user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS reengage_optouts (
+  guild_id VARCHAR(32) NOT NULL,
+  user_id VARCHAR(32) NOT NULL,
+  opted_out_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (guild_id, user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- v1.7.x / v1.8.x migration note for existing installs: the guild_settings
+-- columns added after 1.12.6 are NOT created by CREATE TABLE IF NOT EXISTS
+-- on a table that already exists. Run once:
+--   ALTER TABLE guild_settings
+--     ADD COLUMN dj_enabled TINYINT(1) NOT NULL DEFAULT 0,
+--     ADD COLUMN dj_only_skip TINYINT(1) NOT NULL DEFAULT 1,
+--     ADD COLUMN prestige_role_id VARCHAR(32) NULL,
+--     ADD COLUMN music247_enabled TINYINT(1) NOT NULL DEFAULT 0,
+--     ADD COLUMN music247_channel_id VARCHAR(32) NULL,
+--     ADD COLUMN booster_role_id VARCHAR(32) NULL,
+--     ADD COLUMN robbery_enabled TINYINT(1) NOT NULL DEFAULT 1,
+--     ADD COLUMN new_member_link_enabled TINYINT(1) NOT NULL DEFAULT 0,
+--     ADD COLUMN new_member_link_days INT NOT NULL DEFAULT 7,
+--     ADD COLUMN afk_voice_enabled TINYINT(1) NOT NULL DEFAULT 0,
+--     ADD COLUMN afk_voice_minutes INT NOT NULL DEFAULT 30,
+--     ADD COLUMN afk_voice_channel_id VARCHAR(32) NULL,
+--     ADD COLUMN afk_voice_exempt_role_id VARCHAR(32) NULL,
+--     ADD COLUMN image_starboard_channel_id VARCHAR(32) NULL,
+--     ADD COLUMN image_starboard_threshold INT NOT NULL DEFAULT 3,
+--     ADD COLUMN levelup_channel_id VARCHAR(32) NULL,
+--     ADD COLUMN afk_autocreate_enabled TINYINT(1) NOT NULL DEFAULT 0,
+--     ADD COLUMN afk_channel_id VARCHAR(32) NULL,
+--     ADD COLUMN afk_max_users INT NOT NULL DEFAULT 10,
+--     ADD COLUMN autopublish_channels JSON NULL,
+--     ADD COLUMN reengage_enabled TINYINT(1) NOT NULL DEFAULT 0,
+--     ADD COLUMN reengage_days INT NOT NULL DEFAULT 30,
+--     ADD COLUMN reengage_channel_id VARCHAR(32) NULL;
+-- v1.8.1 / v1.8.9 migration note for existing installs:
+--   ALTER TABLE polls ADD COLUMN final_counts JSON NULL;
+--   ALTER TABLE user_levels ADD COLUMN messages INT UNSIGNED NOT NULL DEFAULT 0;

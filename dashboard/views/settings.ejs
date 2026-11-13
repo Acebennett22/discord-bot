@@ -6,7 +6,7 @@
       <strong><%= guild.name %></strong>
     </div>
     <nav>
-      <% const MODS = [['general','⚙️ General'],['moderation','🛡️ Moderation'],['tickets','🎫 Tickets'],['serverstats','📊 Server Stats'],['streams','📺 Streams'],['music','🎵 Music'],['leveling','🏆 Leveling'],['reactionroles','🎭 Reaction Roles'],['gameservers','🖥️ Game Servers'],['applications','📝 Applications'],['commands','⌨️ Commands'],['invites','📨 Invites'],['welcome','👋 Welcome'],['automod','🤖 Automod'],['suggestions','💡 Suggestions'],['economy','🪙 Economy'],['starboard','⭐ Starboard'],['customcommands','⌨️ Custom Commands'],['faq','💬 FAQ'],['scheduled','⏰ Scheduled'],['roles','🎭 Roles'],['verification','✅ Verification'],['counting','🔢 Counting'],['tempvc','🔊 Temp VC'],['birthdays','🎂 Birthdays'],['analytics','📈 Analytics'],['giveaways','🎉 Giveaways'],['ai','💬 AI Chat'],['modmail','📬 Modmail'],['games','🎲 Games'],['emojis','😀 Emojis'],['media','🧵 Media'],['threads','🧵 Threads'],['confessions','🤫 Confessions']]; %>
+      <% const MODS = [['general','⚙️ General'],['moderation','🛡️ Moderation'],['tickets','🎫 Tickets'],['serverstats','📊 Server Stats'],['streams','📺 Streams'],['music','🎵 Music'],['leveling','🏆 Leveling'],['reactionroles','🎭 Reaction Roles'],['gameservers','🖥️ Game Servers'],['applications','📝 Applications'],['commands','⌨️ Commands'],['invites','📨 Invites'],['welcome','👋 Welcome'],['automod','🤖 Automod'],['suggestions','💡 Suggestions'],['economy','🪙 Economy'],['starboard','⭐ Starboard'],['customcommands','⌨️ Custom Commands'],['faq','💬 FAQ'],['scheduled','⏰ Scheduled'],['roles','🎭 Roles'],['verification','✅ Verification'],['counting','🔢 Counting'],['tempvc','🔊 Temp VC'],['birthdays','🎂 Birthdays'],['analytics','📈 Analytics'],['giveaways','🎉 Giveaways'],['ai','💬 AI Chat'],['modmail','📬 Modmail'],['games','🎲 Games'],['emojis','😀 Emojis'],['media','🧵 Media'],['threads','🧵 Threads'],['confessions','🤫 Confessions'],['events','📅 Events'],['embeds','🧩 Embeds'],['polls','📊 Polls'],['announcements','📣 Announcements']]; %>
       <% MODS.forEach(([m, label]) => { %>
         <a href="/guilds/<%= guild.id %>/<%= m %>" class="<%= module === m ? 'active' : '' %>"><%= label %></a>
       <% }); %>
@@ -174,6 +174,44 @@
     <table><tr><th>User</th><th>Banned by</th><th>Reason</th><th>Expires</th><th></th></tr>
     <% tempBans.forEach(t => { %><tr><td>&lt;@<%= t.user_id %>&gt;</td><td>&lt;@<%= t.banned_by %>&gt;</td><td><%= (t.reason || '').slice(0, 120) %></td><td><%= t.expires_at %></td><td><button class="btn danger" data-post="/api/guilds/<%= guild.id %>/tempbans/<%= t.user_id %>/cancel">Cancel (unban)</button></td></tr><% }); %></table>
     <% } %>
+    <h2>🐢 Slowmode presets</h2>
+    <p class="muted">Day/night slowmode per channel — the bot re-applies the right value every 15 minutes. Same as /slowmode-schedule in Discord.</p>
+    <div id="slowmode-list">
+    <% if (!slowmodeSchedules.length) { %><p class="muted">No slowmode schedules yet.</p><% } else { %>
+      <table><tr><th>Channel</th><th>Day</th><th>Night</th><th>Night hours</th><th></th></tr>
+      <% slowmodeSchedules.forEach(s => { %><tr><td>#<%= (channels.find(c => c.id === s.channel_id) || {}).name || s.channel_id %></td><td><%= s.day_seconds %>s</td><td><%= s.night_seconds %>s</td><td><%= s.night_start_hour %>:00–<%= s.night_end_hour %>:00</td><td><button class="btn danger" data-post="/api/guilds/<%= guild.id %>/slowmode-schedules/<%= s.channel_id %>/remove">Remove</button></td></tr><% }); %></table>
+    <% } %>
+    </div>
+    <form id="add-slowmode-form">
+      <label>Channel</label>
+      <select name="channelId"><% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>">#<%= c.name %></option><% }); %></select>
+      <label>Day slowmode (seconds, 0 = off)</label>
+      <input type="number" name="daySeconds" min="0" max="21600" value="0" required>
+      <label>Night slowmode (seconds, 0 = off)</label>
+      <input type="number" name="nightSeconds" min="0" max="21600" value="10" required>
+      <label>Night starts (hour, 0–23)</label>
+      <input type="number" name="nightStart" min="0" max="23" value="22" required>
+      <label>Night ends (hour, 0–23)</label>
+      <input type="number" name="nightEnd" min="0" max="23" value="8" required>
+      <br><br><button class="btn" type="submit">Save schedule</button>
+    </form>
+    <p id="slowmode-result" class="muted"></p>
+    <h2>🎙️ AFK voice kick</h2>
+    <p class="muted">Members muted/deafened in voice for longer than the threshold are moved to the AFK channel (or disconnected if none is set). Bots, members already in the AFK channel, and the exempt role are never moved. Same as /afkvoice-setup in Discord.</p>
+    <form method="post" action="/api/guilds/<%= guild.id %>/settings">
+      <label class="toggle"><input type="checkbox" name="afkVoiceEnabled" value="true" <%= settings.afkVoiceEnabled ? 'checked' : '' %>><span class="track"></span><span>AFK voice kick enabled</span></label>
+      <label>Minutes muted/deafened before moving (5–1440)</label>
+      <input type="number" name="afkVoiceMinutes" min="5" max="1440" value="<%= settings.afkVoiceMinutes ?? 30 %>">
+      <label>AFK channel (blank = disconnect instead)</label>
+      <select name="afkVoiceChannelId"><option value="">— disconnect —</option>
+        <% channels.filter(c => c.type === 2).forEach(c => { %><option value="<%= c.id %>" <%= settings.afkVoiceChannelId === c.id ? 'selected' : '' %>><%= c.name %></option><% }); %>
+      </select>
+      <label>Exempt role (staff — never moved)</label>
+      <select name="afkVoiceExemptRoleId"><option value="">— none —</option>
+        <% roles.forEach(r => { %><option value="<%= r.id %>" <%= settings.afkVoiceExemptRoleId === r.id ? 'selected' : '' %>><%= r.name %></option><% }); %>
+      </select>
+      <br><br><button class="btn" type="submit">Save AFK voice settings</button>
+    </form>
     <% } %>
 
     <% if (module === 'tickets') { %>
@@ -220,6 +258,13 @@
       <br><br><button class="btn" type="submit">Create panel</button>
     </form>
     <p id="ticket-panel-result" class="muted"></p>
+    <h3>⭐ Ticket ratings</h3>
+    <p class="muted">When a ticket closes, the creator is DM'd a 1–5 star prompt (with an optional comment). If their DMs are closed the prompt is skipped silently. Same as /ticket-ratings in Discord.</p>
+    <% if (!ticketRatingStats || !ticketRatingStats.count) { %><p class="muted">No ratings yet.</p><% } else { %>
+      <p><strong>Average:</strong> <%= ticketRatingStats.average.toFixed(2) %> / 5 from <strong><%= ticketRatingStats.count %></strong> rating<%= ticketRatingStats.count === 1 ? '' : 's' %></p>
+      <table><tr><th>Rating</th><th>User</th><th>Comment</th><th>When</th></tr>
+      <% ticketRatingStats.recent.forEach(r => { %><tr><td><%= '⭐'.repeat(r.rating) %></td><td>&lt;@<%= r.user_id %>&gt;</td><td><%= (r.comment || '—').slice(0, 200) %></td><td><%= r.created_at %></td></tr><% }); %></table>
+    <% } %>
     <% } %>
 
     <% if (module === 'serverstats') { %>
@@ -397,6 +442,19 @@
       <table><tr><th>#</th><th>User</th><th>Prestige</th><th>XP multiplier</th></tr>
       <% prestigeLeaderboard.forEach((r, i) => { %><tr><td><%= i + 1 %></td><td>&lt;@<%= r.user_id %>&gt;</td><td>⭐ <%= r.prestige %></td><td>x<%= (1 + Math.min(r.prestige, 10) * 0.1).toFixed(1) %></td></tr><% }); %></table>
     <% } %>
+    <h2>📣 Level-up announcements</h2>
+    <p class="muted">When a member levels up <strong>and gains a role</strong>, the bot posts an announcement here. Level-ups without a role reward are still announced in the channel where they happened. Same as /levelup-channel in Discord.</p>
+    <form method="post" action="/api/guilds/<%= guild.id %>/settings">
+      <label>Level-up announcement channel</label>
+      <select name="levelupChannelId"><option value="">— none (in-channel only) —</option>
+        <% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>" <%= settings.levelupChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }); %>
+      </select>
+      <br><br><button class="btn" type="submit">Save level-up channel</button>
+    </form>
+    <h2>🖼️ Rank card</h2>
+    <p class="muted">/rank posts a 900×300 card image (avatar, level, XP progress bar, leaderboard rank, total messages) in the same theme as the welcome card. The text embed is the fallback if canvas is unavailable.</p>
+    <p><button class="btn" type="button" id="rankcard-preview-btn">Preview sample rank card</button></p>
+    <div id="rankcard-preview-img"></div>
     <% } %>
 
     <% if (module === 'analytics') { %>
@@ -436,6 +494,24 @@
       <table><tr><th>User</th><th>Commands</th></tr>
       <% analyticsData.topCommandUsers.forEach(u => { %><tr><td>&lt;@<%= u.user_id %>&gt;</td><td><%= u.commands_used %></td></tr><% }); %></table>
     <% } %>
+    <h2>👋 Inactive members (re-engagement)</h2>
+    <p class="muted">Members with no messages, voice time, or slash-command use in the last <%= settings.reengageDays || 30 %> days — the same list /reengage-preview shows. The daily job (10:00) DMs them once per 30 days unless they opted out. Set it up with /reengage-setup in Discord.</p>
+    <% if (inactiveMembers === null) { %><p class="muted">Could not load the inactive list right now (the bot needs to reach Discord's member list).</p><% } else if (!inactiveMembers.length) { %><p class="muted">Nobody is inactive right now.</p><% } else { %>
+      <p><strong><%= inactiveMembers.length %></strong> member<%= inactiveMembers.length === 1 ? '' : 's' %> would be messaged.</p>
+      <table><tr><th>User</th><th>Last active</th></tr>
+      <% inactiveMembers.slice(0, 25).forEach(m => { %><tr><td>&lt;@<%= m.member.id %>&gt;</td><td><%= m.lastActivity ? new Date(m.lastActivity).toISOString().slice(0, 10) : 'never recorded' %></td></tr><% }); %></table>
+      <% if (inactiveMembers.length > 25) { %><p class="muted">…and <%= inactiveMembers.length - 25 %> more.</p><% } %>
+    <% } %>
+    <form method="post" action="/api/guilds/<%= guild.id %>/settings">
+      <label class="toggle"><input type="checkbox" name="reengageEnabled" value="true" <%= settings.reengageEnabled ? 'checked' : '' %>><span class="track"></span><span>Re-engagement enabled</span></label>
+      <label>Days of inactivity before messaging (7–180)</label>
+      <input type="number" name="reengageDays" min="7" max="180" value="<%= settings.reengageDays ?? 30 %>">
+      <label>Post in a channel instead of DMing (blank = DM)</label>
+      <select name="reengageChannelId"><option value="">— DM —</option>
+        <% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>" <%= settings.reengageChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }); %>
+      </select>
+      <br><br><button class="btn" type="submit">Save re-engagement settings</button>
+    </form>
     <% } %>
 
     <% if (module === 'giveaways') { %>
@@ -515,6 +591,18 @@
         <% channels.filter(c => c.type === 4).forEach(c => { %><option value="<%= c.id %>" <%= settings.tempvcCategoryId === c.id ? 'selected' : '' %>><%= c.name %></option><% }); %>
       </select>
       <br><br><button class="btn" type="submit">Save temp VC settings</button>
+    </form>
+    <h2>😴 AFK channel auto-create</h2>
+    <p class="muted">When the primary AFK channel fills up, the bot creates a second AFK voice channel ("AFK 2") in the same category and deletes it when it empties. If the primary is empty for 10 minutes and the secondary is also empty, the secondary is deleted. Same as /afkchannel-setup in Discord.</p>
+    <form method="post" action="/api/guilds/<%= guild.id %>/settings">
+      <label class="toggle"><input type="checkbox" name="afkAutocreateEnabled" value="true" <%= settings.afkAutocreateEnabled ? 'checked' : '' %>><span class="track"></span><span>AFK auto-create enabled</span></label>
+      <label>Primary AFK voice channel</label>
+      <select name="afkChannelId"><option value="">— none —</option>
+        <% channels.filter(c => c.type === 2).forEach(c => { %><option value="<%= c.id %>" <%= settings.afkChannelId === c.id ? 'selected' : '' %>><%= c.name %></option><% }); %>
+      </select>
+      <label>Max users in the primary channel before "AFK 2" is created (1–99)</label>
+      <input type="number" name="afkMaxUsers" min="1" max="99" value="<%= settings.afkMaxUsers ?? 10 %>">
+      <br><br><button class="btn" type="submit">Save AFK auto-create settings</button>
     </form>
     <% } %>
 
@@ -638,6 +726,26 @@
     <table><tr><th>User</th><th>Valid</th><th>Total</th><th>Leaves</th><th>Fake</th><th>Updated</th></tr>
     <% inviteStats.forEach(r => { %><tr><td>&lt;@<%= r.user_id %>&gt;</td><td><%= r.valid_invites %></td><td><%= r.total_invites %></td><td><%= r.leaves %></td><td><%= r.fake_invites %></td><td><%= r.updated_at %></td></tr><% }); %></table>
     </div>
+    <h2>🎉 Invite rewards</h2>
+    <p class="muted">When a member's valid invite count reaches a milestone, they automatically get the reward (a role, or coins in their economy wallet) — once per milestone. Fake joins never count. Same as /invitereward in Discord.</p>
+    <div id="invite-rewards-list">
+    <% if (!inviteRewardList.length) { %><p class="muted">No invite milestones yet.</p><% } else { %>
+      <table><tr><th>Invites</th><th>Reward</th><th></th></tr>
+      <% inviteRewardList.forEach(r => { %><tr><td><%= r.invites_required %></td><td><%= r.reward_type === 'role' ? '@' + ((roles.find(x => x.id === r.role_id) || {}).name || r.role_id) : r.coins + ' coins' %></td><td><button class="btn danger" data-post="/api/guilds/<%= guild.id %>/inviterewards/<%= r.invites_required %>/remove">Remove</button></td></tr><% }); %></table>
+    <% } %>
+    </div>
+    <form id="add-invitereward-form">
+      <label>Valid invites needed</label>
+      <input type="number" name="invites" min="1" max="10000" value="5" required>
+      <label>Reward type</label>
+      <select name="type"><option value="role">Role</option><option value="coins">Coins</option></select>
+      <label>Role (for Role rewards)</label>
+      <select name="roleId"><% roles.forEach(r => { %><option value="<%= r.id %>"><%= r.name %></option><% }); %></select>
+      <label>Coins (for Coins rewards)</label>
+      <input type="number" name="coins" min="1" max="1000000" value="500">
+      <br><br><button class="btn" type="submit">Add milestone</button>
+    </form>
+    <p id="invitereward-result" class="muted"></p>
     <% } %>
 
     <% if (module === 'gameservers') { %>
@@ -780,6 +888,17 @@
       <input type="text" name="starboardEmoji" value="<%= premiumSettings?.starboardEmoji || '⭐' %>" maxlength="32">
       <br><br><button class="btn" type="submit">Save starboard settings</button>
     </form>
+    <h2>🖼️ Image starboard</h2>
+    <p class="muted">Messages with image/video attachments that reach the threshold post to a separate image channel as a large-image embed — same star-reaction flow, image posts only. If no image channel is set, image posts go to the main starboard as before. Same as /starboard-image-setup in Discord.</p>
+    <form method="post" action="/api/guilds/<%= guild.id %>/settings">
+      <label>Image starboard channel</label>
+      <select name="imageStarboardChannelId"><option value="">— use main starboard —</option>
+        <% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>" <%= settings.imageStarboardChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }); %>
+      </select>
+      <label>Stars needed for images (1–25)</label>
+      <input type="number" name="imageStarboardThreshold" min="1" max="25" value="<%= settings.imageStarboardThreshold ?? 3 %>">
+      <br><br><button class="btn" type="submit">Save image starboard settings</button>
+    </form>
     <% } %>
 
     <% if (module === 'customcommands') { %>
@@ -866,6 +985,13 @@
       <table><tr><th>#</th><th>User</th><th>Points</th><th>Wins</th></tr>
       <% triviaLeaderboard.forEach((r, i) => { %><tr><td><%= i + 1 %></td><td>&lt;@<%= r.user_id %>&gt;</td><td><%= r.points %></td><td><%= r.wins %></td></tr><% }); %></table>
     <% } %>
+    <h2>🟩 Wordle</h2>
+    <p class="muted">One game per member per day — same word for everyone in the server (seeded from the date + server id). Six guesses, /wordle in Discord. Streaks: consecutive winning days; a loss or a missed day resets to 0.</p>
+    <p><strong>Today's word (staff only):</strong> <%= wordleToday || '—' %></p>
+    <% if (!wordleLeaderboard.length) { %><p class="muted">Nobody has played Wordle yet.</p><% } else { %>
+      <table><tr><th>#</th><th>User</th><th>Best streak</th><th>Wins</th><th>Games</th></tr>
+      <% wordleLeaderboard.forEach((r, i) => { %><tr><td><%= i + 1 %></td><td>&lt;@<%= r.user_id %>&gt;</td><td><%= r.best_streak %></td><td><%= r.wins %></td><td><%= r.games %></td></tr><% }); %></table>
+    <% } %>
     <% } %>
 
     <% if (module === 'roles') { %>
@@ -920,7 +1046,22 @@
       <input type="number" name="xpPrice" min="1" max="1000000" value="1000">
       <br><br><button class="btn" type="submit">Add to XP shop</button>
     </form>
-    <p class="muted">AFK and polls are Discord-only (see README) — no dashboard tab needed.</p>
+    <h2>🏷️ Custom status roles</h2>
+    <p class="muted">When a member's custom status contains the trigger text (case-insensitive), they get the role; when it stops containing it, the role is removed. Roles must sit below the bot's highest role, and bots never get them. Custom statuses only update when Discord sends a presence update, so there can be a delay — a 10-minute sweep catches missed updates. Same as /statusrole in Discord.</p>
+    <div id="statusrole-list">
+    <% if (!statusRoleRules.length) { %><p class="muted">No status role rules yet.</p><% } else { %>
+      <table><tr><th>Trigger text</th><th>Role</th><th></th></tr>
+      <% statusRoleRules.forEach(r => { %><tr><td><%= r.trigger_text %></td><td>@<%= (roles.find(x => x.id === r.role_id) || {}).name || r.role_id %></td><td><button class="btn danger" data-post="/api/guilds/<%= guild.id %>/statusroles/<%= encodeURIComponent(r.trigger_text) %>/remove">Remove</button></td></tr><% }); %></table>
+    <% } %>
+    </div>
+    <form id="add-statusrole-form">
+      <label>Trigger text (matched inside the custom status)</label>
+      <input type="text" name="triggerText" placeholder="e.g. streaming" required maxlength="128">
+      <label>Role to grant</label>
+      <select name="roleId"><% roles.forEach(r => { %><option value="<%= r.id %>"><%= r.name %></option><% }); %></select>
+      <br><br><button class="btn" type="submit">Add status role</button>
+    </form>
+    <p id="statusrole-result" class="muted"></p>
     <h2>🎭 Role menus</h2>
     <p class="muted">Select-menu role pickers — members pick a role from a dropdown, select again to remove it. Reaction-role requirements (required role / days / level) apply. Manage options with /rolemenu in Discord.</p>
     <% if (!roleMenus.length) { %><p class="muted">No role menus yet.</p><% } else { %>
@@ -1068,6 +1209,84 @@
       <br><br><button class="btn" type="submit">Upload emoji</button>
     </form>
     <p id="emoji-result" class="muted"></p>
+    <% } %>
+
+    <% if (module === 'events') { %>
+    <h1>📅 Events</h1>
+    <p class="muted">Staff-created events with RSVP buttons — members who RSVP Going or Maybe get a DM reminder 1 hour before (channel mention if their DMs are closed) and a "starting now" post in the channel. Same as /event in Discord.</p>
+    <div id="events-list">
+    <% if (!scheduledEventsList.length) { %><p class="muted">No upcoming events.</p><% } else { %>
+      <table><tr><th>ID</th><th>Title</th><th>Starts</th><th>Channel</th><th>RSVPs</th><th></th></tr>
+      <% scheduledEventsList.forEach(ev => { %><tr><td>#<%= ev.id %></td><td><%= ev.title %></td><td><%= new Date(ev.starts_at).toLocaleString() %></td><td>#<%= (channels.find(c => c.id === ev.channel_id) || {}).name || ev.channel_id %></td><td>✅ <%= ev.rsvpCounts?.going || 0 %> · 🤔 <%= ev.rsvpCounts?.maybe || 0 %> · ❌ <%= ev.rsvpCounts?.not_going || 0 %></td><td><button class="btn danger" data-post="/api/guilds/<%= guild.id %>/events/<%= ev.id %>/cancel">Cancel</button></td></tr><% }); %></table>
+    <% } %>
+    </div>
+    <h2>Create an event</h2>
+    <form id="add-event-form">
+      <label>Title</label>
+      <input type="text" name="title" placeholder="Movie night" required maxlength="256">
+      <label>Description (optional)</label>
+      <textarea name="description" rows="2" maxlength="2000"></textarea>
+      <label>Channel</label>
+      <select name="channelId"><% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>">#<%= c.name %></option><% }); %></select>
+      <label>Starts at (local date/time)</label>
+      <input type="datetime-local" name="startsAt" required>
+      <br><br><button class="btn" type="submit">Create event</button>
+    </form>
+    <p id="event-result" class="muted"></p>
+    <% } %>
+
+    <% if (module === 'embeds') { %>
+    <h1>🧩 Built embeds</h1>
+    <p class="muted">Embeds made with /embed create in Discord — edit them in place here (title, description, color) or delete them. Only embeds the bot itself posted can be edited.</p>
+    <% if (!builtEmbeds.length) { %><p class="muted">No built embeds yet.</p><% } else { %>
+      <% builtEmbeds.forEach(b => { const d = (() => { try { return JSON.parse(b.embed_json); } catch { return {}; } })(); %>
+      <div class="card" style="text-align:left;margin-bottom:12px">
+        <strong><%= (d.title || '(no title)').slice(0, 120) %></strong> · #<%= (channels.find(c => c.id === b.channel_id) || {}).name || b.channel_id %> · <a href="https://discord.com/channels/<%= guild.id %>/<%= b.channel_id %>/<%= b.message_id %>" target="_blank" rel="noopener">jump</a>
+        <form class="edit-embed-form" data-message-id="<%= b.message_id %>">
+          <label>Title</label>
+          <input type="text" name="title" value="<%= (d.title || '').replace(/"/g, '&quot;') %>" maxlength="256">
+          <label>Description</label>
+          <textarea name="description" rows="3" maxlength="4096"><%= d.description || '' %></textarea>
+          <label>Color (hex, e.g. #5865f2)</label>
+          <input type="text" name="color" value="<%= d.color || '' %>" maxlength="7" placeholder="#5865f2">
+          <br><button class="btn" type="submit">Save changes</button>
+          <button class="btn danger" type="button" data-post="/api/guilds/<%= guild.id %>/embeds/<%= b.message_id %>/delete">Delete</button>
+        </form>
+      </div>
+      <% }); %>
+    <% } %>
+    <% } %>
+
+    <% if (module === 'polls') { %>
+    <h1>📊 Polls</h1>
+    <p class="muted">Past polls with their results. When a poll ends, the bot posts a bar-chart image (canvas) with each option's votes and percentage, and stores the final tallies so results survive restarts. Same as /poll and /poll-results in Discord.</p>
+    <% if (!pastPolls.length) { %><p class="muted">No polls yet.</p><% } else { %>
+      <% pastPolls.forEach(p => { const counts = p.finalCounts || (() => { const c = new Array((p.options || []).length).fill(0); Object.values(p.votes || {}).forEach((v) => { if (typeof v === 'number' && c[v] !== undefined) c[v]++; }); return c; })(); const total = counts.reduce((a, b) => a + b, 0); const max = Math.max(...counts, 1); %>
+      <div class="card" style="text-align:left;margin-bottom:12px">
+        <strong><%= p.question %></strong> · <%= p.ended ? 'ended' : 'live' %> · <%= p.created_at %>
+        <% (p.options || []).forEach((opt, i) => { const pct = total ? Math.round((counts[i] || 0) / total * 100) : 0; %>
+          <div style="display:flex;align-items:center;gap:8px;margin:3px 0">
+            <span style="width:220px"><%= opt %></span>
+            <div style="flex:1;background:var(--border);border-radius:4px;height:14px"><div style="width:<%= Math.round((counts[i] || 0) / max * 100) %>%;background:#5865f2;height:14px;border-radius:4px"></div></div>
+            <span style="width:90px"><%= counts[i] || 0 %> (<%= pct %>%)</span>
+          </div>
+        <% }); %>
+      </div>
+      <% }); %>
+    <% } %>
+    <% } %>
+
+    <% if (module === 'announcements') { %>
+    <h1>📣 Auto-publish</h1>
+    <p class="muted">Messages posted in these announcement channels are published (crossposted) automatically. Bot messages and already-published messages are skipped; failures are logged to the error log. Same as /autopublish in Discord.</p>
+    <form id="autopublish-form">
+      <label>Announcement channels to auto-publish (hold Ctrl/Cmd to pick several)</label>
+      <select name="autopublishChannels" multiple size="6">
+        <% channels.filter(c => c.type === 5).forEach(c => { %><option value="<%= c.id %>" <%= (settings.autopublishChannels || []).includes(c.id) ? 'selected' : '' %>>📣 <%= c.name %></option><% }); %>
+      </select>
+      <br><br><button class="btn" type="submit">Save auto-publish channels</button>
+    </form>
+    <% if (!(settings.autopublishChannels || []).length) { %><p class="muted">No channels auto-publish yet.</p><% } %>
     <% } %>
   </section>
 </div>

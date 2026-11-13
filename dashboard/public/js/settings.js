@@ -147,6 +147,45 @@
         await AceBot.refreshSection('#emojis-list');
         form.reset();
       },
+      // 1.7.x / 1.8.x: events, slowmode schedules, status roles, invite rewards.
+      'add-event-form': async () => {
+        const fd = new FormData(form);
+        await AceBot.postJSON(api('/events'), {
+          title: fd.get('title'), description: fd.get('description') || null,
+          channelId: fd.get('channelId'), startsAt: fd.get('startsAt'),
+        });
+        AceBot.toast('Event created');
+        await AceBot.refreshSection('#events-list');
+        form.reset();
+      },
+      'add-slowmode-form': async () => {
+        const fd = new FormData(form);
+        await AceBot.postJSON(api('/slowmode-schedules'), Object.fromEntries(fd));
+        AceBot.toast('Slowmode schedule saved');
+        await AceBot.refreshSection('#slowmode-list');
+        form.reset();
+      },
+      'add-statusrole-form': async () => {
+        const fd = new FormData(form);
+        await AceBot.postJSON(api('/statusroles'), Object.fromEntries(fd));
+        AceBot.toast('Status role added');
+        await AceBot.refreshSection('#statusrole-list');
+        form.reset();
+      },
+      'add-invitereward-form': async () => {
+        const fd = new FormData(form);
+        await AceBot.postJSON(api('/inviterewards'), Object.fromEntries(fd));
+        AceBot.toast('Invite milestone added');
+        await AceBot.refreshSection('#invite-rewards-list');
+        form.reset();
+      },
+      // Auto-publish (1.8.7): the multi-select needs getAll — the generic
+      // form handler would keep only the last selected channel.
+      'autopublish-form': async () => {
+        const fd = new FormData(form);
+        await AceBot.postJSON(api('/settings'), { autopublishChannels: fd.getAll('autopublishChannels') });
+        AceBot.toast('Auto-publish channels saved');
+      },
     };
     if (!handlers[id]) return; // generic API forms are handled by app.js
     e.preventDefault();
@@ -155,7 +194,7 @@
     if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
     try { await handlers[id](); }
     catch (err) {
-      const resultIds = { 'add-streamer-form': 'streamer-result', 'create-app-form': 'app-form-result', 'automod-form': 'automod-result', 'add-shop-form': 'shop-result', 'add-custom-form': 'custom-result', 'add-faq-form': 'faq-result', 'add-ticket-panel-form': 'ticket-panel-result', 'add-invite-role-form': 'invite-role-result', 'add-countdown-form': 'countdown-result', 'add-emoji-form': 'emoji-result', 'rules-form': 'rules-result' };
+      const resultIds = { 'add-streamer-form': 'streamer-result', 'create-app-form': 'app-form-result', 'automod-form': 'automod-result', 'add-shop-form': 'shop-result', 'add-custom-form': 'custom-result', 'add-faq-form': 'faq-result', 'add-ticket-panel-form': 'ticket-panel-result', 'add-invite-role-form': 'invite-role-result', 'add-countdown-form': 'countdown-result', 'add-emoji-form': 'emoji-result', 'rules-form': 'rules-result', 'add-event-form': 'event-result', 'add-slowmode-form': 'slowmode-result', 'add-statusrole-form': 'statusrole-result', 'add-invitereward-form': 'invitereward-result' };
       showResult(resultIds[id], '❌ ' + err.message, false);
       AceBot.toast('Failed: ' + err.message, 'error');
     } finally {
@@ -276,7 +315,9 @@
     const postBtn = e.target.closest('[data-post]');
     if (postBtn) {
       if (!AceBot.confirmAction('Are you sure?')) return;
-      try { await AceBot.postJSON(postBtn.dataset.post, {}); AceBot.removeRow(postBtn); AceBot.toast('Done'); }
+      let body = {};
+      if (postBtn.dataset.postBody) { try { body = JSON.parse(postBtn.dataset.postBody); } catch {} }
+      try { await AceBot.postJSON(postBtn.dataset.post, body); AceBot.removeRow(postBtn); AceBot.toast('Done'); }
       catch (err) { AceBot.toast('Failed: ' + err.message, 'error'); }
       return;
     }
@@ -338,10 +379,55 @@
     } catch (err) { AceBot.toast('Failed: ' + err.message, 'error'); }
   }
 
+  // Edit-embed forms (1.7.8) live inside the embeds list — one per embed.
+  async function handleEmbedEditSubmit(e) {
+    const form = e.target;
+    if (!form.classList || !form.classList.contains('edit-embed-form')) return;
+    e.preventDefault();
+    const fd = new FormData(form);
+    const btn = form.querySelector('button[type=submit]');
+    const original = btn ? btn.textContent : '';
+    if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
+    try {
+      await AceBot.postJSON(api(`/embeds/${form.dataset.messageId}/edit`), Object.fromEntries(fd));
+      AceBot.toast('Embed updated');
+    } catch (err) { AceBot.toast('Failed: ' + err.message, 'error'); }
+    finally { if (btn) { btn.textContent = original; btn.disabled = false; } }
+  }
+
+  // Rank card preview (1.8.9): fetch the sample card PNG and show it.
+  function bindRankcardPreview() {
+    const btn = document.getElementById('rankcard-preview-btn');
+    if (!btn) return;
+    btn.addEventListener('click', async () => {
+      const box = document.getElementById('rankcard-preview-img');
+      const m = window.location.pathname.match(/\/guilds\/([^/]+)/);
+      if (!box || !m) return;
+      btn.disabled = true; btn.textContent = 'Generating…';
+      try {
+        const res = await fetch(`/api/guilds/${m[1]}/rankcard-preview`);
+        if (!res.ok) throw new Error('preview failed');
+        const blob = await res.blob();
+        box.innerHTML = '';
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(blob);
+        img.style.maxWidth = '100%';
+        img.alt = 'Sample rank card';
+        box.appendChild(img);
+      } catch {
+        AceBot.toast('Preview failed — is canvas installed on the host?', 'error');
+      } finally {
+        btn.disabled = false; btn.textContent = 'Preview sample rank card';
+      }
+    });
+  }
+
   document.addEventListener('submit', handleSubmit);
   document.addEventListener('submit', handleEditSubmit);
+  document.addEventListener('submit', handleEmbedEditSubmit);
   document.addEventListener('click', handleClick);
   document.addEventListener('change', handleChange);
   initPreviews();
   initCommandsTab();
+  bindRankcardPreview();
 })();

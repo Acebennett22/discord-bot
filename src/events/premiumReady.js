@@ -15,6 +15,11 @@ const { start247Checker } = require('../utils/music247');
 const { startCountdownChecker } = require('../utils/countdowns');
 const { startTempRoleChecker } = require('../utils/tempRoles');
 const { startThreadArchiveChecker } = require('../utils/threadArchive');
+const { startEventChecker } = require('../utils/scheduledEvents');
+const { startSlowmodeChecker } = require('../utils/slowmode');
+const { startAfkVoiceChecker } = require('../utils/afkVoice');
+const { startStatusRoleSweep } = require('../utils/statusRoles');
+const { startReengageChecker } = require('../utils/reengage');
 
 module.exports = {
   name: Events.ClientReady,
@@ -45,5 +50,16 @@ module.exports = {
     startTempRoleChecker(client);
     // Thread auto-archive: archive inactive threads every 15 minutes.
     startThreadArchiveChecker(client);
+    // Event scheduler (1.7.2): 1-hour reminders + "starting now" posts.
+    startEventChecker(client);
+    // Slowmode presets (1.7.3): apply day/night slowmode every 15 minutes.
+    startSlowmodeChecker(client);
+    // AFK voice kick + AFK channel auto-create (1.7.4 / 1.8.5): every 5 min.
+    startAfkVoiceChecker(client);
+    // Custom status roles (1.7.6): 10-minute sweep (presence updates can
+    // be missed, so the sweep is the safety net).
+    startStatusRoleSweep(client);
+    // Inactive-member re-engagement (1.8.8): daily job per guild.
+    startReengageChecker(client);
   },
 };

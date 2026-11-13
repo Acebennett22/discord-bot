@@ -1,7 +1,18 @@
 // Polls: reaction-based voting (1️⃣–5️⃣), one vote per user, live tally
 // stored in MySQL. The embed is re-rendered on every vote and on end.
-const { EmbedBuilder } = require('discord.js');
+// Poll results chart (1.8.1): when a poll ends, a canvas bar chart is
+// drawn (node-canvas is installed — same dependency as the welcome cards)
+// and attached to the results message; final tallies are stored in
+// polls.final_counts so results survive restarts.
+const { EmbedBuilder, AttachmentBuilder } = require('discord.js');
 const db = require('./database');
+
+let createCanvas = null;
+let canvasAvailable = false;
+try {
+  ({ createCanvas } = require('canvas'));
+  canvasAvailable = true;
+} catch { canvasAvailable = false; }
 
 const NUMBER_EMOJIS = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣'];
 
@@ -63,6 +74,9 @@ async function endPoll(client, poll) {
   const counts = tallyVotes(poll.votes, poll.options.length);
   const top = Math.max(...counts, 0);
   const winners = poll.options.filter((_, i) => counts[i] === top && top > 0);
+  // Store final tallies so results survive restarts (column added 1.8.1;
+  // the UPDATE is best-effort on databases not yet migrated).
+  await db.query('UPDATE polls SET final_counts = ? WHERE id = ?', [JSON.stringify(counts), poll.id]).catch(() => {});
   try {
     const channel = await client.channels.fetch(poll.channel_id).catch(() => null);
     if (channel?.isTextBased()) {
@@ -71,13 +85,51 @@ async function endPoll(client, poll) {
         await msg.edit({ embeds: [pollEmbed(poll, counts)] }).catch(() => {});
         await msg.reactions.removeAll().catch(() => {});
       }
-      await channel.send({
-        embeds: [new EmbedBuilder().setColor(0x57f287).setTitle(`📊 Poll ended: ${poll.question}`)
-          .setDescription(winners.length ? `🏆 **Winner:** ${winners.join(', ')} (${top} vote${top === 1 ? '' : 's'})` : 'No votes were cast.')],
-      }).catch(() => {});
+      const chart = generatePollChart(poll, counts);
+      const files = chart ? [new AttachmentBuilder(chart, { name: 'poll-results.png' })] : [];
+      const resultsEmbed = new EmbedBuilder().setColor(0x57f287).setTitle(`📊 Poll ended: ${poll.question}`)
+        .setDescription(winners.length ? `🏆 **Winner:** ${winners.join(', ')} (${top} vote${top === 1 ? '' : 's'})` : 'No votes were cast.');
+      if (chart) resultsEmbed.setImage('attachment://poll-results.png');
+      await channel.send({ embeds: [resultsEmbed], files }).catch(() => {});
     }
   } catch {}
   return poll;
 }
 
-module.exports = { NUMBER_EMOJIS, tallyVotes, pollEmbed, getPollByMessage, saveVotes, refreshPollMessage, endPoll };
+// Canvas bar chart: one bar per option (count + percentage). Returns a PNG
+// Buffer, or null when canvas is unavailable (the text bars in the embed
+// still show the results).
+function generatePollChart(poll, counts) {
+  if (!canvasAvailable) return null;
+  const total = counts.reduce((a, b) => a + b, 0);
+  const max = Math.max(...counts, 1);
+  const rowH = 52;
+  const width = 700;
+  const height = 70 + counts.length * rowH;
+  const canvas = createCanvas(width, height);
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#1e1f22';
+  ctx.fillRect(0, 0, width, height);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 24px sans-serif';
+  ctx.fillText(poll.question.slice(0, 60), 24, 38);
+  const colors = ['#5865f2', '#57f287', '#fee75c', '#ed4245', '#eb459e'];
+  poll.options.forEach((opt, i) => {
+    const y = 70 + i * rowH;
+    const n = counts[i];
+    const pct = total ? Math.round((n / total) * 100) : 0;
+    ctx.fillStyle = '#d7d7e0';
+    ctx.font = '18px sans-serif';
+    ctx.fillText(`${NUMBER_EMOJIS[i]} ${opt.slice(0, 34)}`, 24, y + 8);
+    ctx.fillStyle = '#2f3136';
+    ctx.fillRect(24, y + 14, width - 150, 20);
+    ctx.fillStyle = colors[i % colors.length];
+    ctx.fillRect(24, y + 14, Math.max(2, ((width - 150) * n) / max), 20);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 18px sans-serif';
+    ctx.fillText(`${n} (${pct}%)`, width - 118, y + 31);
+  });
+  return canvas.toBuffer('image/png');
+}
+
+module.exports = { NUMBER_EMOJIS, tallyVotes, pollEmbed, getPollByMessage, saveVotes, refreshPollMessage, endPoll, generatePollChart, canvasAvailable };

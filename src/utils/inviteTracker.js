@@ -121,7 +121,17 @@ async function recordJoin(member) {
     await db.query(
       'INSERT INTO invite_uses (guild_id, invite_code, inviter_id, invitee_id, is_fake) VALUES (?, ?, ?, ?, ?)',
       [guild.id, inviteCode || 'unknown', inviterId, member.id, isFake ? 1 : 0]);
-    if (inviterId) await recomputeUserInvites(guild.id, inviterId);
+    if (inviterId) {
+      await recomputeUserInvites(guild.id, inviterId);
+      // Invite rewards (1.8.4): grant milestone rewards when the inviter's
+      // valid invite count reaches a configured milestone. Fake joins
+      // (isFake) never count — recomputeUserInvites only counts valid ones.
+      if (!isFake) {
+        const { checkInviteRewards } = require('./inviteRewards');
+        const stats = await getUserInviteStats(guild.id, inviterId);
+        await checkInviteRewards(guild, inviterId, stats?.valid_invites || 0).catch(() => {});
+      }
+    }
   }
 
   // Invite-based auto-role (1.11.6): joining via a specific invite code

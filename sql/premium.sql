@@ -300,3 +300,7 @@ CREATE TABLE IF NOT EXISTS lottery_draws (
   PRIMARY KEY (id),
   INDEX idx_lottery_draws_week (guild_id, week_start)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- v1.8.1 (2026-11-13): poll results chart — final tallies stored so results
+-- survive restarts. On an existing database run:
+--   ALTER TABLE polls ADD COLUMN final_counts JSON NULL;
