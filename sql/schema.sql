@@ -52,6 +52,12 @@ CREATE TABLE IF NOT EXISTS warns (
 CREATE TABLE IF NOT EXISTS guild_settings (
   guild_id VARCHAR(32) NOT NULL,
   welcome_channel_id VARCHAR(32) NULL,
+  welcome_message TEXT NULL,
+  welcome_enabled TINYINT(1) NOT NULL DEFAULT 1,
+  goodbye_channel_id VARCHAR(32) NULL,
+  goodbye_message TEXT NULL,
+  goodbye_enabled TINYINT(1) NOT NULL DEFAULT 1,
+  suggestion_channel_id VARCHAR(32) NULL,
   log_channel_id VARCHAR(32) NULL,
   ticket_category_id VARCHAR(32) NULL,
   ticket_log_channel_id VARCHAR(32) NULL,
@@ -338,3 +344,79 @@ CREATE TABLE IF NOT EXISTS backup_logs (
   PRIMARY KEY (id),
   INDEX idx_backup_logs_created (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Welcome/goodbye + suggestions live in guild_settings (see columns above).
+-- Automod settings, one row per guild.
+CREATE TABLE IF NOT EXISTS automod_settings (
+  guild_id VARCHAR(32) NOT NULL,
+  enabled TINYINT(1) NOT NULL DEFAULT 0,
+  spam_max_messages INT UNSIGNED NOT NULL DEFAULT 5,
+  spam_window_seconds INT UNSIGNED NOT NULL DEFAULT 5,
+  spam_action ENUM('delete','warn','timeout','delete_warn','delete_timeout') NOT NULL DEFAULT 'delete_warn',
+  spam_timeout_minutes INT UNSIGNED NOT NULL DEFAULT 10,
+  banned_words JSON NULL,
+  block_links TINYINT(1) NOT NULL DEFAULT 0,
+  block_invites TINYINT(1) NOT NULL DEFAULT 1,
+  exempt_roles JSON NULL,
+  exempt_channels JSON NULL,
+  log_channel_id VARCHAR(32) NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (guild_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS automod_actions (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  guild_id VARCHAR(32) NOT NULL,
+  user_id VARCHAR(32) NOT NULL,
+  action VARCHAR(32) NOT NULL,
+  reason VARCHAR(128) NOT NULL,
+  message_excerpt VARCHAR(512) NULL,
+  channel_id VARCHAR(32) NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  INDEX idx_automod_actions_guild (guild_id),
+  INDEX idx_automod_actions_user (guild_id, user_id),
+  INDEX idx_automod_actions_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS suggestions (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  guild_id VARCHAR(32) NOT NULL,
+  user_id VARCHAR(32) NOT NULL,
+  suggestion_channel_id VARCHAR(32) NOT NULL,
+  message_id VARCHAR(32) NULL,
+  title VARCHAR(256) NOT NULL,
+  text TEXT NOT NULL,
+  status ENUM('pending','approved','denied','implemented') NOT NULL DEFAULT 'pending',
+  votes_up INT UNSIGNED NOT NULL DEFAULT 0,
+  votes_down INT UNSIGNED NOT NULL DEFAULT 0,
+  reviewed_by VARCHAR(32) NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  reviewed_at TIMESTAMP NULL,
+  PRIMARY KEY (id),
+  INDEX idx_suggestions_guild (guild_id),
+  INDEX idx_suggestions_guild_user (guild_id, user_id),
+  INDEX idx_suggestions_status (guild_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS suggestion_votes (
+  suggestion_id BIGINT UNSIGNED NOT NULL,
+  user_id VARCHAR(32) NOT NULL,
+  vote ENUM('up','down') NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (suggestion_id, user_id),
+  INDEX idx_suggestion_votes_user (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Migration note for existing installs: the guild_settings columns added for
+-- welcome/goodbye/suggestions are NOT created by CREATE TABLE IF NOT EXISTS
+-- on a table that already exists. Run once:
+--   ALTER TABLE guild_settings
+--     ADD COLUMN welcome_message TEXT NULL,
+--     ADD COLUMN welcome_enabled TINYINT(1) NOT NULL DEFAULT 1,
+--     ADD COLUMN goodbye_channel_id VARCHAR(32) NULL,
+--     ADD COLUMN goodbye_message TEXT NULL,
+--     ADD COLUMN goodbye_enabled TINYINT(1) NOT NULL DEFAULT 1,
+--     ADD COLUMN suggestion_channel_id VARCHAR(32) NULL;

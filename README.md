@@ -3,6 +3,8 @@
 A multi-file JavaScript Discord bot built with **discord.js v14** (CommonJS) — moderation, music, server status/monitoring, fun/games, tickets, streams, leveling, Steam, giveaways, reaction roles, game-server status, and a web dashboard, all in one command-handler project. Everything is stored in **MySQL** (with a JSON fallback for warns) and the bot works across **many servers, sharded**.
 
 > **Embed standard:** EVERY slash-command reply is an embed. Use `src/utils/embeds.js` — `successEmbed(title, description)` (green), `errorEmbed(title, description)` (red), `infoEmbed(title, description, fields)` / `statsEmbed(...)` (brand color from `config.json` `embedColor`, timestamp + `Ace Bot • /help` footer on every embed). Do not reply with plain text as the main response. Role-mention pings (stream-live, giveaway winners) may still appear as message content *alongside* an embed, since pings don't work reliably inside embeds.
+>
+> **Ephemeral replies:** EVERY slash-command reply, followUp, and deferReply is ephemeral (`ephemeral: true`) — only the public posts a command is *meant* to make in a channel (a suggestion embed, a welcome message, an announcement) are public. The confirmation/reply back to the user who ran the command is always ephemeral.
 
 ## Features
 
@@ -22,6 +24,18 @@ A multi-file JavaScript Discord bot built with **discord.js v14** (CommonJS) —
 | Game Servers | `/serverstatus`, `/gameserver-add`, `/gameserver-remove`, `/gameserver-list` — pluggable providers |
 | Owner | `/restart`, `/reload`, `/shutdown`, `/eval` (owner-only, `ownerId` in config), `/hostinfo` (owner-only — host OS/CPU/memory/disk/runtime specs) |
 | Announcements | `/announce` (admin — post an announcement in a channel: title, description, optional color hex, image URL, footer, role ping, plain-text mode) |
+| Welcome | `/welcome-setup`, `/welcome-toggle`, `/goodbye-setup`, `/goodbye-toggle`, `/welcome-test` — templated join/leave embeds (`{user}` `{username}` `{server}` `{membercount}`) |
+| Automod | `/automod`, `/automod-setup`, `/automod-words add\|remove\|list`, `/automod-exempt add-role\|remove-role\|add-channel\|remove-channel\|list` — spam, banned words, link/invite blocking |
+| Suggestions | `/suggest` (modal), `/suggestions-setup`, `/suggest-status` — 👍/👎 voting, staff Approve/Deny/Implement |
+| Economy | `/balance`, `/daily`, `/work`, `/pay`, `/eco-leaderboard`, `/shop`, `/shop-add`, `/deposit`, `/withdraw` — wallet + bank, shop roles |
+| Starboard | `/starboard-setup` — starred messages posted to a starboard channel |
+| Custom Commands | `/custom-add`, `/custom-remove`, `/custom-list` — trigger words with stored replies |
+| Message Logging | `/modlog-setup` — deleted/edited messages logged to a modlog channel |
+| AFK | `/afk`, `/afk-remove` — mentions answered, auto-clear on return |
+| Polls | `/poll`, `/poll-end` — reaction voting, one vote per user, live tally |
+| Auto-role | `/autorole set\|remove\|view\|sticky` — join role + sticky roles |
+| Scheduled | `/schedule`, `/schedule-list`, `/schedule-cancel`, `/remindme` — DB-backed, survives restarts |
+| FAQ | `/faq-add`, `/faq-remove`, `/faq-list` — auto-responder for common questions |
 | Help | `/help` — grouped command list with a category select menu |
 
 ## Project structure
@@ -215,7 +229,7 @@ The dashboard has a **Staff** area, visible only to the bot owner (`ownerId`) an
 - **Access control:** `staff_users` table (`user_id`, `added_by`, `role` owner/admin/staff) + `src/utils/staff.js` (`isOwner`, `isStaff`, `listStaff`, `addStaff`, `removeStaff`). The owner is always staff implicitly. Bootstrap: list Discord user IDs in `config.json` `staffUserIds`; after that, the owner manages staff on the Staff → Staff Management page (owner only — add by user ID, set role, remove). Every staff change is logged to `staff_audit`.
 - **Bot overview:** total guilds/users, commands run, songs played, top commands, top guilds, recent command logs (last 50) and recent errors. Shard/live status shows "bot not connected" when the dashboard runs standalone (it is a separate process from the bot) — totals come from MySQL.
 - **Command management:** a table of every command with a global enable/disable toggle (`command_toggles`: global `guild_id = ''` or per-guild). The bot's `interactionCreate` checks the toggle before running any command (global off = disabled everywhere; guild off = disabled in that guild) and replies with a "this command is disabled" embed. Per-guild toggles are on each server's **Commands** tab.
-- **Feature management:** whole-module toggles (`feature_toggles`): music, tickets, leveling, giveaways, streams, game servers, server stats, reaction roles, applications, invites — global and per-guild. Enforced in command handlers and background jobs (music disabled = `/play` refuses; streams disabled = the checker skips that server).
+- **Feature management:** whole-module toggles (`feature_toggles`): music, tickets, leveling, giveaways, streams, game servers, server stats, reaction roles, applications, invites, welcome, automod, suggestions — global and per-guild. Enforced in command handlers and background jobs (music disabled = `/play` refuses; streams disabled = the checker skips that server).
 - **Broadcast (owner only):** send an embed announcement to one server + channel, or to a channel *name* in every server. Requires a confirm checkbox, sends are spaced out for rate limits, and every broadcast is logged to `broadcasts` + `staff_audit`.
 - **Errors page:** see the Error Logging section below. **Backups page:** see Backups below.
 
@@ -247,6 +261,31 @@ On startup and on InviteCreate/InviteDelete, the bot caches each guild's invites
 - **Manual:** `/backup` (owner only) runs one now and replies with filename/size/status; the dashboard Staff → Backups page has a **Backup now** button, a file list with staff-only download links, and the run log.
 - **Restore:** `node scripts/restore-db.js <file.sql.gz> --confirm` (interactive confirm if `--confirm` is omitted — restore overwrites the database), or manually: `gunzip -c backups/<file> | mysql -u <user> -p <database>`.
 - **Safety:** `backups/` and `logs/` are in `.gitignore` and are never uploaded to Google Drive; backup filenames and logs never contain credentials.
+
+## Welcome & goodbye messages
+
+Welcome and goodbye messages are per server, stored in `guild_settings` (`welcome_channel_id` / `welcome_message` / `welcome_enabled`, `goodbye_channel_id` / `goodbye_message` / `goodbye_enabled`). On `guildMemberAdd` the bot posts an embed with the welcome template in the configured channel; on `guildMemberRemove` it posts the goodbye template. Placeholders: `{user}` (mention), `{username}`, `{server}`, `{membercount}`. If no channel is set (or the feature is toggled off) nothing is sent; if the bot can't post there, the failure is logged via the error logger and skipped, never fatal.
+- Commands (all admin, all replies ephemeral): `/welcome-setup <channel> [message]` (sets the channel + template, shows a preview), `/welcome-toggle <enabled>`, `/goodbye-setup <channel> [message]`, `/goodbye-toggle <enabled>`, `/welcome-test` (posts a preview welcome for yourself in the welcome channel).
+- Dashboard Welcome tab: channel dropdowns, message template fields with live previews, enable toggles. The General tab's welcome-channel field edits the same setting.
+- Existing installs: the new `guild_settings` columns are in `sql/schema.sql`, but `CREATE TABLE IF NOT EXISTS` won't add columns to an existing table — run the `ALTER TABLE` in the migration note at the bottom of `schema.sql` once.
+
+## Automod
+
+Spam detection, banned-words filter, and link / Discord-invite blocking, all per server in `automod_settings` (one row per guild) with every action logged to `automod_actions` (guild, user, action, reason, message excerpt) + optionally to a log channel. The `messageCreate` handler runs Automod before XP awarding — a deleted message earns no XP.
+- **Spam:** X messages in Y seconds (default 5 in 5s) per user per guild, tracked in memory (windows pruned per check; the DB log is the permanent record). One burst = one action, then the window resets.
+- **Banned words:** word-boundary match (so "class" doesn't trip on "ass"), configurable list.
+- **Links:** deletes messages containing `http(s)` links when `block_links` is on. **Invites:** deletes `discord.gg` / `discord.com/invite` links when `block_invites` is on (default on; checked before generic links so the reason is exact).
+- **Action:** the configured `spam_action` applies to every Automod hit — `delete`, `warn`, `timeout`, `delete_warn` (default), `delete_timeout` (timeout length in minutes, default 10). Warns go through the shared warns store (`src/utils/warns.js`).
+- **Exemptions:** admins are always exempt; exempt roles and exempt channels (via `/automod-exempt` or the dashboard) bypass every check. A message tripping several rules is actioned once (first match wins: spam → banned word → invite → link).
+- Commands (all admin, all replies ephemeral): `/automod` (view settings), `/automod-setup` (spam limits, action, timeout length, link/invite toggles, log channel), `/automod-words add|remove|list`, `/automod-exempt add-role|remove-role|add-channel|remove-channel|list`. Dashboard Automod tab: the same controls plus a recent-actions table.
+- Pure detectors (`detectSpam`, `containsBannedWord`, `containsLink`, `containsInvite` in `src/utils/automod.js`) are exported for testing without a live Discord login.
+
+## Suggestions
+
+Members submit ideas with `/suggest` (modal: title + details). The suggestion is saved to MySQL (`suggestions`) and posted as an embed in the configured channel (`guild_settings.suggestion_channel_id`, set by `/suggestions-setup`, admin) with 👍/👎 vote buttons and Approve / Deny / Mark implemented review buttons.
+- **Voting:** one vote per user, changeable — voting the same way again removes your vote. Counts are recalculated from `suggestion_votes` on every vote and the embed is edited in place, so the DB and the embed can never drift.
+- **Review:** admins or the application reviewer role (`application_reviewer_role_id`) can approve/deny/mark implemented from the embed buttons or the dashboard Suggestions tab (status filter + review buttons). Reviewing updates the status, edits the embed (buttons removed once decided), and DMs the suggester.
+- Commands: `/suggest` (any member — modal; the confirmation reply is ephemeral, the suggestion post itself is public), `/suggestions-setup <channel>` (admin), `/suggest-status` (your own suggestions, ephemeral). Dashboard Suggestions tab: channel setting, list with status filter, Approve/Deny/Implement buttons (embed edited + DM sent via Discord REST).
 
 ## API keys — where to get them
 

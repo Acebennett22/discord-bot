@@ -6,7 +6,7 @@
       <strong><%= guild.name %></strong>
     </div>
     <nav>
-      <% const MODS = [['general','⚙️ General'],['moderation','🛡️ Moderation'],['tickets','🎫 Tickets'],['serverstats','📊 Server Stats'],['streams','📺 Streams'],['music','🎵 Music'],['leveling','🏆 Leveling'],['reactionroles','🎭 Reaction Roles'],['gameservers','🖥️ Game Servers'],['applications','📝 Applications'],['commands','⌨️ Commands'],['invites','📨 Invites']]; %>
+      <% const MODS = [['general','⚙️ General'],['moderation','🛡️ Moderation'],['tickets','🎫 Tickets'],['serverstats','📊 Server Stats'],['streams','📺 Streams'],['music','🎵 Music'],['leveling','🏆 Leveling'],['reactionroles','🎭 Reaction Roles'],['gameservers','🖥️ Game Servers'],['applications','📝 Applications'],['commands','⌨️ Commands'],['invites','📨 Invites'],['welcome','👋 Welcome'],['automod','🤖 Automod'],['suggestions','💡 Suggestions'],['economy','🪙 Economy'],['starboard','⭐ Starboard'],['customcommands','⌨️ Custom Commands'],['faq','💬 FAQ'],['scheduled','⏰ Scheduled'],['roles','🎭 Roles']]; %>
       <% MODS.forEach(([m, label]) => { %>
         <a href="/guilds/<%= guild.id %>/<%= m %>" class="<%= module === m ? 'active' : '' %>"><%= label %></a>
       <% }); %>
@@ -47,6 +47,15 @@
         <option value="ban" <%= settings.warnAction === 'ban' ? 'selected' : '' %>>Ban</option>
       </select>
       <br><br><button class="btn" type="submit">Save moderation settings</button>
+    </form>
+    <h2>Message logging (modlog)</h2>
+    <p class="muted">Deleted and edited messages are stored in MySQL and posted here. Content that looks like a token or password is redacted before it is stored. Same channel as /modlog-setup in Discord.</p>
+    <form method="post" action="/api/guilds/<%= guild.id %>/premium">
+      <label>Modlog channel</label>
+      <select name="modlogChannelId"><option value="">— off —</option>
+        <% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>" <%= premiumSettings?.modlogChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }); %>
+      </select>
+      <br><br><button class="btn" type="submit">Save modlog channel</button>
     </form>
     <% } %>
 
@@ -260,6 +269,211 @@
     <ul><% gameServers.forEach(s => { %><li><strong><%= s.name %></strong> — <%= s.provider %> · <%= s.host %><% if (s.port) { %>:<%= s.port %><% } %></li><% }); %></ul>
     <p class="muted">Config-level examples (Minecraft, Rust, The Isle) live in config.json <code>gameServers.custom</code>. The Isle has no public query protocol — it is manual status only.</p>
     <% } %>
+
+    <% if (module === 'economy') { %>
+    <h1>Economy</h1>
+    <p class="muted">Server currency: /daily, /work, /pay, /balance, wallet vs bank, and the shop. Amounts below are the per-server settings — global defaults live in config.json <code>economy</code>.</p>
+    <form method="post" action="/api/guilds/<%= guild.id %>/premium">
+      <label>Starting balance (coins a new user starts with)</label>
+      <input type="number" name="economyStartingBalance" min="0" max="100000" value="<%= premiumSettings?.economyStartingBalance ?? 100 %>">
+      <label>Daily reward — min / max coins</label>
+      <input type="number" name="economyDailyMin" min="0" max="100000" value="<%= premiumSettings?.economyDailyMin ?? 100 %>">
+      <input type="number" name="economyDailyMax" min="0" max="100000" value="<%= premiumSettings?.economyDailyMax ?? 500 %>">
+      <label>Work reward — min / max coins (1h cooldown)</label>
+      <input type="number" name="economyWorkMin" min="0" max="100000" value="<%= premiumSettings?.economyWorkMin ?? 50 %>">
+      <input type="number" name="economyWorkMax" min="0" max="100000" value="<%= premiumSettings?.economyWorkMax ?? 250 %>">
+      <label>Currency name</label>
+      <input type="text" name="economyCurrencyName" value="<%= premiumSettings?.economyCurrencyName || 'coins' %>" maxlength="32">
+      <label>Currency emoji</label>
+      <input type="text" name="economyCurrencyEmoji" value="<%= premiumSettings?.economyCurrencyEmoji || '🪙' %>" maxlength="32">
+      <br><br><button class="btn" type="submit">Save economy settings</button>
+    </form>
+    <h2>Shop items</h2>
+    <% if (!shopItems.length) { %><p class="muted">Shop is empty — add an item below (or /shop-add in Discord).</p><% } %>
+    <table><tr><th>ID</th><th>Item</th><th>Price</th><th>Role on buy</th><th></th></tr>
+    <% shopItems.forEach(i => { %><tr><td>#<%= i.id %></td><td><strong><%= i.name %></strong><% if (i.description) { %><br><span class="muted"><%= i.description %></span><% } %></td><td><%= i.price %></td><td><%= i.role_id ? '@' + (roles.find(r => r.id === i.role_id)?.name || i.role_id) : '—' %></td><td><button class="btn danger" data-remove-shop="<%= i.id %>">Remove</button></td></tr><% }); %></table>
+    <h2>Add a shop item</h2>
+    <form id="add-shop-form">
+      <label>Name</label><input type="text" name="name" required maxlength="128">
+      <label>Price (coins)</label><input type="number" name="price" min="1" required>
+      <label>Description</label><input type="text" name="description" maxlength="512">
+      <label>Role granted on buy (optional)</label>
+      <select name="roleId"><option value="">— none —</option><% roles.forEach(r => { %><option value="<%= r.id %>"><%= r.name %></option><% }); %></select>
+      <br><br><button class="btn" type="submit">Add item</button>
+    </form>
+    <p id="shop-result" class="muted"></p>
+    <% } %>
+
+    <% if (module === 'starboard') { %>
+    <h1>Starboard</h1>
+    <p class="muted">When a message collects enough reactions of the star emoji, it gets posted here as an embed with a jump link. The count updates as stars arrive; dropping below threshold removes the post. Same settings as /starboard-setup in Discord.</p>
+    <form method="post" action="/api/guilds/<%= guild.id %>/premium">
+      <label>Starboard channel</label>
+      <select name="starboardChannelId"><option value="">— off —</option>
+        <% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>" <%= premiumSettings?.starboardChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }); %>
+      </select>
+      <label>Stars needed (threshold)</label>
+      <input type="number" name="starboardThreshold" min="1" max="25" value="<%= premiumSettings?.starboardThreshold ?? 3 %>">
+      <label>Star emoji</label>
+      <input type="text" name="starboardEmoji" value="<%= premiumSettings?.starboardEmoji || '⭐' %>" maxlength="32">
+      <br><br><button class="btn" type="submit">Save starboard settings</button>
+    </form>
+    <% } %>
+
+    <% if (module === 'customcommands') { %>
+    <h1>Custom Commands</h1>
+    <p class="muted">Trigger words: when a message starts with (or exactly equals) a trigger, the bot replies with the stored response. Triggers can't collide with built-in slash commands, and @everyone/@here are stripped from responses. Same list as /custom-add, /custom-remove, /custom-list in Discord.</p>
+    <% if (!customCommands.length) { %><p class="muted">No custom commands yet.</p><% } %>
+    <table><tr><th>Trigger</th><th>Response</th><th>Uses</th><th></th></tr>
+    <% customCommands.forEach(c => { %><tr><td><strong><%= c.trigger_word %></strong></td><td><%= c.response.slice(0, 200) %></td><td><%= c.use_count %></td><td><button class="btn danger" data-remove-custom="<%= c.trigger_word %>">Remove</button></td></tr><% }); %></table>
+    <h2>Add a custom command</h2>
+    <form id="add-custom-form">
+      <label>Trigger (single word, lowercase)</label><input type="text" name="trigger" required maxlength="64">
+      <label>Response</label><textarea name="response" rows="3" required maxlength="2000"></textarea>
+      <br><br><button class="btn" type="submit">Add custom command</button>
+    </form>
+    <p id="custom-result" class="muted"></p>
+    <% } %>
+
+    <% if (module === 'faq') { %>
+    <h1>FAQ Auto-Responder</h1>
+    <p class="muted">When a message matches a trigger phrase, the bot replies in-channel with the stored answer. <code>contains</code> fires when the phrase appears anywhere in the message; <code>exact</code> only when the whole message equals it. First match wins; FAQ replies never trigger other FAQ/custom responses. Max 50 per server. Same list as /faq-add, /faq-remove, /faq-list in Discord.</p>
+    <% if (!faqs.length) { %><p class="muted">No FAQ responses yet.</p><% } %>
+    <table><tr><th>Trigger</th><th>Match</th><th>Response</th><th>Uses</th><th></th></tr>
+    <% faqs.forEach(f => { %><tr><td><strong><%= f.trigger_phrase %></strong></td><td><%= f.match_type %></td><td><%= f.response.slice(0, 200) %></td><td><%= f.use_count %></td><td><button class="btn danger" data-remove-faq="<%= f.id %>">Remove</button></td></tr><% }); %></table>
+    <h2>Add an FAQ response</h2>
+    <form id="add-faq-form">
+      <label>Trigger phrase</label><input type="text" name="trigger" required maxlength="100">
+      <label>Response</label><textarea name="response" rows="3" required maxlength="2000"></textarea>
+      <label>Match type</label>
+      <select name="matchType"><option value="contains">contains — phrase appears anywhere</option><option value="exact">exact — whole message equals the phrase</option></select>
+      <br><br><button class="btn" type="submit">Add FAQ response</button>
+    </form>
+    <p id="faq-result" class="muted"></p>
+    <% } %>
+
+    <% if (module === 'scheduled') { %>
+    <h1>Scheduled Messages</h1>
+    <p class="muted">Messages scheduled with /schedule post automatically at their time — stored in MySQL, so they survive restarts. Reminders (/remindme) are DM'd to the user (or posted in-channel if DMs are closed).</p>
+    <% if (!scheduledMessages.length) { %><p class="muted">Nothing scheduled.</p><% } %>
+    <table><tr><th>ID</th><th>Channel</th><th>Send at</th><th>Message</th><th></th></tr>
+    <% scheduledMessages.forEach(s => { %><tr><td>#<%= s.id %></td><td>#<%= (channels.find(c => c.id === s.channel_id)?.name || s.channel_id) %></td><td><%= s.send_at %></td><td><%= (s.content || (() => { try { return JSON.parse(s.embed_json).title; } catch { return '(embed)'; } })()).slice(0, 120) %></td><td><button class="btn danger" data-cancel-scheduled="<%= s.id %>">Cancel</button></td></tr><% }); %></table>
+    <p class="muted">Schedule new messages with <code>/schedule</code> in Discord (times like "in 2h", "tomorrow 9am", "2026-11-14 15:00").</p>
+    <% } %>
+
+    <% if (module === 'roles') { %>
+    <h1>Roles</h1>
+    <p class="muted">Auto-role is given to every new member on join. Sticky roles save a member's roles when they leave and restore them if they rejoin. Same settings as /autorole in Discord.</p>
+    <form method="post" action="/api/guilds/<%= guild.id %>/premium">
+      <label>Auto-role (given on join)</label>
+      <select name="autoroleId"><option value="">— none —</option>
+        <% roles.forEach(r => { %><option value="<%= r.id %>" <%= premiumSettings?.autoroleId === r.id ? 'selected' : '' %>><%= r.name %></option><% }); %>
+      </select>
+      <label class="toggle"><input type="checkbox" name="stickyRolesEnabled" value="true" <%= premiumSettings?.stickyRolesEnabled ? 'checked' : '' %>><span class="track"></span><span>Sticky roles enabled</span></label>
+      <br><br><button class="btn" type="submit">Save role settings</button>
+    </form>
+    <p class="muted">AFK and polls are Discord-only (see README) — no dashboard tab needed.</p>
+    <% } %>
+
+    <% if (module === 'welcome') { %>
+    <h1>Welcome &amp; Goodbye</h1>
+    <p class="muted">Messages posted when members join or leave. Placeholders: <code>{user}</code> (mention), <code>{username}</code>, <code>{server}</code>, <code>{membercount}</code>. Same settings as /welcome-setup and /goodbye-setup in Discord.</p>
+    <form method="post" action="/api/guilds/<%= guild.id %>/settings">
+      <label class="toggle"><input type="checkbox" name="welcomeEnabled" value="true" <%= settings.welcomeEnabled ? 'checked' : '' %>><span class="track"></span><span>Welcome messages enabled</span></label>
+      <label>Welcome channel</label>
+      <select name="welcomeChannelId"><option value="">— none —</option>
+        <% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>" <%= settings.welcomeChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }); %>
+      </select>
+      <label>Welcome message template</label>
+      <textarea name="welcomeMessage" rows="3" id="welcome-template"><%= settings.welcomeMessage || '' %></textarea>
+      <p class="muted">Preview: <code id="welcome-preview"></code></p>
+      <label class="toggle"><input type="checkbox" name="goodbyeEnabled" value="true" <%= settings.goodbyeEnabled ? 'checked' : '' %>><span class="track"></span><span>Goodbye messages enabled</span></label>
+      <label>Goodbye channel</label>
+      <select name="goodbyeChannelId"><option value="">— none —</option>
+        <% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>" <%= settings.goodbyeChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }); %>
+      </select>
+      <label>Goodbye message template</label>
+      <textarea name="goodbyeMessage" rows="3" id="goodbye-template"><%= settings.goodbyeMessage || '' %></textarea>
+      <p class="muted">Preview: <code id="goodbye-preview"></code></p>
+      <br><button class="btn" type="submit">Save welcome &amp; goodbye settings</button>
+    </form>
+    <% } %>
+
+    <% if (module === 'automod') { %>
+    <h1>Automod</h1>
+    <p class="muted">Spam detection, banned words, and link/invite blocking. Exempt roles and channels bypass every check; admins are always exempt. The configured action (delete / warn / timeout) applies to every Automod hit. Same settings as /automod-setup in Discord.</p>
+    <% if (!automodSettings || !automodSettings.enabled) { %><p>Automod is currently <strong>❌ disabled</strong> in this server.</p><% } else { %><p>Automod is currently <strong>✅ enabled</strong> in this server.</p><% } %>
+    <form id="automod-form">
+      <label class="toggle"><input type="checkbox" name="enabled" value="true" <%= automodSettings?.enabled ? 'checked' : '' %>><span class="track"></span><span>Automod enabled</span></label>
+      <label>Spam: max messages</label>
+      <input type="number" name="spamMaxMessages" min="2" max="50" value="<%= automodSettings?.spam_max_messages ?? 5 %>">
+      <label>Spam: window (seconds)</label>
+      <input type="number" name="spamWindowSeconds" min="2" max="120" value="<%= automodSettings?.spam_window_seconds ?? 5 %>">
+      <label>Action on a hit</label>
+      <select name="spamAction">
+        <option value="delete" <%= automodSettings?.spam_action === 'delete' ? 'selected' : '' %>>Delete only</option>
+        <option value="warn" <%= automodSettings?.spam_action === 'warn' ? 'selected' : '' %>>Warn only</option>
+        <option value="timeout" <%= automodSettings?.spam_action === 'timeout' ? 'selected' : '' %>>Timeout only</option>
+        <option value="delete_warn" <%= !automodSettings || automodSettings?.spam_action === 'delete_warn' ? 'selected' : '' %>>Delete + warn</option>
+        <option value="delete_timeout" <%= automodSettings?.spam_action === 'delete_timeout' ? 'selected' : '' %>>Delete + timeout</option>
+      </select>
+      <label>Timeout length (minutes, when the action includes a timeout)</label>
+      <input type="number" name="spamTimeoutMinutes" min="1" max="40320" value="<%= automodSettings?.spam_timeout_minutes ?? 10 %>">
+      <label class="toggle"><input type="checkbox" name="blockLinks" value="true" <%= automodSettings?.block_links ? 'checked' : '' %>><span class="track"></span><span>Block links</span></label>
+      <label class="toggle"><input type="checkbox" name="blockInvites" value="true" <%= automodSettings?.block_invites !== 0 ? 'checked' : '' %>><span class="track"></span><span>Block Discord invite links</span></label>
+      <label>Log channel</label>
+      <select name="logChannelId"><option value="">— none —</option>
+        <% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>" <%= automodSettings?.log_channel_id === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }); %>
+      </select>
+      <label>Banned words (one per line)</label>
+      <textarea name="bannedWords" rows="4"><% try { (JSON.parse(automodSettings?.banned_words || '[]') || []).forEach(w => { %><%= w %>
+<% }); } catch {} %></textarea>
+      <label>Exempt roles (hold Ctrl/Cmd to pick several)</label>
+      <select name="exemptRoles" multiple size="5"><% roles.forEach(r => { %><option value="<%= r.id %>" <%= (JSON.parse(automodSettings?.exempt_roles || '[]') || []).includes(r.id) ? 'selected' : '' %>><%= r.name %></option><% }); %></select>
+      <label>Exempt channels (hold Ctrl/Cmd to pick several)</label>
+      <select name="exemptChannels" multiple size="5"><% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>" <%= (JSON.parse(automodSettings?.exempt_channels || '[]') || []).includes(c.id) ? 'selected' : '' %>>#<%= c.name %></option><% }); %></select>
+      <br><br><button class="btn" type="submit">Save Automod settings</button>
+    </form>
+    <p id="automod-result" class="muted"></p>
+    <h2>Recent Automod actions</h2>
+    <% if (!automodActions.length) { %><p class="muted">No Automod actions logged yet.</p><% } %>
+    <table><tr><th>When</th><th>User</th><th>Action</th><th>Reason</th><th>Message</th></tr>
+    <% automodActions.forEach(a => { %><tr><td><%= a.created_at %></td><td>&lt;@<%= a.user_id %>&gt;</td><td><%= a.action %></td><td><%= a.reason %></td><td><%= (a.message_excerpt || '').slice(0, 80) %></td></tr><% }); %></table>
+    <% } %>
+
+    <% if (module === 'suggestions') { %>
+    <h1>Suggestions</h1>
+    <p class="muted">Members submit ideas with /suggest; they land in the suggestions channel with 👍/👎 voting (one vote per user, changeable). Staff approve, deny, or mark implemented — the suggester gets a DM.</p>
+    <form method="post" action="/api/guilds/<%= guild.id %>/settings">
+      <label>Suggestions channel</label>
+      <select name="suggestionChannelId"><option value="">— none —</option>
+        <% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>" <%= settings.suggestionChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }); %>
+      </select>
+      <br><br><button class="btn" type="submit">Save suggestions channel</button>
+    </form>
+    <h2>All suggestions</h2>
+    <p>
+      <button class="btn ghost" data-sugg-filter="pending">Pending</button>
+      <button class="btn ghost" data-sugg-filter="approved">Approved</button>
+      <button class="btn ghost" data-sugg-filter="denied">Denied</button>
+      <button class="btn ghost" data-sugg-filter="implemented">Implemented</button>
+      <button class="btn ghost" data-sugg-filter="">All</button>
+    </p>
+    <div id="suggestions-list">
+    <% if (!suggestions.length) { %><p class="muted">No suggestions yet.</p><% } %>
+    <% suggestions.forEach(s => { %>
+      <div class="card" style="text-align:left;margin-bottom:12px">
+        <strong>#<%= s.id %> — <%= s.title %></strong> · <code>&lt;@<%= s.user_id %>&gt;</code> · <%= s.status %> · 👍 <%= s.votes_up %> · 👎 <%= s.votes_down %><br>
+        <p><%= s.text %></p>
+        <% if (s.status === 'pending') { %>
+          <button class="btn green" data-sugg-review="<%= s.id %>" data-sugg-decision="approved">✅ Approve</button>
+          <button class="btn danger" data-sugg-review="<%= s.id %>" data-sugg-decision="denied">❌ Deny</button>
+          <button class="btn" data-sugg-review="<%= s.id %>" data-sugg-decision="implemented">🚀 Mark implemented</button>
+        <% } %>
+      </div>
+    <% }); %>
+    </div>
+    <% } %>
   </section>
 </div>
 
@@ -343,6 +557,57 @@ document.querySelectorAll('[data-app-review]').forEach(btn => btn.addEventListen
   const res = await fetch(`/api/guilds/${guildId}/applications/${btn.dataset.appReview}/review`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ decision: btn.dataset.appDecision, note }) });
   if (res.ok) window.location.reload(); else alert('Failed: ' + (await res.text()));
 }));
+// Welcome / goodbye live previews
+function welcomePreview(text) {
+  return (text || 'Welcome to {server}, {user}! You are member #{membercount}.')
+    .replaceAll('{user}', '@Ace').replaceAll('{username}', 'Ace')
+    .replaceAll('{server}', 'Your Server').replaceAll('{membercount}', '42');
+}
+const wTpl = document.getElementById('welcome-template');
+const wPrev = document.getElementById('welcome-preview');
+if (wTpl) { wTpl.addEventListener('input', () => { wPrev.textContent = welcomePreview(wTpl.value); }); wPrev.textContent = welcomePreview(wTpl.value); }
+const gTpl = document.getElementById('goodbye-template');
+const gPrev = document.getElementById('goodbye-preview');
+if (gTpl) { gTpl.addEventListener('input', () => { gPrev.textContent = welcomePreview(gTpl.value); }); gPrev.textContent = welcomePreview(gTpl.value); }
+// Automod form (JSON API)
+const automodForm = document.getElementById('automod-form');
+if (automodForm) automodForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fd = new FormData(automodForm);
+  const body = {
+    enabled: fd.get('enabled') === 'true',
+    spamMaxMessages: parseInt(fd.get('spamMaxMessages'), 10),
+    spamWindowSeconds: parseInt(fd.get('spamWindowSeconds'), 10),
+    spamAction: fd.get('spamAction'),
+    spamTimeoutMinutes: parseInt(fd.get('spamTimeoutMinutes'), 10),
+    blockLinks: fd.get('blockLinks') === 'true',
+    blockInvites: fd.get('blockInvites') === 'true',
+    logChannelId: fd.get('logChannelId') || '',
+    bannedWords: String(fd.get('bannedWords') || '').split('\n'),
+    exemptRoles: fd.getAll('exemptRoles'),
+    exemptChannels: fd.getAll('exemptChannels'),
+  };
+  const res = await fetch(`/api/guilds/${guildId}/automod`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (res.ok) window.location.href = window.location.pathname + '?saved=1';
+  else { const j = await res.json().catch(() => ({})); document.getElementById('automod-result').textContent = '❌ ' + (j.error || 'Failed to save.'); }
+});
+// Suggestions: status filter + review buttons
+document.querySelectorAll('[data-sugg-filter]').forEach(btn => btn.addEventListener('click', async () => {
+  const status = btn.dataset.suggFilter;
+  const res = await fetch(`/api/guilds/${guildId}/suggestions${status ? '?status=' + status : ''}`);
+  const rows = await res.json().catch(() => []);
+  const list = document.getElementById('suggestions-list');
+  if (!rows.length) { list.innerHTML = '<p class="muted">No suggestions with that status.</p>'; return; }
+  list.innerHTML = rows.map(s => `<div class="card" style="text-align:left;margin-bottom:12px"><strong>#${s.id} — ${s.title}</strong> · &lt;@${s.user_id}&gt; · ${s.status} · 👍 ${s.votes_up} · 👎 ${s.votes_down}<br><p>${s.text}</p>${s.status === 'pending' ? `<button class="btn green" data-sugg-review="${s.id}" data-sugg-decision="approved">✅ Approve</button> <button class="btn danger" data-sugg-review="${s.id}" data-sugg-decision="denied">❌ Deny</button> <button class="btn" data-sugg-review="${s.id}" data-sugg-decision="implemented">🚀 Mark implemented</button>` : ''}</div>`).join('');
+  bindSuggReview();
+}));
+function bindSuggReview() {
+  document.querySelectorAll('[data-sugg-review]').forEach(btn => btn.addEventListener('click', async () => {
+    const res = await fetch(`/api/guilds/${guildId}/suggestions/${btn.dataset.suggReview}/review`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ decision: btn.dataset.suggDecision }) });
+    if (res.ok) window.location.reload(); else alert('Failed: ' + (await res.text()));
+  }));
+}
+bindSuggReview();
 // Commands tab (JS-driven)
 const cmdList = document.getElementById('commands-list');
 if (cmdList) {
@@ -358,5 +623,50 @@ if (cmdList) {
     }));
   });
 }
+// Premium tabs: shop / custom commands / FAQ / scheduled
+const addShop = document.getElementById('add-shop-form');
+if (addShop) addShop.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fd = new FormData(addShop);
+  const res = await fetch(`/api/guilds/${guildId}/shop`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(fd)) });
+  if (res.ok) window.location.reload();
+  else { const j = await res.json().catch(() => ({})); document.getElementById('shop-result').textContent = '❌ ' + (j.error || 'Failed.'); }
+});
+document.querySelectorAll('[data-remove-shop]').forEach(btn => btn.addEventListener('click', async () => {
+  if (!confirm('Remove this shop item?')) return;
+  const res = await fetch(`/api/guilds/${guildId}/shop/${btn.dataset.removeShop}`, { method: 'DELETE' });
+  if (res.ok) window.location.reload();
+}));
+const addCustom = document.getElementById('add-custom-form');
+if (addCustom) addCustom.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fd = new FormData(addCustom);
+  const res = await fetch(`/api/guilds/${guildId}/custom-commands`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(fd)) });
+  if (res.ok) window.location.reload();
+  else { const j = await res.json().catch(() => ({})); document.getElementById('custom-result').textContent = '❌ ' + (j.error || 'Failed.'); }
+});
+document.querySelectorAll('[data-remove-custom]').forEach(btn => btn.addEventListener('click', async () => {
+  if (!confirm(`Remove custom command "${btn.dataset.removeCustom}"?`)) return;
+  const res = await fetch(`/api/guilds/${guildId}/custom-commands/${encodeURIComponent(btn.dataset.removeCustom)}`, { method: 'DELETE' });
+  if (res.ok) window.location.reload();
+}));
+const addFaq = document.getElementById('add-faq-form');
+if (addFaq) addFaq.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fd = new FormData(addFaq);
+  const res = await fetch(`/api/guilds/${guildId}/faq`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(fd)) });
+  if (res.ok) window.location.reload();
+  else { const j = await res.json().catch(() => ({})); document.getElementById('faq-result').textContent = '❌ ' + (j.error || 'Failed.'); }
+});
+document.querySelectorAll('[data-remove-faq]').forEach(btn => btn.addEventListener('click', async () => {
+  if (!confirm('Remove this FAQ response?')) return;
+  const res = await fetch(`/api/guilds/${guildId}/faq/${btn.dataset.removeFaq}`, { method: 'DELETE' });
+  if (res.ok) window.location.reload();
+}));
+document.querySelectorAll('[data-cancel-scheduled]').forEach(btn => btn.addEventListener('click', async () => {
+  if (!confirm('Cancel this scheduled message?')) return;
+  const res = await fetch(`/api/guilds/${guildId}/scheduled/${btn.dataset.cancelScheduled}`, { method: 'DELETE' });
+  if (res.ok) window.location.reload();
+}));
 </script>
 <%- include('partials/footer') %>

@@ -15,9 +15,21 @@ const COMMAND_FEATURES = {
   'invites': 'invites', 'inviteleaderboard': 'invites', 'invite-info': 'invites', 'invite-reset': 'invites',
   'application-create': 'applications', 'application-list': 'applications', 'application-open': 'applications', 'application-close': 'applications', 'apply': 'applications', 'application-accept': 'applications', 'application-deny': 'applications', 'application-status': 'applications', 'application-view': 'applications',
   'reactionroles-setup': 'reactionroles', 'reactionroles-add': 'reactionroles', 'reactionroles-remove': 'reactionroles', 'reactionroles-list': 'reactionroles',
+  'welcome-setup': 'welcome', 'welcome-toggle': 'welcome', 'goodbye-setup': 'welcome', 'goodbye-toggle': 'welcome', 'welcome-test': 'welcome',
+  'automod': 'automod', 'automod-setup': 'automod', 'automod-words': 'automod', 'automod-exempt': 'automod',
+  'suggest': 'suggestions', 'suggestions-setup': 'suggestions', 'suggest-status': 'suggestions',
+  'balance': 'economy', 'daily': 'economy', 'work': 'economy', 'pay': 'economy', 'eco-leaderboard': 'economy', 'shop': 'economy', 'shop-add': 'economy', 'deposit': 'economy', 'withdraw': 'economy',
+  'starboard-setup': 'starboard',
+  'custom-add': 'customcommands', 'custom-remove': 'customcommands', 'custom-list': 'customcommands',
+  'modlog-setup': 'modlog',
+  'afk': 'afk', 'afk-remove': 'afk',
+  'poll': 'polls', 'poll-end': 'polls',
+  'autorole': 'autorole',
+  'schedule': 'scheduler', 'schedule-list': 'scheduler', 'schedule-cancel': 'scheduler', 'remindme': 'scheduler',
+  'faq-add': 'faq', 'faq-remove': 'faq', 'faq-list': 'faq',
 };
 
-const FEATURES = ['music', 'tickets', 'leveling', 'giveaways', 'streams', 'gameservers', 'serverstats', 'reactionroles', 'applications', 'invites'];
+const FEATURES = ['music', 'tickets', 'leveling', 'giveaways', 'streams', 'gameservers', 'serverstats', 'reactionroles', 'applications', 'invites', 'welcome', 'automod', 'suggestions', 'economy', 'starboard', 'customcommands', 'modlog', 'afk', 'polls', 'autorole', 'scheduler', 'faq'];
 
 async function isEnabled(table, key, guildId) {
   if (!db.isEnabled()) return true;

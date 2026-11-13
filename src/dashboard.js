@@ -397,7 +397,7 @@ app.get('/servers', requireAuth, async (req, res) => {
 });
 
 // --- Per-server settings pages (one per module) --------------------------------
-const MODULES = ['general', 'moderation', 'tickets', 'serverstats', 'streams', 'music', 'leveling', 'reactionroles', 'gameservers', 'commands', 'applications', 'invites'];
+const MODULES = ['general', 'moderation', 'tickets', 'serverstats', 'streams', 'music', 'leveling', 'reactionroles', 'gameservers', 'commands', 'applications', 'invites', 'welcome', 'automod', 'suggestions', 'economy', 'starboard', 'customcommands', 'faq', 'scheduled', 'roles'];
 
 app.get('/guilds/:id', requireAuth, requireGuildAccess, (req, res) => res.redirect(`/guilds/${req.params.id}/general`));
 
@@ -413,6 +413,14 @@ app.get('/guilds/:id/:module', requireAuth, requireGuildAccess, async (req, res)
   let pendingApplications = [];
   let inviteLeaderboard = [];
   let inviteStats = [];
+  let automodSettings = null;
+  let automodActions = [];
+  let suggestions = [];
+  let premiumSettings = null;
+  let shopItems = [];
+  let customCommands = [];
+  let faqs = [];
+  let scheduledMessages = [];
   if (db.isEnabled()) {
     streamers = await db.query('SELECT * FROM streamers WHERE guild_id = ?', [id]) || [];
     tickets = await db.query('SELECT * FROM tickets WHERE guild_id = ? ORDER BY id DESC LIMIT 20', [id]) || [];
@@ -421,10 +429,21 @@ app.get('/guilds/:id/:module', requireAuth, requireGuildAccess, async (req, res)
     pendingApplications = await db.query(`SELECT a.*, f.name AS form_name FROM applications a JOIN application_forms f ON f.id = a.form_id WHERE a.guild_id = ? AND a.status = 'pending' ORDER BY a.id DESC LIMIT 50`, [id]) || [];
     inviteLeaderboard = await db.query('SELECT user_id, total_invites, valid_invites, leaves, fake_invites FROM user_invites WHERE guild_id = ? ORDER BY valid_invites DESC, total_invites DESC LIMIT 10', [id]) || [];
     inviteStats = await db.query('SELECT user_id, total_invites, valid_invites, leaves, fake_invites, updated_at FROM user_invites WHERE guild_id = ? ORDER BY valid_invites DESC LIMIT 50', [id]) || [];
+    const automodRows = await db.query('SELECT * FROM automod_settings WHERE guild_id = ?', [id]) || [];
+    automodSettings = automodRows[0] || null;
+    automodActions = await db.query('SELECT * FROM automod_actions WHERE guild_id = ? ORDER BY id DESC LIMIT 50', [id]) || [];
+    suggestions = await db.query('SELECT * FROM suggestions WHERE guild_id = ? ORDER BY id DESC LIMIT 50', [id]) || [];
+    // Premium features (own table, see src/utils/premiumSettings.js).
+    const { getPremiumSettings } = require('./utils/premiumSettings');
+    premiumSettings = await getPremiumSettings(id);
+    shopItems = await db.query('SELECT * FROM shop_items WHERE guild_id = ? ORDER BY price ASC', [id]) || [];
+    customCommands = await db.query('SELECT trigger_word, response, use_count FROM custom_commands WHERE guild_id = ? ORDER BY trigger_word', [id]) || [];
+    faqs = await db.query('SELECT id, trigger_phrase, response, match_type, use_count FROM faq_responses WHERE guild_id = ? ORDER BY created_at ASC', [id]) || [];
+    scheduledMessages = await db.query('SELECT * FROM scheduled_messages WHERE guild_id = ? AND sent = 0 ORDER BY send_at LIMIT 20', [id]) || [];
   }
   res.render('settings', {
     user: req.session.user, guild: req.guildMeta, module, settings,
-    channels, roles, streamers, tickets, gameServers, applicationForms, pendingApplications, inviteLeaderboard, inviteStats, inviteUrl: inviteUrl(),
+    channels, roles, streamers, tickets, gameServers, applicationForms, pendingApplications, inviteLeaderboard, inviteStats, automodSettings, automodActions, suggestions, premiumSettings, shopItems, customCommands, faqs, scheduledMessages, inviteUrl: inviteUrl(),
     saved: req.query.saved === '1', isStaff: await staffFlag(req),
     commandCatalog: COMMAND_CATALOG,
     commandToggles: db.isEnabled() ? (await db.query('SELECT command_name, enabled FROM command_toggles WHERE guild_id = ?', [id]) || []) : [],
@@ -469,6 +488,14 @@ app.post('/api/guilds/:id/settings', requireAuth, requireGuildAccess, async (req
     if (err) return res.status(400).json({ error: err });
     patch.liveChannelNameTemplate = body.liveChannelNameTemplate;
   }
+  // Welcome / goodbye (channel must exist in this server; message ≤2000 chars).
+  if ('welcomeChannelId' in body) setChannel('welcomeChannelId', body.welcomeChannelId);
+  if ('welcomeMessage' in body && typeof body.welcomeMessage === 'string' && body.welcomeMessage.length <= 2000) patch.welcomeMessage = body.welcomeMessage;
+  if ('welcomeEnabled' in body) patch.welcomeEnabled = body.welcomeEnabled === true || body.welcomeEnabled === 'true';
+  if ('goodbyeChannelId' in body) setChannel('goodbyeChannelId', body.goodbyeChannelId);
+  if ('goodbyeMessage' in body && typeof body.goodbyeMessage === 'string' && body.goodbyeMessage.length <= 2000) patch.goodbyeMessage = body.goodbyeMessage;
+  if ('goodbyeEnabled' in body) patch.goodbyeEnabled = body.goodbyeEnabled === true || body.goodbyeEnabled === 'true';
+  if ('suggestionChannelId' in body) setChannel('suggestionChannelId', body.suggestionChannelId);
   if ('levelRoles' in body && typeof body.levelRoles === 'object') {
     const clean = {};
     for (const [lvl, roleId] of Object.entries(body.levelRoles)) {
@@ -661,6 +688,215 @@ app.post('/api/guilds/:id/applications/:appId/review', requireAuth, requireGuild
 app.get('/api/guilds/:id/tickets', requireAuth, requireGuildAccess, async (req, res) => {
   if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
   res.json(await db.query('SELECT * FROM tickets WHERE guild_id = ? ORDER BY id DESC LIMIT 50', [req.params.id]) || []);
+});
+
+// --- Automod API ---
+const automodUtils = require('./utils/automod');
+app.get('/api/guilds/:id/automod', requireAuth, requireGuildAccess, async (req, res) => {
+  res.json(await automodUtils.getSettings(req.params.id));
+});
+app.post('/api/guilds/:id/automod', requireAuth, requireGuildAccess, async (req, res) => {
+  const body = req.body || {};
+  const { channels, roles } = await guildChannelsRoles(req.params.id).catch(() => ({ channels: [], roles: [] }));
+  const channelIds = new Set(channels.map((c) => c.id));
+  const roleIds = new Set(roles.map((r) => r.id));
+  const patch = {};
+  if ('enabled' in body) patch.enabled = Boolean(body.enabled);
+  if ('spamMaxMessages' in body) { const n = parseInt(body.spamMaxMessages, 10); if (!Number.isNaN(n) && n >= 2 && n <= 50) patch.spamMaxMessages = n; }
+  if ('spamWindowSeconds' in body) { const n = parseInt(body.spamWindowSeconds, 10); if (!Number.isNaN(n) && n >= 2 && n <= 120) patch.spamWindowSeconds = n; }
+  if ('spamAction' in body && ['delete', 'warn', 'timeout', 'delete_warn', 'delete_timeout'].includes(body.spamAction)) patch.spamAction = body.spamAction;
+  if ('spamTimeoutMinutes' in body) { const n = parseInt(body.spamTimeoutMinutes, 10); if (!Number.isNaN(n) && n >= 1 && n <= 40320) patch.spamTimeoutMinutes = n; }
+  if ('blockLinks' in body) patch.blockLinks = Boolean(body.blockLinks);
+  if ('blockInvites' in body) patch.blockInvites = Boolean(body.blockInvites);
+  if ('logChannelId' in body && (body.logChannelId === '' || channelIds.has(body.logChannelId))) patch.logChannelId = body.logChannelId || '';
+  if ('bannedWords' in body && Array.isArray(body.bannedWords)) {
+    patch.bannedWords = body.bannedWords.map((w) => String(w).trim().toLowerCase()).filter(Boolean).slice(0, 200);
+  }
+  if ('exemptRoles' in body && Array.isArray(body.exemptRoles)) patch.exemptRoles = body.exemptRoles.filter((r) => roleIds.has(r));
+  if ('exemptChannels' in body && Array.isArray(body.exemptChannels)) patch.exemptChannels = body.exemptChannels.filter((c) => channelIds.has(c));
+  const { saved, settings } = await automodUtils.setSettings(req.params.id, patch);
+  if (!saved) return res.status(503).json({ error: 'Settings saved in memory only — MySQL is not connected.' });
+  res.json({ ok: true, settings });
+});
+
+// --- Suggestions API ---
+const suggUtils = require('./utils/suggestions');
+app.get('/api/guilds/:id/suggestions', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  const status = ['pending', 'approved', 'denied', 'implemented'].includes(req.query.status) ? req.query.status : null;
+  const rows = await db.query(
+    `SELECT * FROM suggestions WHERE guild_id = ? ${status ? 'AND status = ?' : ''} ORDER BY id DESC LIMIT 50`,
+    status ? [req.params.id, status] : [req.params.id]) || [];
+  res.json(rows);
+});
+app.post('/api/guilds/:id/suggestions/:suggId/review', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  const { decision } = req.body || {};
+  if (!['approved', 'denied', 'implemented'].includes(decision)) return res.status(400).json({ error: 'decision must be approved, denied or implemented.' });
+  const suggestion = await suggUtils.getSuggestion(parseInt(req.params.suggId, 10), req.params.id);
+  if (!suggestion) return res.status(404).json({ error: 'Suggestion not found.' });
+  // Review from the dashboard: update the DB, edit the suggestion embed
+  // and DM the suggester via the Discord REST API (the dashboard has no
+  // live discord.js client — the bot process does).
+  const guildRes = await discordApi.get(`/guilds/${req.params.id}`, { headers: botHeaders() }).catch(() => null);
+  if (!guildRes) return res.status(503).json({ error: 'Bot cannot reach this server right now.' });
+  if (suggestion.status !== 'pending') return res.status(400).json({ error: `Already ${suggestion.status}.` });
+  await db.query("UPDATE suggestions SET status = ?, reviewed_by = ?, reviewed_at = NOW() WHERE id = ?",
+    [decision, req.session.user.id, suggestion.id]);
+  const updated = { ...suggestion, status: decision };
+  // Edit the embed via REST (best effort).
+  if (suggestion.message_id) {
+    try {
+      const { EmbedBuilder } = require('discord.js');
+      const embed = suggUtils.suggestionEmbed(updated);
+      await discordApi.patch(`/channels/${suggestion.suggestion_channel_id}/messages/${suggestion.message_id}`,
+        { embeds: [embed.toJSON()], components: [] }, { headers: botHeaders() });
+    } catch (e) { console.warn('[dashboard] suggestion embed update failed:', e.response?.data?.message || e.message); }
+  }
+  try {
+    const dm = await discordApi.post('/users/@me/channels', { recipient_id: suggestion.user_id }, { headers: botHeaders() });
+    await discordApi.post(`/channels/${dm.data.id}/messages`,
+      { content: `Your suggestion **"${suggestion.title}"** (#${suggestion.id}) was **${decision}**.` }, { headers: botHeaders() });
+  } catch { /* DMs closed — not fatal */ }
+  res.json({ ok: true });
+});
+
+
+// --- Premium API (economy, starboard, custom commands, FAQ, scheduled) ---
+const premiumUtils = require('./utils/premiumSettings');
+const { sanitizeResponse } = require('./utils/customCommands');
+const { getCommandNames } = require('./utils/commandNames');
+
+app.get('/api/guilds/:id/premium', requireAuth, requireGuildAccess, async (req, res) => {
+  res.json(await premiumUtils.getPremiumSettings(req.params.id));
+});
+
+app.post('/api/guilds/:id/premium', requireAuth, requireGuildAccess, async (req, res) => {
+  const body = req.body || {};
+  const { channels, roles } = await guildChannelsRoles(req.params.id).catch(() => ({ channels: [], roles: [] }));
+  const channelIds = new Set(channels.map((c) => c.id));
+  const roleIds = new Set(roles.map((r) => r.id));
+  const patch = {};
+  const setChannel = (key, value) => { if (value === '' || channelIds.has(value)) patch[key] = value || ''; };
+  const setRole = (key, value) => { if (value === '' || roleIds.has(value)) patch[key] = value || ''; };
+  const setInt = (key, value, min, max) => {
+    const n = parseInt(value, 10);
+    if (!Number.isNaN(n) && n >= min && n <= max) patch[key] = n;
+  };
+  if ('starboardChannelId' in body) setChannel('starboardChannelId', body.starboardChannelId);
+  if ('starboardThreshold' in body) setInt('starboardThreshold', body.starboardThreshold, 1, 25);
+  if ('starboardEmoji' in body && typeof body.starboardEmoji === 'string' && body.starboardEmoji.trim()) patch.starboardEmoji = body.starboardEmoji.trim().slice(0, 32);
+  if ('modlogChannelId' in body) setChannel('modlogChannelId', body.modlogChannelId);
+  if ('autoroleId' in body) setRole('autoroleId', body.autoroleId);
+  if ('stickyRolesEnabled' in body) patch.stickyRolesEnabled = body.stickyRolesEnabled === true || body.stickyRolesEnabled === 'true';
+  if ('economyStartingBalance' in body) setInt('economyStartingBalance', body.economyStartingBalance, 0, 100000);
+  if ('economyDailyMin' in body) setInt('economyDailyMin', body.economyDailyMin, 0, 100000);
+  if ('economyDailyMax' in body) setInt('economyDailyMax', body.economyDailyMax, 0, 100000);
+  if ('economyWorkMin' in body) setInt('economyWorkMin', body.economyWorkMin, 0, 100000);
+  if ('economyWorkMax' in body) setInt('economyWorkMax', body.economyWorkMax, 0, 100000);
+  if ('economyCurrencyName' in body && typeof body.economyCurrencyName === 'string' && body.economyCurrencyName.trim()) patch.economyCurrencyName = body.economyCurrencyName.trim().slice(0, 32);
+  if ('economyCurrencyEmoji' in body && typeof body.economyCurrencyEmoji === 'string' && body.economyCurrencyEmoji.trim()) patch.economyCurrencyEmoji = body.economyCurrencyEmoji.trim().slice(0, 32);
+  const { saved, settings } = await premiumUtils.setPremiumSettings(req.params.id, patch);
+  if (!saved) return res.status(503).json({ error: 'Settings saved in memory only — MySQL is not connected.' });
+  res.json({ ok: true, settings });
+});
+
+// Shop items (economy).
+app.get('/api/guilds/:id/shop', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  res.json(await db.query('SELECT * FROM shop_items WHERE guild_id = ? ORDER BY price ASC', [req.params.id]) || []);
+});
+
+app.post('/api/guilds/:id/shop', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  const { name, description, price, roleId } = req.body || {};
+  const n = parseInt(price, 10);
+  if (!name || typeof name !== 'string' || !name.trim() || Number.isNaN(n) || n < 1) {
+    return res.status(400).json({ error: 'Name and a price of at least 1 are required.' });
+  }
+  const { roles } = await guildChannelsRoles(req.params.id).catch(() => ({ channels: [], roles: [] }));
+  if (roleId && !roles.some((r) => r.id === roleId)) return res.status(400).json({ error: 'Role does not exist in this server.' });
+  const result = await db.query(
+    'INSERT INTO shop_items (guild_id, name, description, price, role_id, created_by) VALUES (?, ?, ?, ?, ?, ?)',
+    [req.params.id, name.trim().slice(0, 128), (description || '').slice(0, 512) || null, n, roleId || null, req.session.user.id],
+  );
+  res.json({ ok: true, id: result.insertId });
+});
+
+app.delete('/api/guilds/:id/shop/:itemId', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  await db.query('DELETE FROM shop_items WHERE id = ? AND guild_id = ?', [req.params.itemId, req.params.id]);
+  res.json({ ok: true });
+});
+
+// Custom commands.
+app.get('/api/guilds/:id/custom-commands', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  res.json(await db.query('SELECT trigger_word, response, use_count FROM custom_commands WHERE guild_id = ? ORDER BY trigger_word', [req.params.id]) || []);
+});
+
+app.post('/api/guilds/:id/custom-commands', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  const trigger = String(req.body?.trigger || '').trim().toLowerCase();
+  const response = sanitizeResponse(String(req.body?.response || ''));
+  if (!/^[a-z0-9_-]+$/.test(trigger)) return res.status(400).json({ error: 'Trigger must be a single word (letters, numbers, - or _).' });
+  if (getCommandNames().has(trigger)) return res.status(400).json({ error: `"${trigger}" is a built-in command — pick a different trigger.` });
+  if (!response.trim()) return res.status(400).json({ error: 'Response is required.' });
+  await db.query(
+    'INSERT INTO custom_commands (guild_id, trigger_word, response, created_by) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE response = VALUES(response), created_by = VALUES(created_by)',
+    [req.params.id, trigger, response.slice(0, 2000), req.session.user.id],
+  );
+  res.json({ ok: true });
+});
+
+app.delete('/api/guilds/:id/custom-commands/:trigger', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  await db.query('DELETE FROM custom_commands WHERE guild_id = ? AND trigger_word = ?', [req.params.id, req.params.trigger.toLowerCase()]);
+  res.json({ ok: true });
+});
+
+// FAQ responses.
+app.get('/api/guilds/:id/faq', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  res.json(await db.query('SELECT id, trigger_phrase, response, match_type, use_count FROM faq_responses WHERE guild_id = ? ORDER BY created_at ASC', [req.params.id]) || []);
+});
+
+app.post('/api/guilds/:id/faq', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  const trigger = String(req.body?.trigger || '').trim();
+  const response = sanitizeResponse(String(req.body?.response || ''));
+  const matchType = req.body?.matchType === 'exact' ? 'exact' : 'contains';
+  if (!trigger || trigger.length > 100) return res.status(400).json({ error: 'Trigger is required (max 100 chars).' });
+  if (!response.trim()) return res.status(400).json({ error: 'Response is required.' });
+  const count = await db.query('SELECT COUNT(*) AS c FROM faq_responses WHERE guild_id = ?', [req.params.id]);
+  if ((count?.[0]?.c || 0) >= 50) return res.status(400).json({ error: 'This server already has 50 FAQ responses — remove one first.' });
+  await db.query(
+    'INSERT INTO faq_responses (guild_id, trigger_phrase, response, match_type, created_by) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE response = VALUES(response), match_type = VALUES(match_type), created_by = VALUES(created_by)',
+    [req.params.id, trigger, response.slice(0, 2000), matchType, req.session.user.id],
+  );
+  const { invalidateFaqs } = require('./utils/faq');
+  invalidateFaqs(req.params.id);
+  res.json({ ok: true });
+});
+
+app.delete('/api/guilds/:id/faq/:faqId', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  await db.query('DELETE FROM faq_responses WHERE id = ? AND guild_id = ?', [req.params.faqId, req.params.id]);
+  const { invalidateFaqs } = require('./utils/faq');
+  invalidateFaqs(req.params.id);
+  res.json({ ok: true });
+});
+
+// Scheduled messages (list + cancel).
+app.get('/api/guilds/:id/scheduled', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  res.json(await db.query('SELECT * FROM scheduled_messages WHERE guild_id = ? AND sent = 0 ORDER BY send_at', [req.params.id]) || []);
+});
+
+app.delete('/api/guilds/:id/scheduled/:msgId', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  await db.query('DELETE FROM scheduled_messages WHERE id = ? AND guild_id = ? AND sent = 0', [req.params.msgId, req.params.id]);
+  res.json({ ok: true });
 });
 
 
