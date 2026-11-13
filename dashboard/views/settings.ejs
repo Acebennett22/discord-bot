@@ -6,7 +6,7 @@
       <strong><%= guild.name %></strong>
     </div>
     <nav>
-      <% const MODS = [['general','⚙️ General'],['moderation','🛡️ Moderation'],['tickets','🎫 Tickets'],['serverstats','📊 Server Stats'],['streams','📺 Streams'],['music','🎵 Music'],['leveling','🏆 Leveling'],['reactionroles','🎭 Reaction Roles'],['gameservers','🖥️ Game Servers'],['applications','📝 Applications'],['commands','⌨️ Commands'],['invites','📨 Invites'],['welcome','👋 Welcome'],['automod','🤖 Automod'],['suggestions','💡 Suggestions'],['economy','🪙 Economy'],['starboard','⭐ Starboard'],['customcommands','⌨️ Custom Commands'],['faq','💬 FAQ'],['scheduled','⏰ Scheduled'],['roles','🎭 Roles'],['verification','✅ Verification'],['counting','🔢 Counting'],['tempvc','🔊 Temp VC'],['birthdays','🎂 Birthdays'],['analytics','📈 Analytics'],['giveaways','🎉 Giveaways'],['ai','💬 AI Chat'],['modmail','📬 Modmail'],['games','🎲 Games'],['emojis','😀 Emojis']]; %>
+      <% const MODS = [['general','⚙️ General'],['moderation','🛡️ Moderation'],['tickets','🎫 Tickets'],['serverstats','📊 Server Stats'],['streams','📺 Streams'],['music','🎵 Music'],['leveling','🏆 Leveling'],['reactionroles','🎭 Reaction Roles'],['gameservers','🖥️ Game Servers'],['applications','📝 Applications'],['commands','⌨️ Commands'],['invites','📨 Invites'],['welcome','👋 Welcome'],['automod','🤖 Automod'],['suggestions','💡 Suggestions'],['economy','🪙 Economy'],['starboard','⭐ Starboard'],['customcommands','⌨️ Custom Commands'],['faq','💬 FAQ'],['scheduled','⏰ Scheduled'],['roles','🎭 Roles'],['verification','✅ Verification'],['counting','🔢 Counting'],['tempvc','🔊 Temp VC'],['birthdays','🎂 Birthdays'],['analytics','📈 Analytics'],['giveaways','🎉 Giveaways'],['ai','💬 AI Chat'],['modmail','📬 Modmail'],['games','🎲 Games'],['emojis','😀 Emojis'],['media','🧵 Media'],['threads','🧵 Threads'],['confessions','🤫 Confessions']]; %>
       <% MODS.forEach(([m, label]) => { %>
         <a href="/guilds/<%= guild.id %>/<%= m %>" class="<%= module === m ? 'active' : '' %>"><%= label %></a>
       <% }); %>
@@ -529,6 +529,10 @@
       </select>
       <label>Announce hour (0–23, bot host local time)</label>
       <input type="number" name="birthdayAnnounceHour" min="0" max="23" value="<%= settings.birthdayAnnounceHour ?? 9 %>">
+      <label>Birthday role (granted on the day, removed the next day)</label>
+      <select name="birthdayRoleId"><option value="">— none —</option>
+        <% roles.forEach(r => { %><option value="<%= r.id %>" <%= settings.birthdayRoleId === r.id ? 'selected' : '' %>><%= r.name %></option><% }); %>
+      </select>
       <br><br><button class="btn" type="submit">Save birthday settings</button>
     </form>
     <h2>Upcoming birthdays</h2>
@@ -904,6 +908,19 @@
       <table><tr><th>User</th><th>Role</th><th>Expires</th><th></th></tr>
       <% tempRoles.forEach(t => { %><tr><td>&lt;@<%= t.user_id %>&gt;</td><td><%= (roles.find(r => r.id === t.role_id) || {}).name || t.role_id %></td><td><%= t.expires_at %></td><td><button class="btn danger" data-post="/api/guilds/<%= guild.id %>/temproles/<%= t.id %>/remove">Remove early</button></td></tr><% }); %></table>
     <% } %>
+    <h2>🛒 XP shop (per-server)</h2>
+    <p class="muted">This server's XP shop — members spend leveling XP on roles (/xpshop). Each server sets its own items and prices; nothing is shared across servers.</p>
+    <% if (!xpShopItems.length) { %><p class="muted">No XP shop items yet.</p><% } else { %>
+      <table><tr><th>Role</th><th>XP price</th><th></th></tr>
+      <% xpShopItems.forEach(i => { %><tr><td><%= (roles.find(r => r.id === i.role_id) || {}).name || i.role_id %></td><td><%= i.xp_price %></td><td><button class="btn danger" data-delete="/api/guilds/<%= guild.id %>/xpshop/<%= i.role_id %>">Remove</button></td></tr><% }); %></table>
+    <% } %>
+    <form id="xpshop-add-form" action="/api/guilds/<%= guild.id %>/xpshop">
+      <label>Role</label>
+      <select name="roleId"><% roles.forEach(r => { %><option value="<%= r.id %>"><%= r.name %></option><% }); %></select>
+      <label>XP price</label>
+      <input type="number" name="xpPrice" min="1" max="1000000" value="1000">
+      <br><br><button class="btn" type="submit">Add to XP shop</button>
+    </form>
     <p class="muted">AFK and polls are Discord-only (see README) — no dashboard tab needed.</p>
     <h2>🎭 Role menus</h2>
     <p class="muted">Select-menu role pickers — members pick a role from a dropdown, select again to remove it. Reaction-role requirements (required role / days / level) apply. Manage options with /rolemenu in Discord.</p>

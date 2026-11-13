@@ -8,6 +8,8 @@ const db = require('./database');
 const { addWarn } = require('./warns');
 const { infoEmbed } = require('./embeds');
 const { logWarn } = require('./errorLogger');
+const { getGuildSettings } = require('./guildSettings');
+const { markBotDeleted } = require('../events/ghostPing');
 
 const DEFAULTS = {
   enabled: false,
@@ -132,7 +134,7 @@ async function applyAction(message, settings, reason) {
   const shouldTimeout = action === 'timeout' || action === 'delete_timeout';
   let deleted = false;
   if (shouldDelete) {
-    try { await message.delete(); deleted = true; } catch {}
+    try { markBotDeleted(message.id); await message.delete(); deleted = true; } catch {}
   }
   if (shouldWarn) {
     addWarn(message.guild.id, message.author.id, { reason: `Automod: ${reason}`, moderator: message.client.user.id });
@@ -157,6 +159,22 @@ async function handleMessage(message) {
   if (message.author.bot || !message.guild || !message.member) return null;
   // Admins are never automodded.
   if (message.member.permissions?.has('Administrator')) return null;
+  // New-member link block (1.12.5): members who joined less than N days ago
+  // cannot post links. Runs independently of the main Automod toggle, and
+  // uses the Automod exempt roles/channels. The warning deletes itself.
+  const guildSettings = await getGuildSettings(message.guild.id).catch(() => null);
+  if (guildSettings?.newMemberLinkEnabled) {
+    const joinedAt = message.member.joinedTimestamp;
+    const days = joinedAt ? Math.floor((Date.now() - joinedAt) / 86_400_000) : 0;
+    const isExemptHere = await getSettings(message.guild.id).then((s) => isExempt(message, s)).catch(() => false);
+    if (days < (guildSettings.newMemberLinkDays ?? 7) && !isExemptHere && (containsLink(message.content) || containsInvite(message.content))) {
+      try { await message.delete(); } catch {}
+      const warn = await message.channel.send(`⚠️ <@${message.author.id}>, new members can't post links until they've been here ${guildSettings.newMemberLinkDays ?? 7} days.`).catch(() => null);
+      if (warn) setTimeout(() => warn.delete().catch(() => {}), 10_000);
+      await logAction(message.guild, message.author.id, 'delete', `new-member link block (${days}d in server)`, message, message.channelId).catch(() => {});
+      return { deleted: true, reason: 'new-member link block' };
+    }
+  }
   const settings = await getSettings(message.guild.id);
   if (!settings.enabled) return null;
   if (isExempt(message, settings)) return null;
