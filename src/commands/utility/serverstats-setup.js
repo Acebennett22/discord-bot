@@ -14,7 +14,7 @@ module.exports = {
     if (!keys.length) {
       return interaction.reply({ embeds: [errorEmbed('No valid stats', `Valid stats: ${Object.keys(STATS).join(', ')}`)], ephemeral: true });
     }
-    await interaction.deferReply();
+    await interaction.deferReply({ ephemeral: true });
     const channels = await createStatChannels(interaction.guild, keys);
     return interaction.editReply({ embeds: [successEmbed('Server Stats enabled', [
       'Created the **📊 Server Stats** category with display-only voice channels:',

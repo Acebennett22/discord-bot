@@ -14,6 +14,6 @@ module.exports = {
       `**Boosts:** ${g.premiumSubscriptionCount || 0} (Tier ${g.premiumTier})`,
     ].join('\n'));
     if (g.iconURL()) embed.setThumbnail(g.iconURL());
-    return interaction.reply({ embeds: [embed] });
+    return interaction.reply({ ephemeral: true, embeds: [embed] });
   },
 };

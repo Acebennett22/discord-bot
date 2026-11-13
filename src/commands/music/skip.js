@@ -11,6 +11,6 @@ module.exports = {
     if (!queue || !queue.playing) return interaction.reply({ embeds: [errorEmbed('Nothing playing', 'There is no song playing right now.')], ephemeral: true });
     const title = queue.playing.title;
     skip(interaction.guildId);
-    return interaction.reply({ embeds: [successEmbed('Skipped', `Skipped **${title}**.`)] });
+    return interaction.reply({ ephemeral: true, embeds: [successEmbed('Skipped', `Skipped **${title}**.`)] });
   },
 };

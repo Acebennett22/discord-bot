@@ -9,6 +9,6 @@ module.exports = {
     const form = await apps.getForm(interaction.options.getInteger('form_id'), interaction.guildId);
     if (!form) return interaction.reply({ embeds: [errorEmbed('Not found', 'No form with that ID in this server.')], ephemeral: true });
     await apps.setFormOpen(form.id, interaction.guildId, true);
-    return interaction.reply({ embeds: [successEmbed('Form opened', `**${form.name}** is now open — members can /apply.`)] });
+    return interaction.reply({ ephemeral: true, embeds: [successEmbed('Form opened', `**${form.name}** is now open — members can /apply.`)] });
   },
 };

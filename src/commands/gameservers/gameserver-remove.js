@@ -12,6 +12,6 @@ module.exports = {
     if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Tracked game servers are stored in MySQL.')], ephemeral: true });
     const res = await db.query('DELETE FROM game_servers WHERE guild_id = ? AND name = ?', [interaction.guildId, interaction.options.getString('name')]);
     if (!res || res.affectedRows === 0) return interaction.reply({ embeds: [errorEmbed('Not found', 'No DB-tracked server with that name in this server. (Config-level entries in config.json are edited there.)')], ephemeral: true });
-    return interaction.reply({ embeds: [successEmbed('Game server removed', `Stopped tracking **${interaction.options.getString('name')}**.`)] });
+    return interaction.reply({ ephemeral: true, embeds: [successEmbed('Game server removed', `Stopped tracking **${interaction.options.getString('name')}**.`)] });
   },
 };

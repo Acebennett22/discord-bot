@@ -19,7 +19,7 @@ module.exports = {
     const uses = liveInv?.uses ?? row?.uses ?? 0;
     const maxUses = liveInv?.maxUses ?? row?.max_uses;
     const channelId = liveInv?.channelId || row?.channel_id;
-    return interaction.reply({ embeds: [infoEmbed(`🔗 Invite discord.gg/${code}`,
+    return interaction.reply({ ephemeral: true, embeds: [infoEmbed(`🔗 Invite discord.gg/${code}`,
       `**Created by:** ${inviter ? `<@${inviter}>` : 'unknown'}\n**Uses:** ${uses}${maxUses ? ` / ${maxUses}` : ' (unlimited)'}\n**Channel:** ${channelId ? `<#${channelId}>` : 'unknown'}\n**Expires:** ${liveInv?.expiresAt ? `<t:${Math.floor(liveInv.expiresAt.getTime() / 1000)}:R>` : 'never / unknown'}`)] });
   },
 };

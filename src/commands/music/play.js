@@ -13,7 +13,7 @@ module.exports = {
     const voiceChannel = interaction.member?.voice?.channel;
     if (!voiceChannel) return interaction.reply({ embeds: [errorEmbed('Not in voice', 'Join a voice channel first, then use /play.')], ephemeral: true });
     const query = interaction.options.getString('query');
-    await interaction.deferReply();
+    await interaction.deferReply({ ephemeral: true });
     try {
       const result = await addTrack(interaction.guildId, voiceChannel, interaction.channel, query);
       if (!result.added) return interaction.editReply({ embeds: [errorEmbed('Could not play', result.reason)] });

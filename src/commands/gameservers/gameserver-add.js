@@ -28,6 +28,6 @@ module.exports = {
       'INSERT INTO game_servers (guild_id, name, provider, host, port, notify_channel_id) VALUES (?, ?, ?, ?, ?, ?)',
       [interaction.guildId, name, provider, host, port || null, notify?.id || null],
     );
-    return interaction.reply({ embeds: [successEmbed('Game server added', `Tracking **${name}** via **${providers[provider].name}** at \`${host}${port ? `:${port}` : ''}\`.${notify ? `\nOnline/offline alerts go to <#${notify.id}>.` : ''}\nCheck it with /serverstatus ${name}.`)] });
+    return interaction.reply({ ephemeral: true, embeds: [successEmbed('Game server added', `Tracking **${name}** via **${providers[provider].name}** at \`${host}${port ? `:${port}` : ''}\`.${notify ? `\nOnline/offline alerts go to <#${notify.id}>.` : ''}\nCheck it with /serverstatus ${name}.`)] });
   },
 };

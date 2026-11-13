@@ -18,6 +18,6 @@ module.exports = {
     else if (scope === 'old') sql = 'DELETE FROM error_logs WHERE created_at < NOW() - INTERVAL 30 DAY';
     else sql = 'DELETE FROM error_logs';
     const result = await db.query(sql);
-    return interaction.reply({ embeds: [successEmbed('Error logs cleared', `Removed ${result.affectedRows ?? 0} log entries (${scope}). The local file logs/bot-errors.log is untouched.`)] });
+    return interaction.reply({ ephemeral: true, embeds: [successEmbed('Error logs cleared', `Removed ${result.affectedRows ?? 0} log entries (${scope}). The local file logs/bot-errors.log is untouched.`)] });
   },
 };

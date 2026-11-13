@@ -9,6 +9,6 @@ module.exports = {
     const form = await apps.getForm(interaction.options.getInteger('form_id'), interaction.guildId);
     if (!form) return interaction.reply({ embeds: [errorEmbed('Not found', 'No form with that ID in this server.')], ephemeral: true });
     await apps.setFormOpen(form.id, interaction.guildId, false);
-    return interaction.reply({ embeds: [successEmbed('Form closed', `**${form.name}** is now closed — /apply will no longer offer it.`)] });
+    return interaction.reply({ ephemeral: true, embeds: [successEmbed('Form closed', `**${form.name}** is now closed — /apply will no longer offer it.`)] });
   },
 };

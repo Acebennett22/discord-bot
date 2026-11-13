@@ -13,6 +13,6 @@ function formatUptime(ms) {
 module.exports = {
   data: new SlashCommandBuilder().setName('uptime').setDescription('Show how long the bot has been online.'),
   async execute(interaction) {
-    return interaction.reply({ embeds: [infoEmbed('Uptime', `I've been online for **${formatUptime(interaction.client.uptime)}**.`)] });
+    return interaction.reply({ ephemeral: true, embeds: [infoEmbed('Uptime', `I've been online for **${formatUptime(interaction.client.uptime)}**.`)] });
   },
 };

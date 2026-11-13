@@ -29,6 +29,6 @@ module.exports = {
       `**Profile:** https://steamcommunity.com/profiles/${profile.steamid}`,
     ].filter(Boolean).join('\n'));
     if (profile.avatarfull) embed.setThumbnail(profile.avatarfull);
-    return interaction.reply({ embeds: [embed] });
+    return interaction.reply({ ephemeral: true, embeds: [embed] });
   },
 };

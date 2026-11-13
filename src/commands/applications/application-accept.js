@@ -15,6 +15,6 @@ module.exports = {
     const form = await apps.getForm(app.form_id, interaction.guildId);
     const result = await apps.reviewApplication(interaction.guild, form, app, 'accepted', interaction.user, interaction.options.getString('note'));
     if (!result.ok) return interaction.reply({ embeds: [errorEmbed('Already reviewed', result.error)], ephemeral: true });
-    return interaction.reply({ embeds: [successEmbed('Application accepted', `Application #${app.id} (<@${app.user_id}>) for **${form.name}** was accepted${form.role_to_grant ? ' and the role was granted' : ''}. The applicant was DM'd.`)] });
+    return interaction.reply({ ephemeral: true, embeds: [successEmbed('Application accepted', `Application #${app.id} (<@${app.user_id}>) for **${form.name}** was accepted${form.role_to_grant ? ' and the role was granted' : ''}. The applicant was DM'd.`)] });
   },
 };

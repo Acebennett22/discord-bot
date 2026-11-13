@@ -25,6 +25,6 @@ module.exports = {
       'INSERT INTO user_levels (user_id, guild_id, xp, level) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE xp = VALUES(xp), level = VALUES(level)',
       [user.id, interaction.guildId, xp, finalLevel],
     );
-    return interaction.reply({ embeds: [successEmbed('Level set', `**${user.tag}** is now level **${finalLevel}** with **${xp}** XP.`)] });
+    return interaction.reply({ ephemeral: true, embeds: [successEmbed('Level set', `**${user.tag}** is now level **${finalLevel}** with **${xp}** XP.`)] });
   },
 };

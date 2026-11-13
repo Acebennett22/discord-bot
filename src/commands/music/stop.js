@@ -9,6 +9,6 @@ module.exports = {
     if (!(await requireDJ(interaction))) return;
     if (!getQueue(interaction.guildId)) return interaction.reply({ embeds: [errorEmbed('Nothing playing', 'There is no music playing right now.')], ephemeral: true });
     stop(interaction.guildId);
-    return interaction.reply({ embeds: [successEmbed('Stopped', 'Playback stopped, queue cleared, and I left the voice channel.')] });
+    return interaction.reply({ ephemeral: true, embeds: [successEmbed('Stopped', 'Playback stopped, queue cleared, and I left the voice channel.')] });
   },
 };

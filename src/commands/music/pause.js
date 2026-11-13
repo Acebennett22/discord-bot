@@ -10,6 +10,6 @@ module.exports = {
     const queue = getQueue(interaction.guildId);
     if (!queue || !queue.playing) return interaction.reply({ embeds: [errorEmbed('Nothing playing', 'There is no song playing right now.')], ephemeral: true });
     pause(interaction.guildId);
-    return interaction.reply({ embeds: [successEmbed('Paused', `Paused **${queue.playing.title}**.`)] });
+    return interaction.reply({ ephemeral: true, embeds: [successEmbed('Paused', `Paused **${queue.playing.title}**.`)] });
   },
 };

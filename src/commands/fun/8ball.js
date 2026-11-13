@@ -15,6 +15,6 @@ module.exports = {
   async execute(interaction) {
     const question = interaction.options.getString('question');
     const answer = ANSWERS[Math.floor(Math.random() * ANSWERS.length)];
-    return interaction.reply({ embeds: [infoEmbed('🎱 Magic 8-ball', `**Q:** ${question}\n**A:** ${answer}`)] });
+    return interaction.reply({ ephemeral: true, embeds: [infoEmbed('🎱 Magic 8-ball', `**Q:** ${question}\n**A:** ${answer}`)] });
   },
 };

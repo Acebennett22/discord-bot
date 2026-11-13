@@ -13,6 +13,6 @@ module.exports = {
     if (queue.playing) lines.push(`▶️ **Now playing:** ${queue.playing.title}`);
     queue.queue.slice(0, 10).forEach((t, i) => lines.push(`**${i + 1}.** ${t.title}`));
     if (queue.queue.length > 10) lines.push(`…and ${queue.queue.length - 10} more.`);
-    return interaction.reply({ embeds: [infoEmbed('Music queue', lines.join('\n'))] });
+    return interaction.reply({ ephemeral: true, embeds: [infoEmbed('Music queue', lines.join('\n'))] });
   },
 };

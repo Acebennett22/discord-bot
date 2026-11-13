@@ -17,6 +17,6 @@ module.exports = {
     }
     const user = interaction.options.getUser('user');
     await interaction.channel.permissionOverwrites.edit(user.id, { ViewChannel: true, SendMessages: true, ReadMessageHistory: true });
-    return interaction.reply({ embeds: [successEmbed('User added', `${user} was added to this ticket.`)] });
+    return interaction.reply({ ephemeral: true, embeds: [successEmbed('User added', `${user} was added to this ticket.`)] });
   },
 };

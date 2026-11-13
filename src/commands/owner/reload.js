@@ -29,7 +29,7 @@ module.exports = {
       const fresh = require(filePath);
       if (!fresh?.data?.name || typeof fresh.execute !== 'function') throw new Error('File does not export { data, execute }.');
       interaction.client.commands.set(fresh.data.name, fresh);
-      return interaction.reply({ embeds: [successEmbed('Command reloaded', `\`/${name}\` was reloaded from \`${path.relative(process.cwd(), filePath)}\`. Note: slash-command *definitions* still need \`npm run deploy\` to update on Discord.`) ] });
+      return interaction.reply({ ephemeral: true, embeds: [successEmbed('Command reloaded', `\`/${name}\` was reloaded from \`${path.relative(process.cwd(), filePath)}\`. Note: slash-command *definitions* still need \`npm run deploy\` to update on Discord.`) ] });
     } catch (err) {
       return interaction.reply({ embeds: [errorEmbed('Reload failed', `\`${err.message}\``)], ephemeral: true });
     }

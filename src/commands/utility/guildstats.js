@@ -8,7 +8,7 @@ module.exports = {
     if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'MySQL is not connected, so guild stats are unavailable.')], ephemeral: true });
     const s = await db.getGuildStats(interaction.guildId);
     if (!s) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Could not read stats from MySQL right now.')], ephemeral: true });
-    return interaction.reply({ embeds: [infoEmbed(`Guild stats — ${interaction.guild.name}`, [
+    return interaction.reply({ ephemeral: true, embeds: [infoEmbed(`Guild stats — ${interaction.guild.name}`, [
       `**Commands used:** ${s.commandsUsed}`,
       `**Songs played:** ${s.songsPlayed}`,
       `**Members joined:** ${s.membersJoined}`,

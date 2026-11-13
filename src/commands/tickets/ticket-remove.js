@@ -18,6 +18,6 @@ module.exports = {
     const user = interaction.options.getUser('user');
     if (user.id === ticket.user_id) return interaction.reply({ embeds: [errorEmbed('Cannot remove', 'You cannot remove the ticket creator.')], ephemeral: true });
     await interaction.channel.permissionOverwrites.delete(user.id).catch(() => {});
-    return interaction.reply({ embeds: [successEmbed('User removed', `${user} was removed from this ticket.`)] });
+    return interaction.reply({ ephemeral: true, embeds: [successEmbed('User removed', `${user} was removed from this ticket.`)] });
   },
 };

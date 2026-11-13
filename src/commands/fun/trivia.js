@@ -18,7 +18,7 @@ module.exports = {
         .setLabel(opt)
         .setStyle(ButtonStyle.Primary)),
     );
-    const reply = await interaction.reply({
+    const reply = await interaction.reply({ ephemeral: true,
       embeds: [infoEmbed('🧠 Trivia', `**${q.question}**\n\n${options.map((o, i) => `${String.fromCharCode(65 + i)}. ${o}`).join('\n')}`)],
       components: [row],
       fetchReply: true,

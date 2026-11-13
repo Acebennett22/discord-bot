@@ -17,6 +17,6 @@ module.exports = {
     if (member && !member.bannable) return interaction.reply({ embeds: [errorEmbed('Ban failed', 'I cannot ban that member — check my role position and permissions.')], ephemeral: true });
     if (user.id === interaction.user.id) return interaction.reply({ embeds: [errorEmbed('Ban failed', 'You cannot ban yourself.')], ephemeral: true });
     await interaction.guild.members.ban(user.id, { reason, deleteMessageDays: deleteDays });
-    return interaction.reply({ embeds: [successEmbed('Member banned', `**${user.tag}** was banned.\nReason: ${reason}`)] });
+    return interaction.reply({ ephemeral: true, embeds: [successEmbed('Member banned', `**${user.tag}** was banned.\nReason: ${reason}`)] });
   },
 };

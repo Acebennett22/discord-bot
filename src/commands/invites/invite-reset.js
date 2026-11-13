@@ -16,10 +16,10 @@ module.exports = {
     if (user) {
       await db.query('DELETE FROM invite_uses WHERE guild_id = ? AND inviter_id = ?', [interaction.guildId, user.id]);
       await db.query('DELETE FROM user_invites WHERE guild_id = ? AND user_id = ?', [interaction.guildId, user.id]);
-      return interaction.reply({ embeds: [successEmbed('Invite stats reset', `<@${user.id}>'s invite stats in this server were reset to zero.`)] });
+      return interaction.reply({ ephemeral: true, embeds: [successEmbed('Invite stats reset', `<@${user.id}>'s invite stats in this server were reset to zero.`)] });
     }
     await db.query('DELETE FROM invite_uses WHERE guild_id = ?', [interaction.guildId]);
     await db.query('DELETE FROM user_invites WHERE guild_id = ?', [interaction.guildId]);
-    return interaction.reply({ embeds: [successEmbed('Invite stats reset', 'All invite stats in this server were reset to zero.')] });
+    return interaction.reply({ ephemeral: true, embeds: [successEmbed('Invite stats reset', 'All invite stats in this server were reset to zero.')] });
   },
 };

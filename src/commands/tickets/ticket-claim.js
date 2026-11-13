@@ -16,6 +16,6 @@ module.exports = {
     if (db.isEnabled()) {
       await db.query("UPDATE tickets SET claimed_by = ?, status = 'claimed' WHERE id = ?", [interaction.user.id, ticket.id]);
     }
-    return interaction.reply({ embeds: [successEmbed('Ticket claimed', `${interaction.user} has claimed this ticket.`)] });
+    return interaction.reply({ ephemeral: true, embeds: [successEmbed('Ticket claimed', `${interaction.user} has claimed this ticket.`)] });
   },
 };

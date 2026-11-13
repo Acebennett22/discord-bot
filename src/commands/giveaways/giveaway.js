@@ -42,8 +42,8 @@ module.exports = {
     }
     if (sub === 'list') {
       const rows = await db.query("SELECT * FROM giveaways WHERE guild_id = ? AND status = 'active' ORDER BY ends_at", [interaction.guildId]);
-      if (!rows?.length) return interaction.reply({ embeds: [infoEmbed('Giveaways', 'No active giveaways in this server.')] });
-      return interaction.reply({ embeds: [infoEmbed('Active giveaways', rows.map((g) => `**#${g.id}** ${g.prize} — ${g.winners_count} winner(s), ends <t:${Math.floor(new Date(g.ends_at).getTime() / 1000)}:R> in <#${g.channel_id}>`).join('\n'))] });
+      if (!rows?.length) return interaction.reply({ ephemeral: true, embeds: [infoEmbed('Giveaways', 'No active giveaways in this server.')] });
+      return interaction.reply({ ephemeral: true, embeds: [infoEmbed('Active giveaways', rows.map((g) => `**#${g.id}** ${g.prize} — ${g.winners_count} winner(s), ends <t:${Math.floor(new Date(g.ends_at).getTime() / 1000)}:R> in <#${g.channel_id}>`).join('\n'))] });
     }
     const id = interaction.options.getInteger('id');
     const rows = await db.query('SELECT * FROM giveaways WHERE id = ? AND guild_id = ?', [id, interaction.guildId]);

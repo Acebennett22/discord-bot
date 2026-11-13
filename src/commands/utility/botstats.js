@@ -14,7 +14,7 @@ module.exports = {
       ? stats.topCommands.map((c, i) => `**${i + 1}.** /${c.command_name} — ${c.uses}`).join('\n')
       : 'No commands logged yet.';
     const uptimeS = Math.floor(interaction.client.uptime / 1000);
-    return interaction.reply({ embeds: [infoEmbed('Bot statistics', [
+    return interaction.reply({ ephemeral: true, embeds: [infoEmbed('Bot statistics', [
       `**Total commands used:** ${stats.totalCommands}`,
       `**Successful:** ${stats.successes}`,
       `**Songs played:** ${stats.songsPlayed}`,

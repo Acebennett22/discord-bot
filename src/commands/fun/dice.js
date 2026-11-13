@@ -12,6 +12,6 @@ module.exports = {
     const count = interaction.options.getInteger('count') || 1;
     const rolls = Array.from({ length: count }, () => 1 + Math.floor(Math.random() * sides));
     const total = rolls.reduce((a, b) => a + b, 0);
-    return interaction.reply({ embeds: [infoEmbed('🎲 Dice roll', `Rolled **${count}d${sides}**: ${rolls.join(', ')}\n**Total: ${total}**`)] });
+    return interaction.reply({ ephemeral: true, embeds: [infoEmbed('🎲 Dice roll', `Rolled **${count}d${sides}**: ${rolls.join(', ')}\n**Total: ${total}**`)] });
   },
 };

@@ -37,6 +37,6 @@ module.exports = {
       `Ticket support role: ${settings.ticketSupportRoleId ? `<@&${settings.ticketSupportRoleId}>` : 'not set'}`,
     ];
     if (!saved) lines.push('\n⚠️ MySQL is not connected, so these settings are only kept in memory for this run — connect the database to make /setup permanent.');
-    return interaction.reply({ embeds: [successEmbed('Server setup saved', lines.join('\n'))] });
+    return interaction.reply({ ephemeral: true, embeds: [successEmbed('Server setup saved', lines.join('\n'))] });
   },
 };

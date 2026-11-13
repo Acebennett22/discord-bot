@@ -17,6 +17,6 @@ module.exports = {
     if (!member) return interaction.reply({ embeds: [errorEmbed('Timeout failed', 'That user is not in this server.')], ephemeral: true });
     if (!member.moderatable) return interaction.reply({ embeds: [errorEmbed('Timeout failed', 'I cannot timeout that member — check my role position and permissions.')], ephemeral: true });
     await member.timeout(minutes * 60_000, reason);
-    return interaction.reply({ embeds: [successEmbed('Member timed out', `**${user.tag}** was timed out for **${minutes} minute(s)**.\nReason: ${reason}`)] });
+    return interaction.reply({ ephemeral: true, embeds: [successEmbed('Member timed out', `**${user.tag}** was timed out for **${minutes} minute(s)**.\nReason: ${reason}`)] });
   },
 };

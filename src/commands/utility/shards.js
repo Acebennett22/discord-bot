@@ -6,7 +6,7 @@ module.exports = {
   async execute(interaction) {
     const client = interaction.client;
     if (!client.shard) {
-      return interaction.reply({ embeds: [infoEmbed('Shards', [
+      return interaction.reply({ ephemeral: true, embeds: [infoEmbed('Shards', [
         '**Mode:** Unsharded (single process)',
         `**Guilds:** ${client.guilds.cache.size}`,
         `**Ping:** ${client.ws.ping}ms`,
@@ -29,6 +29,6 @@ module.exports = {
       '**Guilds per shard:**',
     ];
     guildCounts.forEach((n, i) => lines.push(`Shard ${i}: ${n} guild(s)${pings[i] != null ? ` — ${pings[i]}ms` : ''}`));
-    return interaction.reply({ embeds: [infoEmbed('Shards', lines.join('\n'))] });
+    return interaction.reply({ ephemeral: true, embeds: [infoEmbed('Shards', lines.join('\n'))] });
   },
 };

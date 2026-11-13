@@ -15,6 +15,6 @@ module.exports = {
     const res = await db.query('DELETE FROM streamers WHERE guild_id = ? AND platform = ? AND channel_id_or_name = ?',
       [interaction.guildId, interaction.options.getString('platform'), interaction.options.getString('channel')]);
     if (!res || res.affectedRows === 0) return interaction.reply({ embeds: [errorEmbed('Not found', 'No watched streamer matched that platform + channel in this server.')], ephemeral: true });
-    return interaction.reply({ embeds: [successEmbed('Streamer removed', `Stopped watching **${interaction.options.getString('channel')}** on **${interaction.options.getString('platform')}**.`)] });
+    return interaction.reply({ ephemeral: true, embeds: [successEmbed('Streamer removed', `Stopped watching **${interaction.options.getString('channel')}** on **${interaction.options.getString('platform')}**.`)] });
   },
 };

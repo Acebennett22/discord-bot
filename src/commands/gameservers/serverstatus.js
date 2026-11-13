@@ -22,7 +22,7 @@ module.exports = {
     if (!filtered.length) {
       return interaction.reply({ embeds: [errorEmbed('No game servers', wanted ? `No tracked server matches "${wanted}".` : 'No game servers are configured yet. Add one with /gameserver-add or in config.json `gameServers.custom`.')], ephemeral: true });
     }
-    await interaction.deferReply();
+    await interaction.deferReply({ ephemeral: true });
     const lines = [];
     for (const s of filtered) {
       const st = await queryServer(s);

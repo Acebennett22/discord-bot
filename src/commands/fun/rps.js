@@ -21,6 +21,6 @@ module.exports = {
     if (user === bot) result = "It's a draw!";
     else if ((user === 'rock' && bot === 'scissors') || (user === 'paper' && bot === 'rock') || (user === 'scissors' && bot === 'paper')) result = 'You win! 🎉';
     else result = 'I win! 😎';
-    return interaction.reply({ embeds: [infoEmbed('Rock, Paper, Scissors', `You: ${EMOJI[user]}\nMe: ${EMOJI[bot]}\n**${result}**`)] });
+    return interaction.reply({ ephemeral: true, embeds: [infoEmbed('Rock, Paper, Scissors', `You: ${EMOJI[user]}\nMe: ${EMOJI[bot]}\n**${result}**`)] });
   },
 };

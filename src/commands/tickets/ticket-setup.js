@@ -12,6 +12,6 @@ module.exports = {
     const channel = interaction.options.getChannel('channel') || interaction.channel;
     if (!channel.isTextBased()) return interaction.reply({ embeds: [errorEmbed('Invalid channel', 'Pick a text channel for the ticket panel.')], ephemeral: true });
     await channel.send({ embeds: [tickets.ticketPanelEmbed()], components: [tickets.ticketPanelRow()] });
-    return interaction.reply({ embeds: [successEmbed('Ticket panel posted', `The ticket panel is live in <#${channel.id}>. Configure the category, support role, and log channel with /setup first if you haven't yet.`)] });
+    return interaction.reply({ ephemeral: true, embeds: [successEmbed('Ticket panel posted', `The ticket panel is live in <#${channel.id}>. Configure the category, support role, and log channel with /setup first if you haven't yet.`)] });
   },
 };

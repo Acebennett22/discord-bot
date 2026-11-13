@@ -21,12 +21,12 @@ module.exports = {
     if (sub === 'reset') {
       const { setGuildSettings } = require('../../utils/guildSettings');
       await setGuildSettings(interaction.guildId, { liveChannelNameTemplate: '' });
-      return interaction.reply({ embeds: [successEmbed('Template reset', `Back to the default: \`${DEFAULT_TEMPLATE}\``)] });
+      return interaction.reply({ ephemeral: true, embeds: [successEmbed('Template reset', `Back to the default: \`${DEFAULT_TEMPLATE}\``)] });
     }
     const template = interaction.options.getString('template');
     const result = await setTemplate(interaction.guildId, template);
     if (!result.ok) return interaction.reply({ embeds: [errorEmbed('Invalid template', result.error)], ephemeral: true });
-    return interaction.reply({ embeds: [successEmbed('Template saved',
+    return interaction.reply({ ephemeral: true, embeds: [successEmbed('Template saved',
       `New template: \`${template}\`\nPreview: \`${renderTemplate(template, { name: 'ExampleStreamer', game: 'Just Chatting', title: 'Chilling with chat' })}\``)] });
   },
 };

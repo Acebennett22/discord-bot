@@ -16,6 +16,6 @@ module.exports = {
     if (!member.kickable) return interaction.reply({ embeds: [errorEmbed('Kick failed', 'I cannot kick that member — check my role position and permissions.')], ephemeral: true });
     if (member.id === interaction.user.id) return interaction.reply({ embeds: [errorEmbed('Kick failed', 'You cannot kick yourself.')], ephemeral: true });
     await member.kick(reason);
-    return interaction.reply({ embeds: [successEmbed('Member kicked', `**${user.tag}** was kicked.\nReason: ${reason}`)] });
+    return interaction.reply({ ephemeral: true, embeds: [successEmbed('Member kicked', `**${user.tag}** was kicked.\nReason: ${reason}`)] });
   },
 };

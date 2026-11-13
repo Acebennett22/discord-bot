@@ -38,6 +38,6 @@ module.exports = {
     const note = (platform === 'facebook' || platform === 'tiktok')
       ? '\n\n⚠️ Facebook/TikTok have no public live API — this watcher will NOT auto-detect going live. Use /stream-announce to announce manually.'
       : '';
-    return interaction.reply({ embeds: [successEmbed('Streamer added', `Now watching **${channelName}** on **${platform}**.\nAnnouncements go to <#${notify.id}>${role ? `, pinging <@&${role.id}>` : ''}.${liveChannel ? `\nLive channel: <#${liveChannel.id}> — its name becomes the live template while they stream, then restores.` : ''}${note}`)] });
+    return interaction.reply({ ephemeral: true, embeds: [successEmbed('Streamer added', `Now watching **${channelName}** on **${platform}**.\nAnnouncements go to <#${notify.id}>${role ? `, pinging <@&${role.id}>` : ''}.${liveChannel ? `\nLive channel: <#${liveChannel.id}> — its name becomes the live template while they stream, then restores.` : ''}${note}`)] });
   },
 };
