@@ -275,3 +275,28 @@ CREATE TABLE IF NOT EXISTS presence_state (
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- v1.9.4 (2026-11-13): weekly economy lottery.
+CREATE TABLE IF NOT EXISTS lottery_tickets (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  guild_id VARCHAR(32) NOT NULL,
+  user_id VARCHAR(32) NOT NULL,
+  week_start DATE NOT NULL,
+  numbers JSON NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_lottery_ticket_week (guild_id, user_id, week_start),
+  INDEX idx_lottery_tickets_week (guild_id, week_start)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS lottery_draws (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  guild_id VARCHAR(32) NOT NULL,
+  week_start DATE NOT NULL,
+  winning_numbers JSON NOT NULL,
+  winner_id VARCHAR(32) NULL,
+  prize INT NOT NULL DEFAULT 0,
+  drawn_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  INDEX idx_lottery_draws_week (guild_id, week_start)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

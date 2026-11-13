@@ -11,6 +11,8 @@
       <a href="/staff/errors" class="<%= section === 'errors' || section === 'error-detail' ? 'active' : '' %>">🐛 Errors</a>
       <a href="/staff/backups" class="<%= section === 'backups' ? 'active' : '' %>">💾 Backups</a>
       <a href="/staff/bottracking" class="<%= section === 'bottracking' ? 'active' : '' %>">🤖 Bot Tracking</a>
+      <a href="/staff/transcripts" class="<%= section === 'transcripts' ? 'active' : '' %>">📄 Transcripts</a>
+      <a href="/staff/antinuke" class="<%= section === 'antinuke' ? 'active' : '' %>">🛡️ Anti-Nuke</a>
       <a href="/servers">← Back to servers</a>
     </nav>
   </aside>
@@ -67,6 +69,29 @@
       <% data.logs.forEach(l => { %><tr><td><%= l.filename || '—' %></td><td><%= l.size_bytes ? (l.size_bytes / 1024).toFixed(1) + ' KB' : '—' %></td><td><%= l.status %></td><td><%= l.created_at %></td><td><%= l.error_message || '' %></td></tr><% }); %></table>
       </div>
       <p class="muted">Restore: <code>node scripts/restore-db.js &lt;file&gt; --confirm</code> (overwrites the database), or manually: <code>gunzip -c backups/&lt;file&gt; | mysql -u user -p database</code>.</p>
+      <h2>💾 Server backups</h2>
+      <p class="muted">Snapshots of a server's roles, channels, and bot settings (JSON in <code>backups/</code>). Message history is NOT backed up. Restore is non-destructive by default — roles/channels that don't exist are created, existing ones are updated by name, nothing is deleted unless "replace" is checked.</p>
+      <form id="serverbackup-create-form">
+        <label>Server</label>
+        <select name="guildId"><% data.guilds.forEach(g => { %><option value="<%= g.id %>"><%= g.name %></option><% }); %></select>
+        <label>Backup name</label>
+        <input type="text" name="name" value="backup" maxlength="64">
+        <br><br><button class="btn" type="submit">Create server backup</button>
+      </form>
+      <p id="serverbackup-result" class="muted"></p>
+      <% if (!data.serverBackups.length) { %><p class="muted">No server backups yet.</p><% } else { %>
+      <table><tr><th>ID</th><th>Name</th><th>Server</th><th>Size</th><th>Created</th><th></th></tr>
+      <% data.serverBackups.forEach(b => { %><tr>
+        <td>#<%= b.id %></td><td><%= b.name %></td><td><%= (data.guilds.find(g => g.id === b.guild_id) || {}).name || b.guild_id %></td>
+        <td><%= (b.size_bytes / 1024).toFixed(1) %> KB</td><td><%= b.created_at %></td>
+        <td style="white-space:nowrap">
+          <a class="btn ghost" href="/staff/serverbackups/download/<%= b.id %>">Download</a>
+          <button class="btn" data-serverbackup-restore="<%= b.id %>">Restore</button>
+          <label style="display:inline"><input type="checkbox" data-serverbackup-replace="<%= b.id %>"> replace</label>
+          <button class="btn danger" data-serverbackup-delete="<%= b.id %>">Delete</button>
+        </td>
+      </tr><% }); %></table>
+      <% } %>
     <% } %>
 
     <% if (section === 'overview') { %>
@@ -223,6 +248,62 @@
       <table><tr><th>Date</th><th>Total joins</th><th>Flagged</th><th>At/above threshold</th></tr>
       <% data.stats.forEach(s => { %><tr><td><%= String(s.date).slice(0, 10) %></td><td><%= s.total_joins %></td><td><%= s.flagged_joins %></td><td><%= s.bot_joins %></td></tr><% }); %></table>
       </div>
+    <% } %>
+
+    <% if (section === 'antinuke') { %>
+      <h1>🛡️ Anti-nuke protection</h1>
+      <p class="muted">Counts a member's destructive actions (channel/role deletes, channel-create bursts, bans, kicks) in a rolling 60 seconds. At the threshold the bot kicks, bans, or strips their roles (lockdown). Never acts on the server owner or the bot; whitelisted roles are exempt. <strong>Honest limitation:</strong> Discord's audit log is the only source for who did it and it can lag — detection is best-effort and the bot can only act after the damage has started.</p>
+      <form method="get" action="/staff/antinuke" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
+        <div><label>Server</label><select name="guild">
+          <% data.guilds.forEach(g => { %><option value="<%= g.id %>" <%= data.guildId === g.id ? 'selected' : '' %>><%= g.name %></option><% }); %>
+        </select></div>
+        <div><button class="btn" type="submit">Show</button></div>
+      </form>
+      <h2>Settings for this server</h2>
+      <form method="post" action="/staff/antinuke/settings" id="antinuke-settings-form">
+        <input type="hidden" name="guildId" value="<%= data.guildId %>">
+        <label class="toggle"><input type="checkbox" name="enabled" value="true" <%= data.antinukeSettings?.antinukeEnabled ? 'checked' : '' %>><span class="track"></span><span>Anti-nuke enabled</span></label>
+        <label>Action at threshold</label>
+        <select name="action">
+          <option value="kick" <%= (data.antinukeSettings?.antinukeAction || 'kick') === 'kick' ? 'selected' : '' %>>Kick</option>
+          <option value="ban" <%= data.antinukeSettings?.antinukeAction === 'ban' ? 'selected' : '' %>>Ban</option>
+          <option value="lockdown" <%= data.antinukeSettings?.antinukeAction === 'lockdown' ? 'selected' : '' %>>Lockdown (strip roles)</option>
+        </select>
+        <label>Threshold (destructive actions in 60s, 1–20)</label>
+        <input type="number" name="threshold" min="1" max="20" value="<%= data.antinukeSettings?.antinukeThreshold ?? 5 %>">
+        <label>Log channel (blank = none)</label>
+        <input type="text" name="logChannelId" value="<%= data.antinukeSettings?.antinukeLogChannelId || '' %>" placeholder="Channel ID">
+        <br><br><button class="btn" type="submit">Save anti-nuke settings</button>
+      </form>
+      <h2>Recent events</h2>
+      <% if (!data.events.length) { %><p class="muted">No destructive-action events recorded for this server yet.</p><% } else { %>
+      <table><tr><th>When</th><th>User</th><th>Action</th><th>Target</th></tr>
+      <% data.events.forEach(e => { %><tr><td><%= e.created_at %></td><td>&lt;@<%= e.user_id %>&gt;</td><td><%= e.action %></td><td><%= e.target_id || '—' %></td></tr><% }); %></table>
+      <% } %>
+    <% } %>
+
+    <% if (section === 'transcripts') { %>
+      <h1>📄 Ticket transcripts</h1>
+      <p class="muted">Transcripts generated when tickets close. Staff only — the files live in <code>transcripts/</code> on the host and are indexed in <code>ticket_transcripts</code> (older files are backfilled automatically when this page loads).</p>
+      <form method="get" action="/staff/transcripts" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
+        <div><label>Server</label><select name="guild">
+          <option value="">— all servers —</option>
+          <% data.guilds.forEach(g => { %><option value="<%= g.id %>" <%= data.guildId === g.id ? 'selected' : '' %>><%= g.name %></option><% }); %>
+        </select></div>
+        <div><label>Search (ticket ID or user ID)</label><input type="text" name="q" value="<%= data.q || '' %>" placeholder="e.g. 12 or a user ID"></div>
+        <div><button class="btn" type="submit">Search</button></div>
+      </form>
+      <% if (!data.transcripts.length) { %><p class="muted">No transcripts found.</p><% } else { %>
+      <table><tr><th>Ticket</th><th>Server</th><th>User</th><th>Closed by</th><th>Closed at</th><th></th></tr>
+      <% data.transcripts.forEach(t => { %><tr>
+        <td>#<%= t.ticket_id ?? '—' %></td>
+        <td><%= t.guild_id %></td>
+        <td>&lt;@<%= t.user_id %>&gt;</td>
+        <td><%= t.closed_by ? `&lt;@${t.closed_by}&gt;` : '—' %></td>
+        <td><%= t.closed_at %></td>
+        <td style="white-space:nowrap"><a class="btn ghost" href="/staff/transcripts/<%= t.id %>" target="_blank" rel="noopener">View</a> <a class="btn ghost" href="/staff/transcripts/<%= t.id %>/download">Download</a></td>
+      </tr><% }); %></table>
+      <% } %>
     <% } %>
   </section>
 </div>

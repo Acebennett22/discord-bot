@@ -119,6 +119,7 @@
       <% }); %>
     <% } %>
     <% } %>
+    <% if (module === 'media') { %>
     <p class="muted">Image/video posts in these channels get a discussion thread automatically, so the channel stays clean. Same list as /mediathreads in Discord.</p>
     <% if (!(settings.mediaChannels || []).length) { %><p class="muted">No media channels configured yet.</p><% } else { %>
       <table><tr><th>Channel</th><th></th></tr>
@@ -173,8 +174,6 @@
     <table><tr><th>User</th><th>Banned by</th><th>Reason</th><th>Expires</th><th></th></tr>
     <% tempBans.forEach(t => { %><tr><td>&lt;@<%= t.user_id %>&gt;</td><td>&lt;@<%= t.banned_by %>&gt;</td><td><%= (t.reason || '').slice(0, 120) %></td><td><%= t.expires_at %></td><td><button class="btn danger" data-post="/api/guilds/<%= guild.id %>/tempbans/<%= t.user_id %>/cancel">Cancel (unban)</button></td></tr><% }); %></table>
     <% } %>
-    <% } %>      <br><br><button class="btn" type="submit">Save modlog channel</button>
-    </form>
     <% } %>
 
     <% if (module === 'tickets') { %>

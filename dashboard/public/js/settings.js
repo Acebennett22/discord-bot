@@ -36,6 +36,15 @@
     const gTpl = document.getElementById('goodbye-template');
     const gPrev = document.getElementById('goodbye-preview');
     if (gTpl && gPrev) { gTpl.addEventListener('input', () => { gPrev.textContent = welcomePreview(gTpl.value); }); gPrev.textContent = welcomePreview(gTpl.value); }
+    const dmTestBtn = document.getElementById('welcome-dm-test-btn');
+    const dmTestResult = document.getElementById('welcome-dm-test-result');
+    if (dmTestBtn) dmTestBtn.addEventListener('click', async () => {
+      dmTestBtn.disabled = true;
+      if (dmTestResult) dmTestResult.textContent = 'Sending…';
+      try { await AceBot.postJSON(api('/welcome-dm-test'), {}); if (dmTestResult) dmTestResult.textContent = '✅ Test DM sent — check your DMs.'; }
+      catch (err) { if (dmTestResult) dmTestResult.textContent = '❌ ' + err.message; }
+      dmTestBtn.disabled = false;
+    });
   }
 
   // --- Submit handlers (delegated) ---
@@ -103,6 +112,41 @@
         await AceBot.refreshSection('#faq-list');
         form.reset();
       },
+      // 1.11.x: ticket panels, invite role rules, countdowns, emojis.
+      'add-ticket-panel-form': async () => {
+        const fd = new FormData(form);
+        await AceBot.postJSON(api('/ticket-panels'), Object.fromEntries(fd));
+        AceBot.toast('Ticket panel created');
+        await AceBot.refreshSection('#ticket-panels-list');
+        form.reset();
+      },
+      'add-invite-role-form': async () => {
+        const fd = new FormData(form);
+        await AceBot.postJSON(api('/invite-roles'), Object.fromEntries(fd));
+        AceBot.toast('Invite role rule added');
+        await AceBot.refreshSection('#invite-roles-list');
+        form.reset();
+      },
+      'add-countdown-form': async () => {
+        const fd = new FormData(form);
+        await AceBot.postJSON(api('/countdowns'), Object.fromEntries(fd));
+        AceBot.toast('Countdown created');
+        await AceBot.refreshSection('#countdowns-list');
+        form.reset();
+      },
+      'rules-form': async () => {
+        const fd = new FormData(form);
+        await AceBot.postJSON(api('/rules'), { title: fd.get('title'), content: fd.get('content'), channelId: fd.get('channelId') });
+        AceBot.toast('Rules saved & posted');
+        await AceBot.refreshSection('#rules-result');
+      },
+      'add-emoji-form': async () => {
+        const fd = new FormData(form);
+        await AceBot.postJSON(api('/emojis'), Object.fromEntries(fd));
+        AceBot.toast('Emoji uploaded');
+        await AceBot.refreshSection('#emojis-list');
+        form.reset();
+      },
     };
     if (!handlers[id]) return; // generic API forms are handled by app.js
     e.preventDefault();
@@ -111,7 +155,7 @@
     if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
     try { await handlers[id](); }
     catch (err) {
-      const resultIds = { 'add-streamer-form': 'streamer-result', 'create-app-form': 'app-form-result', 'automod-form': 'automod-result', 'add-shop-form': 'shop-result', 'add-custom-form': 'custom-result', 'add-faq-form': 'faq-result' };
+      const resultIds = { 'add-streamer-form': 'streamer-result', 'create-app-form': 'app-form-result', 'automod-form': 'automod-result', 'add-shop-form': 'shop-result', 'add-custom-form': 'custom-result', 'add-faq-form': 'faq-result', 'add-ticket-panel-form': 'ticket-panel-result', 'add-invite-role-form': 'invite-role-result', 'add-countdown-form': 'countdown-result', 'add-emoji-form': 'emoji-result', 'rules-form': 'rules-result' };
       showResult(resultIds[id], '❌ ' + err.message, false);
       AceBot.toast('Failed: ' + err.message, 'error');
     } finally {
@@ -221,6 +265,21 @@
       catch (err) { AceBot.toast('Failed: ' + err.message, 'error'); }
       return;
     }
+    // Generic delete / post buttons (color roles, MC widgets, modmail…).
+    const delBtn = e.target.closest('[data-delete]');
+    if (delBtn) {
+      if (!AceBot.confirmAction('Are you sure?')) return;
+      try { await AceBot.del(delBtn.dataset.delete); AceBot.removeRow(delBtn); AceBot.toast('Removed'); }
+      catch (err) { AceBot.toast('Failed: ' + err.message, 'error'); }
+      return;
+    }
+    const postBtn = e.target.closest('[data-post]');
+    if (postBtn) {
+      if (!AceBot.confirmAction('Are you sure?')) return;
+      try { await AceBot.postJSON(postBtn.dataset.post, {}); AceBot.removeRow(postBtn); AceBot.toast('Done'); }
+      catch (err) { AceBot.toast('Failed: ' + err.message, 'error'); }
+      return;
+    }
   }
 
   function suggCard(s) {
@@ -249,6 +308,14 @@
   }
 
   async function handleChange(e) {
+    const clip = e.target.closest('[data-clip-toggle]');
+    if (clip) {
+      try {
+        await AceBot.postJSON(api(`/streamers/${clip.dataset.clipToggle}/clip`), { enabled: clip.checked });
+        AceBot.toast(clip.checked ? 'Clips will be attached to live announcements' : 'Clips off for this streamer');
+      } catch (err) { AceBot.toast('Failed to save.', 'error'); clip.checked = !clip.checked; }
+      return;
+    }
     const cb = e.target.closest('[data-guild-command]');
     if (!cb) return;
     try {
