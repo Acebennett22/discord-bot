@@ -28,9 +28,38 @@ const COMMAND_FEATURES = {
   'schedule': 'scheduler', 'schedule-list': 'scheduler', 'schedule-cancel': 'scheduler', 'remindme': 'scheduler',
   'faq-add': 'faq', 'faq-remove': 'faq', 'faq-list': 'faq',
   'presence': 'presence',
+  'verify-setup': 'verification', 'verify-toggle': 'verification',
+  'counting-setup': 'counting', 'counting-reset': 'counting',
+  'bump-setup': 'counting', 'bump': 'counting',
+  'tempvc': 'tempvc',
+  'filter': 'music', 'lyrics': 'music', 'nowplaying': 'music',
+  'birthday': 'birthdays', 'birthday-setup': 'birthdays',
+  'weather': 'weather', 'forecast': 'weather', 'weather-set': 'weather',
+  'ask': 'ai', 'ai-setup': 'ai',
+  'mcstatus-setup': 'gameservers',
+  'voicexp': 'leveling', 'color': 'colorroles', 'color-add': 'colorroles', 'color-remove-role': 'colorroles',
+  'stream-clip-toggle': 'streams',
+  'modmail-setup': 'modmail', 'modmail-close': 'modmail', 'modmail-block': 'modmail',
+  'mediathreads': 'media', 'temprole': 'temproles', 'ghostping-setup': 'moderation',
+  'serverbackup': 'admin', 'quote': 'quotes', 'quotes': 'quotes', 'quote-random': 'quotes', 'quote-leaderboard': 'quotes',
+  'threadarchive': 'moderation', 'xpshop': 'leveling', 'xpshop-add': 'leveling', 'xpshop-remove': 'leveling',
+  'streak': 'economy', 'streak-leaderboard': 'economy', 'confess': 'confessions',
+  'birthday-role': 'birthdays', 'voicelb': 'leveling', 'voicetime': 'leveling',
+  'playlist': 'music',
+  'trivia-daily': 'fun', 'trivia-leaderboard': 'fun',
+  'heist': 'casino',
+  'milestones': 'welcome', 'milestone-setup': 'welcome',
+  'rolemenu': 'reactionroles',
+  'translate': 'translate', 'translate-setup': 'translate',
+  'dj-setup': 'music', 'dj': 'music', 'queue-clear': 'music',
+  'emoji-add': 'emojis', 'emoji-remove': 'emojis', 'emoji-list': 'emojis',
+  'countdown': 'countdowns',
+  'prestige': 'leveling', 'prestige-leaderboard': 'leveling',
+  'ticket-panel': 'tickets',
+  'inviterole': 'invites',
 };
 
-const FEATURES = ['music', 'tickets', 'leveling', 'giveaways', 'streams', 'gameservers', 'serverstats', 'reactionroles', 'applications', 'invites', 'welcome', 'automod', 'suggestions', 'economy', 'starboard', 'customcommands', 'modlog', 'afk', 'polls', 'autorole', 'scheduler', 'faq', 'presence', 'casino', 'trading', 'bottracking'];
+const FEATURES = ['media', 'temproles', 'quotes', 'confessions','music', 'tickets', 'leveling', 'giveaways', 'streams', 'gameservers', 'serverstats', 'reactionroles', 'applications', 'invites', 'welcome', 'automod', 'suggestions', 'economy', 'starboard', 'customcommands', 'modlog', 'afk', 'polls', 'autorole', 'scheduler', 'faq', 'presence', 'casino', 'trading', 'bottracking', 'verification', 'counting', 'tempvc', 'birthdays', 'weather', 'ai', 'colorroles', 'modmail', 'fun', 'translate', 'emojis', 'countdowns'];
 
 async function isEnabled(table, key, guildId) {
   if (!db.isEnabled()) return true;

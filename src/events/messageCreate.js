@@ -3,13 +3,32 @@
 const { Events } = require('discord.js');
 const { awardXp } = require('../utils/leveling');
 const automod = require('../utils/automod');
+const { recordMessage } = require('../utils/analytics');
+const { getGuildSettings } = require('../utils/guildSettings');
+const { askAI, isAiConfigured } = require('../utils/ai');
+const { handleTranslateMessage } = require('../utils/translate');
+const { infoEmbed } = require('../utils/embeds');
 
 module.exports = {
   name: Events.MessageCreate,
   async execute(message) {
     if (message.author.bot || !message.guild) return;
+    recordMessage(message.guildId);
     const actioned = await automod.handleMessage(message).catch(() => null);
     if (actioned?.deleted) return;
+    // Auto-translate (1.10.6): watched channels get non-target-language
+    // messages translated in a reply. Never fatal, never blocks XP.
+    await handleTranslateMessage(message).catch(() => {});
+    // AI chat channel (1.4.1): plain messages here are questions for the AI.
+    const settings = await getGuildSettings(message.guildId).catch(() => null);
+    if (settings?.aiEnabled && settings.aiChannelId === message.channelId && isAiConfigured() && !message.content.startsWith('!')) {
+      const result = await askAI({
+        guildId: message.guildId, guildName: message.guild.name, userId: message.author.id,
+        channelId: message.channelId, question: message.content,
+      }).catch(() => null);
+      if (result?.ok) await message.reply({ embeds: [infoEmbed('💬 AI answer', result.reply)] }).catch(() => {});
+      else if (result) await message.reply(result.error).catch(() => {});
+    }
     await awardXp(message).catch(() => {});
   },
 };

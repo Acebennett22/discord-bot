@@ -14,25 +14,33 @@ User-facing docs live on the dashboard at **`/docs`** (also linked from the head
 
 | Category | Commands |
 | --- | --- |
-| Moderation | `/kick`, `/ban`, `/timeout`, `/warn` (add/list, JSON-backed + DB mirror), `/clear`, `/unban`, `/setup` (per-server settings) |
-| Music | `/play`, `/skip`, `/stop`, `/queue`, `/pause`, `/resume` — `@discordjs/voice` + `play-dl`, DJ-role enforcement |
+| Moderation | `/kick`, `/ban`, `/timeout`, `/warn` (add/list, JSON-backed + DB mirror), `/clear`, `/unban`, `/setup` (per-server settings), `/tempban`, `/tempban-list`, `/tempban-cancel` (v1.9.1), `/purge` (v1.9.2 — by user / contains text) |
+| Music | `/play`, `/skip`, `/stop`, `/queue`, `/pause`, `/resume`, `/filter`, `/lyrics`, `/nowplaying`, `/playlist` (save/load/list/delete/rename — saved queues, per-user per-server) — `@discordjs/voice` + `play-dl`, DJ-role enforcement, Spotify track links matched on YouTube |
 | Status / monitoring | `/ping` (shard-aware, lists every shard), `/uptime`, `/serverinfo`, `/userinfo`, `/status`, `/botstats`, `/mystats`, `/shards`, `/topcommands`, `/topusers`, `/guildstats`, `/globalstats` (owner), `/hostinfo` (owner — host OS/CPU/memory/disk/runtime specs) |
-| Fun & games | `/8ball`, `/coinflip`, `/dice`, `/rps`, `/trivia` (built-in bank, no external API) |
+| Fun & games | `/8ball`, `/coinflip`, `/dice`, `/rps`, `/trivia` (built-in bank, no external API), `/trivia-daily`, `/trivia-leaderboard` — daily server-wide trivia, first correct answer wins 50 coins (v1.10.2) |
 | Tickets | `/ticket-setup`, `/ticket-close`, `/ticket-add`, `/ticket-remove`, `/ticket-claim` — panel + modals + HTML transcripts |
 | Server Stats | `/serverstats-setup`, `/serverstats-toggle` — live stat voice channels |
 | Streams | `/stream-add`, `/stream-remove`, `/stream-list`, `/stream-announce` — Twitch/YouTube/Kick live alerts |
 | Leveling | `/rank`, `/leaderboard`, `/setlevel` — XP per message, role rewards |
 | Steam | `/steam`, `/linksteam` |
 | Giveaways | `/giveaway` (start/end/reroll/list) — button entry, random winners |
-| Reaction Roles | `/reactionroles-setup`, `/reactionroles-add`, `/reactionroles-remove`, `/reactionroles-list` — button toggles |
+| Reaction Roles | `/reactionroles-setup`, `/reactionroles-add`, `/reactionroles-remove`, `/reactionroles-list` — button toggles, with optional requirements (required role, min days in server, min leveling level) |
+| Verification | `/verify-setup`, `/verify-toggle` — button or math-question captcha gate (v1.2.1) |
+| Counting & bumps | `/counting-setup`, `/counting-reset`, `/bump-setup`, `/bump` — counting game + 2-hour bump reminders (v1.2.2) |
+| Temp voice | `/tempvc` (limit/lock/unlock/rename/kick/claim) — personal voice channels (v1.2.3) |
+| Birthdays | `/birthday` (set/remove/list), `/birthday-setup` — daily birthday announcements (v1.2.5) |
+| Weather | `/weather`, `/forecast`, `/weather-set` — Open-Meteo, no API key (v1.2.7) |
 | Game Servers | `/serverstatus`, `/gameserver-add`, `/gameserver-remove`, `/gameserver-list` — pluggable providers |
 | Owner | `/restart`, `/reload`, `/shutdown`, `/eval` (owner-only, `ownerId` in config), `/hostinfo` (owner-only — host OS/CPU/memory/disk/runtime specs) |
 | Announcements | `/announce` (admin — post an announcement in a channel: title, description, optional color hex, image URL, footer, role ping, plain-text mode) |
-| Welcome | `/welcome-setup`, `/welcome-toggle`, `/goodbye-setup`, `/goodbye-toggle`, `/welcome-test` — templated join/leave embeds (`{user}` `{username}` `{server}` `{membercount}`) |
+| Welcome | `/welcome-setup`, `/welcome-toggle`, `/goodbye-setup`, `/goodbye-toggle`, `/welcome-test` — templated join/leave embeds (`{user}` `{username}` `{server}` `{membercount}`), `/welcome-dm set\|toggle` — private welcome DM (v1.9.3) |
 | Automod | `/automod`, `/automod-setup`, `/automod-words add\|remove\|list`, `/automod-exempt add-role\|remove-role\|add-channel\|remove-channel\|list` — spam, banned words, link/invite blocking |
 | Suggestions | `/suggest` (modal), `/suggestions-setup`, `/suggest-status` — 👍/👎 voting, staff Approve/Deny/Implement |
-| Economy | `/balance`, `/daily`, `/work`, `/pay`, `/eco-leaderboard`, `/shop`, `/shop-add`, `/deposit`, `/withdraw` — wallet + bank, shop roles |
-| Casino | `/slots`, `/blackjack`, `/roulette`, `/gamble-coinflip`, `/gamble-dice` — same wallet balance, min bet 10 / max 10,000 |
+| Economy | `/balance`, `/daily`, `/work`, `/pay`, `/eco-leaderboard`, `/shop`, `/shop-add`, `/deposit`, `/withdraw` — wallet + bank, shop roles, `/lottery buy\|status\|winners` — weekly draw (v1.9.4) |
+| Casino | `/slots`, `/blackjack`, `/roulette`, `/gamble-coinflip`, `/gamble-dice`, `/heist` — group heist, 40% + 10%/extra crew member (cap 90%), bet back x2 on success (v1.10.3) — same wallet balance, min bet 10 / max 10,000 |
+| Milestones | `/milestones`, `/milestone-setup` — round member-count celebrations + 100-coin trigger bonus (v1.10.4) |
+| Role Menus | `/rolemenu` (create/add/remove/list/delete) — select-menu role pickers with the same requirements as reaction roles (v1.10.5) |
+| Translate | `/translate`, `/translate-setup` — on-demand + auto-translation via Google's free unofficial endpoint (v1.10.6) |
 | Inventory & Trading | `/buy`, `/sell`, `/inventory`, `/open-crate`, `/use`, `/trade`, `/trade-cancel` — crates, daily items, daily deals, atomic player trades |
 | Bot Tracking | `/botflags`, `/botflag`, `/botflag-clear`, `/bottrack` (staff) — join scoring, raid watch, Staff → Bot Tracking page |
 | Starboard | `/starboard-setup` — starred messages posted to a starboard channel |
@@ -44,6 +52,7 @@ User-facing docs live on the dashboard at **`/docs`** (also linked from the head
 | Scheduled | `/schedule`, `/schedule-list`, `/schedule-cancel`, `/remindme` — DB-backed, survives restarts |
 | FAQ | `/faq-add`, `/faq-remove`, `/faq-list` — auto-responder for common questions |
 | Presence | `/presence set\|reset\|list` (owner) — rotating Discord status with live stats |
+| Server rules & Anti-nuke | `/rules-setup`, `/rules`, `/rules-edit` — one rules embed per server (v1.9.5); `/antinuke-setup`, `/antinuke-status` (staff) — destructive-action burst protection (v1.9.6) |
 | Help | `/help` — grouped command list with a category select menu |
 
 ## Project structure
@@ -143,7 +152,65 @@ Every slash command is logged to `command_logs` (success/failure) from `interact
 
 ## Music
 
-Join voice, then `/play <song name or YouTube URL>`. Uses `play-dl` (no API key). Queue capped by `music.maxQueueSize` (default 25). If a DJ role is set (`/setup` or dashboard → Music), only that role + admins can use music commands. YouTube availability can vary — failed tracks are skipped with an embed. The queue manager is `src/utils/musicQueue.js` (the one place to swap the stream source, e.g. to yt-dlp).
+Join voice, then `/play <song name or YouTube URL>`. Uses `play-dl` (no API key). Queue capped by `music.maxQueueSize` (default 25). If DJ mode is on (`/dj-setup` or dashboard → Music), only the DJ role + admins can use the music control commands (`/skip`, `/stop`, `/pause`, `/resume`, `/filter`, `/queue-clear`); everyone else gets an ephemeral error naming the DJ role. `/play`, `/lyrics`, `/queue` and `/nowplaying` stay open to everyone while "gate only control commands" is on (the default) — turn it off and every music command needs the DJ role. DJ mode can't be enabled without a DJ role set. YouTube availability can vary — failed tracks are skipped with an embed. The queue manager is `src/utils/musicQueue.js` (the one place to swap the stream source, e.g. to yt-dlp).
+
+**Music extras (v1.2.4):**
+- **Spotify links:** `/play` accepts an `open.spotify.com` track link. The track is resolved to title + artist via Spotify's public oEmbed endpoint (no key) and matched on YouTube. **Spotify audio itself is never streamed** — there is no public Spotify audio API, so this is a lookup, not a Spotify stream. Playlist/album links only resolve to their top YouTube result, since a playlist can't be expanded without a Spotify API key.
+- **Filters:** `/filter bassboost|nightcore|vaporwave|8d|off` re-encodes the current track through FFmpeg (prism-media) with the filter — so the track restarts from the beginning with the filter on. Filters can't be applied mid-stream to an already-playing Opus resource without re-encoding.
+- **Lyrics:** `/lyrics [song]` fetches lyrics from the free lyrics.ovh API (no key). For the song playing now it splits the YouTube title as `Artist - Title`; name a song the same way (`/lyrics song: Queen - Bohemian Rhapsody`). "No lyrics found" is reported gracefully.
+- **Now playing:** `/nowplaying` shows a rich embed with the title, a progress bar (elapsed/total), the requester, how many tracks are waiting, and the active filter.
+
+## Verification gate (v1.2.1)
+
+New members verify before getting the member role. `/verify-setup <channel> <role> [mode]` posts a Verify button panel in the channel and enables the gate; `/verify-toggle` turns it on/off. **Button mode:** click Verify and the role is granted. **Captcha mode:** click Verify, then answer a quick math question in a modal — an image-free captcha (no image generation; the question is a simple arithmetic problem, so it stops casual bots, not determined humans). New members are DM'd where to verify. Grants and failures are logged to `verification_logs`. Dashboard Verification tab has the same settings (channel, role, mode, toggle).
+
+## Counting & bump reminders (v1.2.2)
+
+- **Counting:** `/counting-setup <channel>` starts the game. Each message in the channel must start with the next number (`5` or `5 hello` both count). A wrong number, a message with no leading number, or the same person counting twice in a row deletes the message and resets the count to 0, with an embed naming who ruined it and how high the run got. Correct counts get a ✅ reaction. `/counting-reset` resets manually. State lives in `counting_settings` (`current_count`, `highest_count`, `last_counter_id`). Dashboard Counting tab shows the current/highest counts.
+- **Bump reminders:** when someone types `!d bump`, or DISBOARD confirms a bump, the time is recorded (`bump_settings`). Two hours later the bot posts a "Time to bump!" reminder in the bump channel (`/bump-setup` sets it; reminders only fire once per bump). `/bump` shows the time until the next bump, and `/bump record` records a manual bump (use it if DISBOARD's confirmation isn't picked up).
+
+## Temporary voice channels (v1.2.3)
+
+Set the "create" voice channel and a category on the dashboard Temp VC tab (or in `guild_settings`: `tempvc_create_channel_id`, `tempvc_category_id`). Joining the create channel spins up a personal voice channel named after the member (e.g. "Ace's Channel") and moves them in; it is deleted when it becomes empty. Owners manage theirs with `/tempvc limit <n>`, `/tempvc lock` / `/tempvc unlock`, `/tempvc rename <name>`, `/tempvc kick @user`, and `/tempvc claim` (claim a channel whose owner left — only works once the owner is out of the channel). Ownership is tracked in `temp_channels`.
+
+## Birthdays (v1.2.5)
+
+Members set their birthday with `/birthday set <month> <day> [year]` — real dates only (Feb 29 is allowed; leap birthdays are celebrated on Feb 28 in non-leap years). `/birthday remove` removes it; `/birthday list` shows the next 10 upcoming birthdays with ages when a year was given. `/birthday-setup <channel> [hour]` sets the announcement channel and hour (default 9 AM, **bot host local time** — documented here because the bot has no per-guild timezone). A checker runs hourly and posts a birthday embed once per user per year (`birthdays.announced_last_year`). Dashboard Birthdays tab has the channel/hour settings and the saved-birthday list.
+
+## Weather (v1.2.7)
+
+`/weather <location>` shows current weather — temperature, feels-like, condition, humidity, wind speed/direction, pressure, visibility, sunrise/sunset — in an embed with a condition emoji. `/forecast <location> [days 1-7]` (default 3) shows one field per day: high/low, condition, precipitation chance. Locations accept a city name, ZIP code, or `"latitude,longitude"`. **Source: Open-Meteo (https://open-meteo.com) — free, no API key required** (geocoding + forecast APIs). `/weather-set` (admin) stores a per-server default location and default units in `guild_settings` (`default_weather_location`, `weather_units`), so `/weather` with no location uses it. Units are imperial (°F, mph) by default and metric (°C, km/h) with the `units` option or the server default. Unknown places get a clear "couldn't find that place" embed; if Open-Meteo is down, the error is logged and the user gets an error embed instead of a crash.
+
+## Saved playlists, daily trivia, heists, milestones, role menus, auto-translate (v1.10.x)
+
+- **Saved playlists (v1.10.1):** `/playlist save <name>` saves the current queue (playing track + queued tracks) as a named playlist; `/playlist load <name>` queues it back (join voice first); `/playlist list [user]`, `/playlist delete`, `/playlist rename`. Per-user, per-server — max 10 playlists per user per server, max 50 tracks each. Dashboard Music tab lists playlists with delete.
+- **Daily trivia (v1.10.2):** one server-wide question per day, posted automatically at a configured hour (default 12:00 UTC) in a configured channel. The question is the same for the whole server (seeded by date + guild id) and reuses the existing `src/data/trivia.json` bank. First correct answer wins **50 coins** + a trivia point (`trivia_daily`, `trivia_scores`). `/trivia-daily play` answers today's question, `/trivia-daily setup` (admin) sets channel + hour, `/trivia-leaderboard` shows the top players. Dashboard Games tab has the settings and leaderboard.
+- **Heist (v1.10.3):** `/heist <bet>` opens a 60-second lobby (public message, Join button). Success chance is 40% + 10% per extra crew member (cap 90%). Success pays everyone their bet back x2; failure loses the bet. Bets use the wallet balance, min 50 / max 5000 coins (`config.json economy.heistMinBet` / `heistMaxBet`), 1-hour cooldown per user, all flows in `economy_transactions`.
+- **Member milestones (v1.10.4):** round member counts (100, 250, 500, 1000, 2000, 5000, 10000 — `config.json milestones`) get a celebration embed in a configured channel, and the member who triggers one earns a **100-coin** bonus. Each milestone fires once per guild (`milestones_hit`). `/milestones` shows the next milestone with a progress bar; `/milestone-setup` (admin) sets the channel. Dashboard General tab shows the settings and the next milestone.
+- **Button role menus (v1.10.5):** `/rolemenu create|add|remove|list|delete` (admin, max 25 options per menu — Discord's select limit). Members pick a role from a dropdown; selecting again removes it. The reaction-role requirements (required role / min days in server / min leveling level) apply, with an ephemeral embed naming the missed requirement. Dashboard Roles tab lists menus.
+- **Auto-translate (v1.10.6):** messages in watched channels are auto-translated into the server's target language (default English). Translation uses Google's free unofficial endpoint (`translate.googleapis.com/translate_a/single`, `client=gtx`) — **no API key, but unofficial, no SLA, and it may rate-limit**; failures are skipped and logged, never fatal. Detection is a built-in heuristic (script + common-word matching), no extra dependency. `/translate <text> [to]` translates on demand; `/translate-setup` (admin) sets channels + target language. Dashboard General tab has the settings. Bot messages and commands are never translated.
+
+## DJ mode, emoji manager, countdowns, prestige levels, ticket panels, invite roles (v1.11.x)
+
+- **DJ mode (v1.11.1):** `/dj-setup <role> [enabled] [only_skip]` (admin) turns DJ mode on for a server and picks the DJ role; `/dj` (admin) shows the current settings. When DJ mode is on, only the DJ role + admins can use the control commands — `/skip`, `/stop`, `/pause`, `/resume`, `/filter`, `/queue-clear` — and everyone else gets an ephemeral error naming the DJ role. With `only_skip` on (the default), `/play`, `/lyrics`, `/queue` and `/nowplaying` stay open to everyone; with it off, every music command needs the DJ role. DJ mode can't be enabled without a DJ role set — the command and the dashboard both refuse with a clear error. Settings live in `guild_settings` (`dj_role_id`, `dj_enabled`, `dj_only_skip`); the dashboard Music tab has the role dropdown, the toggle, and a read-only list of which commands are DJ-only.
+- **Emoji manager (v1.11.2):** `/emoji-add <name> <image_url or attachment>` (admin with Manage Emojis) uploads a custom emoji — validated: PNG/JPG/GIF under 256KB, name 2–32 letters/numbers/underscores, and the server's emoji slot limit is checked first (a clear error if full). `/emoji-remove <name>` (admin) and `/emoji-list` (ephemeral, paginated) round it out. The dashboard Emojis tab lists the server's emoji with add (URL field) + remove. Additions and removals are logged to the database (`emoji_logs`: `guild_id`, `user_id`, `action`, `emoji_name`, `created_at`).
+- **Countdowns (v1.11.3):** `/countdown create <title> <when> [channel]` (admin/staff) posts a countdown embed that updates itself — **every minute once under 24h is left, every 5 minutes before that** (to stay well inside Discord's rate limits). When it hits zero the message is edited to "🎉 \<title\> is here!" and the channel is pinged once. Times accept `in 2h30m`, `in 3d`, or an absolute date like `2026-12-25 18:00` (bot host local time). `/countdown list` shows active countdowns; `/countdown cancel <id>` (admin) cancels one and deletes its message. Stored in the `countdowns` table. Dashboard Events tab (Scheduled) has the list + create/cancel.
+- **Prestige levels (v1.11.4):** extends leveling. At the max level (`config.json leveling.maxLevel`, default 100) a member can run `/prestige` — a confirm-button flow, since it resets level to 1 and XP to 0 — and gains +1 prestige. Each prestige grants a permanent **+10% XP multiplier**, capped at **+100% (prestige 10)**: `multiplier = 1 + min(prestige, 10) × 0.1`. The prestige count is stored in `user_levels.prestige`, a ⭐ prestige badge shows on `/rank` and the rank card, and a configured prestige role (`guild_settings.prestige_role_id`) is granted permanently. `/prestige-leaderboard` shows the top prestige users. Dashboard Leveling tab has the max level note, the prestige role setting, and the prestige leaderboard.
+- **Multi-ticket panels (v1.11.5):** the ticket system now supports multiple panels per guild, each with its own category, staff role, and topic. `/ticket-panel create <title> <category> [staff_role] [channel] [description]` (admin) posts a new panel; `/ticket-panel list` (admin) shows every panel with its category; `/ticket-panel delete <id>` (admin) removes one. The existing `/ticket-setup` stays as the default/first panel. Tickets opened from any panel record which panel they came from (`tickets.panel_id`, nullable — the column is added by a migration; the bot falls back to the default panel if the column doesn't exist yet). Dashboard Tickets tab lists panels with create/delete.
+- **Invite-based auto-roles (v1.11.6):** extends the invite tracker. `/inviterole add <invite_code> <role>` (admin) maps an invite code to a role; when a member joins through that invite, the role is granted automatically. The role is based on the **code used**, not the inviter. Guards: the code must be a real active invite in the guild (validated on add) and the role must sit below the bot's highest role. `/inviterole list` and `/inviterole remove <invite_code>` manage the rules (`invite_role_rules` table). Dashboard Invites tab has the code → role rules list with add/remove.
+
+## 24/7 music, booster role, work jobs, giveaway bonus entries, new-member link block, robbery (v1.12.x)
+
+- **24/7 music mode (v1.12.1):** `/247 enable <voice channel>` (admin) keeps the bot in that voice channel around the clock — it stays connected even with an empty queue and rejoins if disconnected or kicked. `/247 disable` turns it off and the bot leaves; `/247 status` shows whether it is on and if the bot is connected right now. A checker runs every minute to rejoin a dropped connection. Settings live in `guild_settings` (`music247_enabled`, `music247_channel_id`); the dashboard Music tab has the toggle + channel dropdown. Rejoins are logged via the error logger (info level).
+- **Nitro booster role (v1.12.2):** `/boosterrole set <role>` (admin) picks the role Nitro boosters get automatically — granted when a member starts boosting, removed when they stop. Setting it also runs a one-time sweep granting it to current boosters. `/boosterrole view` and `/boosterrole remove` manage it. Guard: the role must sit below the bot's highest role. Stored in `guild_settings.booster_role_id`; dashboard Roles tab has the dropdown.
+- **Work job upgrades (v1.12.3):** per-server job catalog (`work_jobs` table, `user_jobs` for the chosen job). Defaults seed on first use: Dishwasher (30–80 coins, free, level 0), Barista (50–120, 200 coins, level 2), Mechanic (80–200, 500 coins, level 5), Developer (150–400, 1,500 coins, level 10). `/jobs` lists this server's jobs; `/job buy <name>` unlocks one with wallet coins (level requirement checked); `/job set <name>` picks an unlocked job (free jobs can be picked directly). `/work` then pays from your job's payout range with that job's flavor text — no job, and it pays the old 50–250 range with a random flavor line. Dashboard Economy tab lists the server's jobs.
+- **Giveaway bonus entries (v1.12.4):** `/giveaway start` takes optional `bonus_role` + `bonus_entries` (default 1, max 10). Holders of that role get +N entries, and Nitro boosters get +1 automatically when the guild has a booster role configured. The winner draw is **weighted** by total entries (`pickWeightedWinners` in `src/utils/giveaways.js`) — a member with 4 entries is 4x as likely to win as a member with 1 — and a winner's tickets are removed after winning, so nobody wins twice in one draw. The entry confirmation shows `Entries: N (includes X bonus)` with the reasons. Bonus entries are stored in `giveaway_bonus` (one row per entrant per giveaway); the giveaway embed and `/giveaway list` show the bonus rules, and the dashboard Giveaways tab has a Bonus entries column.
+- **New-member link block (v1.12.5):** members who joined less than N days ago (default 7, `/newmemberlinks-setup` admin, or the dashboard Automod tab) cannot post links — the message is deleted, they get a warning that deletes itself after 10 seconds, and the block is logged to Automod actions. Runs independently of the main Automod toggle. Staff roles and Automod-exempt roles/channels bypass it; admins are always exempt. Settings live in `guild_settings` (`new_member_link_enabled`, `new_member_link_days`).
+- **Economy robbery (v1.12.6):** `/rob @user` tries to steal from another member's **wallet** — the bank can never be robbed, so `/deposit` is the safe place for coins. Flat **35%** success chance. Success steals **10–30% of the victim's wallet** (min 10, max 1,000 coins). Failure: the robber pays a **fine of up to 100 coins to the victim**, capped at whatever the robber can actually afford (never below 0, never a debt — if the robber is broke, the fine is 0). Cooldowns: **30 minutes** after a success, **1 hour** after a failure (tracked in `rob_attempts`). Guards: no robbing bots or yourself, and the victim needs at least 50 coins in their wallet. The victim gets a DM if possible ("You were robbed!"). A per-server toggle (`guild_settings.robbery_enabled`, default on; dashboard Economy tab) lets a server turn robbery off entirely. Logged as `rob_win` / `rob_loss` / `rob_fine` in `economy_transactions`; recent robs are listed on the dashboard Economy tab.
+
+## Reaction roles with requirements (v1.2.6)
+
+`/reactionroles-add` now takes optional `required_role`, `min_days`, and `min_level`. When a member clicks to take a role, the bot checks first: missing the required role, fewer days in the server than `min_days`, or a leveling level below `min_level` all block the grant, and the member gets an ephemeral embed naming **exactly** which requirement they missed. Removing a role never checks requirements. `/reactionroles-list` and the dashboard Reaction Roles tab show each mapping's requirements. Stored in new `reaction_roles` columns (`required_role_id`, `min_days_in_server`, `min_level`).
 
 ## Tickets (Ticket Tool-style)
 
@@ -275,6 +342,10 @@ On startup and on InviteCreate/InviteDelete, the bot caches each guild's invites
 Welcome and goodbye messages are per server, stored in `guild_settings` (`welcome_channel_id` / `welcome_message` / `welcome_enabled`, `goodbye_channel_id` / `goodbye_message` / `goodbye_enabled`). On `guildMemberAdd` the bot posts an embed with the welcome template in the configured channel; on `guildMemberRemove` it posts the goodbye template. Placeholders: `{user}` (mention), `{username}`, `{server}`, `{membercount}`. If no channel is set (or the feature is toggled off) nothing is sent; if the bot can't post there, the failure is logged via the error logger and skipped, never fatal.
 - Commands (all admin, all replies ephemeral): `/welcome-setup <channel> [message]` (sets the channel + template, shows a preview), `/welcome-toggle <enabled>`, `/goodbye-setup <channel> [message]`, `/goodbye-toggle <enabled>`, `/welcome-test` (posts a preview welcome for yourself in the welcome channel).
 - Dashboard Welcome tab: channel dropdowns, message template fields with live previews, enable toggles. The General tab's welcome-channel field edits the same setting.
+
+**Welcome DMs (v1.9.3)** are a separate per-server setting, stored in `guild_settings` (`welcome_dm_enabled`, `welcome_dm_message`). On `guildMemberAdd` (after the channel welcome) the bot DMs the new member an embed with the template; placeholders: `{user}` (mention), `{username}`, `{server}`. If DMs are disabled, no message is set, or the member's DMs are closed, nothing is sent — closed DMs are logged via the error logger and skipped, never fatal.
+- Commands (all admin, all replies ephemeral): `/welcome-dm set <message>` (sets the DM template and enables DMs, shows a preview), `/welcome-dm toggle <enabled>`.
+- Dashboard Welcome tab: DM message field with live preview, enable toggle, and a test button that DMs the admin a preview.
 - Existing installs: the new `guild_settings` columns are in `sql/schema.sql`, but `CREATE TABLE IF NOT EXISTS` won't add columns to an existing table — run the `ALTER TABLE` in the migration note at the bottom of `schema.sql` once.
 
 ## Automod
@@ -298,7 +369,7 @@ Members submit ideas with `/suggest` (modal: title + details). The suggestion is
 ## Economy
 
 Per-server currency, all in MySQL (`economy_users` wallet + bank, `economy_transactions` audit trail, `shop_items`). New users start with the configured starting balance (default 100 coins, global default in `config.json` `economy.startingBalance`).
-- **Earning:** `/daily` (once per 24h, random 100–500 coins by default), `/work` (once per hour, random 50–250 coins + a random job flavor line). Amounts are per-server settings (dashboard Economy tab).
+- **Earning:** `/daily` (once per 24h, random 100–500 coins by default), `/work` (once per hour — pays from your chosen job's range, or 50–250 coins + a random job flavor line with no job). Amounts are per-server settings (dashboard Economy tab). See **Work jobs (v1.12.3)** below.
 - **Spending / moving:** `/pay @user amount` (wallet to wallet — no negatives, can't pay yourself or bots), `/deposit [amount]` and `/withdraw [amount]` (wallet ↔ bank; no amount = all), `/shop` (list; `/shop buy:<id>` buys it) and `/shop-add` (admin — name, price, optional description and role granted on purchase).
 - **Checking:** `/balance [user]` (wallet, bank, total), `/eco-leaderboard` (top 10 richest by wallet + bank).
 - Dashboard Economy tab: starting balance, daily/work min–max, currency name/emoji, and shop-item management (add/remove). All economy command replies are ephemeral.
@@ -384,7 +455,7 @@ When a chat message matches a trigger phrase, the bot replies in-channel with th
 
 The bot's Discord status rotates through activity templates showing live stats — global for the bot, NOT per-server. Rotation runs on every shard (each shard sets its own presence from the same templates; guild/user counts are gathered across shards via `broadcastEval`/`fetchClientValues`).
 - **Templates:** `config.json` `presence.activities` (default: `Watching {guilds} servers`, `Listening to /help`, `Playing with {users} users`, `Watching {commands} commands`). Each entry is a string (defaults to Watching) or a `{text, type}` object; type is one of Playing / Watching / Listening / Competing. Rotation interval: `presence.rotateSeconds` (default 60, minimum 10).
-- **Placeholders** (filled live on every rotation): `{guilds}` (server count), `{users}` (total member count across guilds), `{commands}` (total slash commands), `{uptime}`, `{version}` (from `package.json` — currently v1.1.2).
+- **Placeholders** (filled live on every rotation): `{guilds}` (server count), `{users}` (total member count across guilds), `{commands}` (total slash commands), `{uptime}`, `{version}` (from `package.json` — currently v1.2.7).
 - **Commands** (owner-only, ephemeral): `/presence set <text> [type]` (one-off override, holds until the next rotation or `/presence reset`), `/presence reset` (back to rotating templates), `/presence list` (templates with live-filled values + what it's showing now).
 - **Dashboard Staff → Bot overview:** Presence section shows the current activity (written to the `presence_state` table on every rotation so the standalone dashboard can see it), a **Rotate now** button (sets a flag the bot picks up within a minute), and a template editor (one per line, `Type: text` or plain text) saved to `config.json` `presence.activities` via a staff-only API — the bot re-reads `config.json` from disk on every rotation tick, so edits apply without a restart. `/status` and `/botstats` also show the bot version (from `package.json`).
 
@@ -404,6 +475,8 @@ Every feature or fix ships with a changelog entry — the dashboard `/version` p
 - Bump `package.json` `version` to match the new entry — `/botstats`, `/status`, the presence `{version}` placeholder, and the `/version` page header all read it from `package.json`, so they update together.
 - Never list a version in the changelog that isn't in `package.json`, and never show a version on the dashboard that isn't in the changelog.
 
+**Versioning rule (standing): one feature = one patch release within the current minor (1.2.1, 1.2.2, 1.2.3…).** A new minor (1.3.0) is only for a major milestone or a breaking change — never a new minor per feature, and never one version for a whole batch. Each changelog entry lists only its own feature's changes. `package.json` always matches the latest changelog entry.
+
 ## Dashboard JavaScript
 
 The dashboard is a JavaScript-driven web app, not just server-rendered pages (vanilla JS, no framework — `dashboard/public/app.js` + per-page modules in `dashboard/public/js/`). EJS still renders the initial HTML, and every form keeps its `method`/`action`, so with JS disabled the browser POSTs normally and the server redirects back with `?saved=1` (plain-POST fallback).
@@ -422,3 +495,29 @@ Plain JSON has no comments, so `config.json` and `config.example.json` carry a `
 - **YouTube Data API v3 key** — https://console.cloud.google.com/apis/library/youtube.googleapis.com (Google Cloud Console: enable the YouTube Data API v3, then create an API key under APIs & Services → Credentials).
 - **Steam Web API key** — https://steamcommunity.com/dev/apikey (sign in and register for a key).
 - Kick, Facebook, and TikTok have no API keys in this bot's config (Kick uses its public API; Facebook/TikTok are manual-only), so no links are listed for them.
+
+## Tempban (v1.9.1)
+
+`/tempban @user <duration> [reason] [delete_days]` temporarily bans a member — they are automatically unbanned when the duration ends. Durations look like `12h`, `7d`, `2w`, or `30d`. You cannot tempban the server owner, yourself, or anyone with a higher or equal top role than you. `/tempban-list` shows all active tempbans in the server with who banned them, the reason, and the expiry time, and `/tempban-cancel @user` (admin only) unbans someone early. Tempbans are recorded in the `temp_bans` table and checked every 5 minutes (plus once at startup, so bans that expired while the bot was down are caught); if the database is down when you run `/tempban`, the ban still happens but the expiry is not recorded, so that user will not be auto-unbanned.
+- Dashboard Moderation tab: active tempbans list with a Cancel button per row.
+
+## Purge (v1.9.2)
+
+`/purge <amount> [user] [contains]` deletes recent messages in the current channel, optionally only from one user and/or only messages containing specific text (case-insensitive). It fetches the 100 most recent messages, skips pinned messages, and only bulk-deletes messages under 14 days old — older matches are reported as skipped, since Discord refuses to bulk-delete them. The reply reports how many messages were deleted, how many were skipped and why. Each purge is written to the `purge_logs` table for auditing. For deleting an unfiltered batch of recent messages, `/clear` still works as before.
+
+## Economy lottery (v1.9.4)
+
+Weekly lottery: `/lottery buy [n1 n2 n3]` buys one ticket per user per week (default 100 coins from the wallet — bank funds can't buy a ticket; pick 3 numbers 1–30 or get random ones), `/lottery status` shows the jackpot size, your tickets, and the time until the draw, `/lottery winners` shows the last draw. Draws run Sundays at 20:00 server time; the jackpot is 50% of that week's ticket sales, split equally between players matching all 3 numbers, with 100 coins each for 2 matches. Results post to the configured lottery channel and winners are DM'd. Weeks run Monday 00:00 UTC to Sunday. An unclaimed jackpot does not roll over. Ticket price and channel are per-server settings (`guild_settings.lottery_ticket_price`, `lottery_channel_id`).
+- Tables: `lottery_tickets`, `lottery_draws` (in `sql/premium.sql`).
+- Dashboard Economy tab: lottery status card (week, tickets sold, jackpot, next draw) + recent draws table.
+
+## Server rules (v1.9.5)
+
+One rules embed per server, stored in the `server_rules` table (`guild_id`, `title`, `content`, `channel_id`, `message_id`, `updated_at`). `/rules-setup <channel>` (admin) opens a modal for the title and rules text and posts the embed; re-running it edits the existing message instead of posting a duplicate. `/rules` (anyone) shows the current rules in an ephemeral embed. `/rules-edit` (admin) opens a modal prefilled with the current title and text and updates the posted message in place. If no rules are set, `/rules` and `/rules-edit` reply with an ephemeral error embed.
+- Dashboard General tab: rules editor with title, rules text, channel picker, and live preview.
+
+## Anti-nuke protection (v1.9.6)
+
+Anti-nuke protection (`/antinuke-setup`, `/antinuke-status`): counts a member's destructive actions (channel/role deletes, channel-create bursts, bans, kicks) in a rolling 60 seconds and, at the guild threshold (default 5), kicks, bans, or strips their roles (lockdown). Never acts on the server owner or the bot; whitelisted roles are exempt; the owner is DM'd and an alert is posted to the log channel. **Honest limitation:** Discord's audit log is the only source for who performed an action, and it can lag a few seconds or be unavailable — so detection is best-effort and the bot can only act after the damage has started. It limits the damage from a compromised moderator account; it cannot prevent the first deletions. Keep the bot's role above the roles it may need to strip, and give it View Audit Log, Kick/Ban Members, and Manage Roles.
+- Settings live in `guild_settings` (`antinuke_enabled`, `antinuke_action`, `antinuke_threshold`, `antinuke_log_channel_id`, `antinuke_whitelist_roles`); events are audit-logged to `antinuke_events`.
+- Dashboard Staff → Anti-Nuke: pick a server, edit settings + whitelist, review the recent-events table.

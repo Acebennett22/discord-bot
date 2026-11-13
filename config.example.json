@@ -58,7 +58,9 @@
     "xpPerMessageMin": 15,
     "xpPerMessageMax": 25,
     "cooldownSeconds": 60,
-    "levelUpMessages": true
+    "levelUpMessages": true,
+    "voiceXpPerMinute": 2,
+    "maxLevel": 100
   },
   "economy": {
     "startingBalance": 100,
@@ -70,7 +72,13 @@
     "currencyEmoji": "🪙",
     "minBet": 10,
     "maxBet": 10000,
-    "crates": { "common": 500, "rare": 1500, "legendary": 5000 }
+    "crates": {
+      "common": 500,
+      "rare": 1500,
+      "legendary": 5000
+    },
+    "heistMinBet": 50,
+    "heistMaxBet": 5000
   },
   "botTracking": {
     "threshold": 70,
@@ -124,5 +132,14 @@
   "backups": {
     "retentionDays": 30,
     "time": "03:00"
-  }
+  },
+  "milestones": [
+    100,
+    250,
+    500,
+    1000,
+    2000,
+    5000,
+    10000
+  ]
 }

@@ -420,7 +420,7 @@ app.get('/servers', requireAuth, async (req, res) => {
 });
 
 // --- Per-server settings pages (one per module) --------------------------------
-const MODULES = ['general', 'moderation', 'tickets', 'serverstats', 'streams', 'music', 'leveling', 'reactionroles', 'gameservers', 'commands', 'applications', 'invites', 'welcome', 'automod', 'suggestions', 'economy', 'starboard', 'customcommands', 'faq', 'scheduled', 'roles'];
+const MODULES = ['general', 'moderation', 'tickets', 'serverstats', 'streams', 'music', 'leveling', 'reactionroles', 'gameservers', 'commands', 'applications', 'invites', 'welcome', 'automod', 'suggestions', 'economy', 'starboard', 'customcommands', 'faq', 'scheduled', 'roles', 'verification', 'counting', 'tempvc', 'birthdays', 'analytics', 'giveaways', 'ai', 'modmail', 'games', 'emojis', 'media', 'threads', 'confessions'];
 
 app.get('/guilds/:id', requireAuth, requireGuildAccess, (req, res) => res.redirect(`/guilds/${req.params.id}/general`));
 
@@ -444,6 +444,43 @@ app.get('/guilds/:id/:module', requireAuth, requireGuildAccess, async (req, res)
   let customCommands = [];
   let faqs = [];
   let scheduledMessages = [];
+  let countingSettings = null;
+  let birthdays = [];
+  let reactionRoleMappings = [];
+  let analyticsData = null;
+  let giveaways = [];
+  let aiUsage = null;
+  let aiConfigured = false;
+  let mcWidgets = [];
+  let voiceStats = [];
+  let voiceRate = null;
+  let colorRoles = [];
+  let modmailThreads = [];
+  let modmailBlocks = [];
+  let workJobs = [];
+  let recentRobs = [];
+  let tempRoles = [];
+  let serverBackups = [];
+  let threadOverrides = [];
+  let xpShopItems = [];
+  let streakStats = [];
+  let pendingConfessions = [];
+  let ticketPanels = [];
+  let inviteRoleRules = [];
+  let prestigeLeaderboard = [];
+  let countdowns = [];
+  let emojis = [];
+  let tempBans = [];
+  let lotteryStatus = null;
+  let lotteryDraws = [];
+  let serverRules = null;
+  let playlists = [];
+  let triviaSettings = null;
+  let triviaLeaderboard = [];
+  let roleMenus = [];
+  let milestoneSettings = null;
+  let milestoneNext = null;
+  let translateSettings = null;
   if (db.isEnabled()) {
     streamers = await db.query('SELECT * FROM streamers WHERE guild_id = ?', [id]) || [];
     tickets = await db.query('SELECT * FROM tickets WHERE guild_id = ? ORDER BY id DESC LIMIT 20', [id]) || [];
@@ -463,10 +500,117 @@ app.get('/guilds/:id/:module', requireAuth, requireGuildAccess, async (req, res)
     customCommands = await db.query('SELECT trigger_word, response, use_count FROM custom_commands WHERE guild_id = ? ORDER BY trigger_word', [id]) || [];
     faqs = await db.query('SELECT id, trigger_phrase, response, match_type, use_count FROM faq_responses WHERE guild_id = ? ORDER BY created_at ASC', [id]) || [];
     scheduledMessages = await db.query('SELECT * FROM scheduled_messages WHERE guild_id = ? AND sent = 0 ORDER BY send_at LIMIT 20', [id]) || [];
+    const countingRows = await db.query('SELECT * FROM counting_settings WHERE guild_id = ?', [id]) || [];
+    countingSettings = countingRows[0] || null;
+    birthdays = await db.query('SELECT user_id, month, day, year FROM birthdays WHERE guild_id = ? ORDER BY month, day LIMIT 50', [id]) || [];
+    reactionRoleMappings = await db.query('SELECT message_id, channel_id, emoji, role_id, required_role_id, min_days_in_server, min_level FROM reaction_roles WHERE guild_id = ? ORDER BY message_id', [id]) || [];
+    // Analytics (1.3.4) + giveaways (1.3.1) — only queried for their tabs.
+    if (module === 'analytics') {
+      const analytics = require('./utils/analytics');
+      const { getActiveBoost } = require('./utils/leveling');
+      analyticsData = {
+        daily: await analytics.getDailyStats(id, 30),
+        topXp: await analytics.getTopUsersByXp(id, 10),
+        topChannels: await analytics.getTopChannelsByCommands(id, 10),
+        topCommandUsers: await analytics.getTopUsersByCommands(id, 10),
+        activeBoost: await getActiveBoost(id).catch(() => null),
+      };
+    }
+    if (module === 'giveaways') {
+      giveaways = await db.query("SELECT * FROM giveaways WHERE guild_id = ? ORDER BY ends_at DESC LIMIT 20", [id]) || [];
+    }
+    if (module === 'ai') {
+      const ai = require('./utils/ai');
+      aiUsage = await ai.getDailyUsage(id);
+      aiConfigured = ai.isAiConfigured();
+    }
+    if (module === 'gameservers') {
+      mcWidgets = await db.query('SELECT w.*, s.name AS server_name FROM mc_widgets w LEFT JOIN game_servers s ON s.id = w.server_id WHERE w.guild_id = ?', [id]) || [];
+    }
+    if (module === 'leveling') {
+      const { getVoiceLeaderboard } = require('./utils/voiceXp');
+      voiceStats = await getVoiceLeaderboard(id, 10);
+      voiceRate = settings.voiceXpPerMinute ?? null;
+    }
+    if (module === 'roles') {
+      const { getColorRoles } = require('./utils/colorRoles');
+      colorRoles = await getColorRoles(id);
+    }
+    if (module === 'modmail') {
+      modmailThreads = await db.query("SELECT * FROM modmail_threads WHERE guild_id = ? ORDER BY created_at DESC LIMIT 50", [id]) || [];
+      modmailBlocks = await db.query('SELECT * FROM modmail_blocks WHERE guild_id = ?', [id]) || [];
+    }
+    if (module === 'economy') {
+      // Work jobs (1.12.3) + recent robberies (1.12.6).
+      const { listJobs } = require('./utils/workJobs');
+      const { recentRobs: getRecentRobs } = require('./utils/robbery');
+      workJobs = await listJobs(id).catch(() => []);
+      recentRobs = await getRecentRobs(id, 20).catch(() => []);
+    }
+    // 1.11.x tabs: ticket panels (tickets), invite role rules (invites),
+    if (module === 'moderation') {
+      const { getActiveTempbans } = require('./utils/tempban');
+      tempBans = await getActiveTempbans(id).catch(() => []) || [];
+    }
+    if (module === 'economy') {
+      const lottery = require('./utils/lottery');
+      const weekStart = lottery.formatWeekStart(new Date());
+      const sold = await db.query('SELECT COUNT(*) AS n FROM lottery_tickets WHERE guild_id = ? AND week_start = ?', [id, weekStart]) || [];
+      lotteryDraws = await db.query('SELECT * FROM lottery_draws WHERE guild_id = ? ORDER BY drawn_at DESC LIMIT 10', [id]) || [];
+      lotteryStatus = {
+        weekStart,
+        ticketsSold: sold[0]?.n || 0,
+        jackpot: await lottery.jackpotForWeek(id, weekStart).catch(() => 0),
+        nextDraw: lottery.nextDrawDate(new Date()).toISOString(),
+      };
+    }
+    if (module === 'general') {
+      const { getRules } = require('./utils/serverRules');
+      serverRules = await getRules(id).catch(() => null);
+    }
+    // prestige leaderboard (leveling), countdowns (scheduled), emojis.
+    if (module === 'tickets') {
+      ticketPanels = await db.query('SELECT * FROM ticket_panels WHERE guild_id = ? ORDER BY id', [id]).catch(() => []) || [];
+    }
+    if (module === 'invites') {
+      inviteRoleRules = await db.query('SELECT * FROM invite_role_rules WHERE guild_id = ? ORDER BY invite_code', [id]).catch(() => []) || [];
+    }
+    if (module === 'leveling') {
+      const { getPrestigeLeaderboard } = require('./utils/leveling');
+      prestigeLeaderboard = await getPrestigeLeaderboard(id, 10);
+    }
+    if (module === 'scheduled') {
+      countdowns = await db.query('SELECT * FROM countdowns WHERE guild_id = ? ORDER BY ends_at', [id]).catch(() => []) || [];
+    }
+    if (module === 'emojis') {
+      const res = await discordApi.get(`/guilds/${id}/emojis`, { headers: botHeaders() }).catch(() => null);
+      emojis = res?.data || [];
+    }
+    // 1.10.x tabs: playlists (music), daily trivia (games), role menus (roles),
+    // milestones + translate (general).
+    if (module === 'music') {
+      playlists = await db.query('SELECT * FROM music_playlists WHERE guild_id = ? ORDER BY updated_at DESC LIMIT 100', [id]) || [];
+    }
+    if (module === 'games') {
+      const dailyTrivia = require('./utils/dailyTrivia');
+      triviaSettings = await dailyTrivia.getTriviaSettings(id);
+      triviaLeaderboard = await dailyTrivia.getTriviaLeaderboard(id, 10);
+    }
+    if (module === 'roles') {
+      roleMenus = await db.query('SELECT m.*, (SELECT COUNT(*) FROM role_menu_items i WHERE i.menu_id = m.id) AS item_count FROM role_menus m WHERE m.guild_id = ? ORDER BY m.id DESC', [id]) || [];
+    }
+    if (module === 'general') {
+      const milestones = require('./utils/milestones');
+      const translate = require('./utils/translate');
+      milestoneSettings = await milestones.getMilestoneSettings(id);
+      const memberCount = req.guildMeta?.approximate_member_count ?? null;
+      milestoneNext = memberCount !== null ? (await milestones.nextMilestone(id, memberCount)).next : null;
+      translateSettings = await translate.getTranslateSettings(id);
+    }
   }
   res.render('settings', {
     user: req.session.user, guild: req.guildMeta, module, settings,
-    channels, roles, streamers, tickets, gameServers, applicationForms, pendingApplications, inviteLeaderboard, inviteStats, automodSettings, automodActions, suggestions, premiumSettings, shopItems, customCommands, faqs, scheduledMessages, inviteUrl: inviteUrl(),
+    channels, roles, streamers, tickets, gameServers, applicationForms, pendingApplications, inviteLeaderboard, inviteStats, automodSettings, automodActions, suggestions, premiumSettings, shopItems, customCommands, faqs, scheduledMessages, countingSettings, birthdays, reactionRoleMappings, analyticsData, giveaways, aiUsage, aiConfigured, mcWidgets, voiceStats, voiceRate, colorRoles, modmailThreads, modmailBlocks, playlists, triviaSettings, triviaLeaderboard, roleMenus, milestoneSettings, milestoneNext, translateSettings, ticketPanels, inviteRoleRules, prestigeLeaderboard, countdowns, emojis, workJobs, recentRobs, tempBans, lotteryStatus, lotteryDraws, serverRules, inviteUrl: inviteUrl(),
     saved: req.query.saved === '1', isStaff: await staffFlag(req),
     commandCatalog: COMMAND_CATALOG,
     commandToggles: db.isEnabled() ? (await db.query('SELECT command_name, enabled FROM command_toggles WHERE guild_id = ?', [id]) || []) : [],
@@ -484,7 +628,7 @@ app.post('/api/guilds/:id/settings', requireAuth, requireGuildAccess, async (req
   // arrive as 'on' instead of JSON true. Normalize, and redirect back to
   // the settings page with ?saved=1 instead of returning JSON.
   const isFormPost = req.is('application/x-www-form-urlencoded');
-  for (const k of ['serverStatsEnabled', 'levelUpMessages', 'welcomeEnabled', 'goodbyeEnabled']) if (body[k] === 'on') body[k] = 'true';
+  for (const k of ['serverStatsEnabled', 'levelUpMessages', 'welcomeEnabled', 'goodbyeEnabled', 'verificationEnabled', 'welcomeImageEnabled', 'welcomeImageOnly', 'aiEnabled', 'modmailEnabled', 'djEnabled', 'djOnlySkip', 'music247Enabled', 'robberyEnabled', 'newMemberLinkEnabled', 'welcomeDmEnabled', 'antinukeEnabled']) if (body[k] === 'on') body[k] = 'true';
   const { channels, roles } = await guildChannelsRoles(req.params.id).catch(() => ({ channels: [], roles: [] }));
   const channelIds = new Set(channels.map((c) => c.id));
   const roleIds = new Set(roles.map((r) => r.id));
@@ -497,6 +641,19 @@ app.post('/api/guilds/:id/settings', requireAuth, requireGuildAccess, async (req
   if ('ticketLogChannelId' in body) setChannel('ticketLogChannelId', body.ticketLogChannelId);
   if ('ticketSupportRoleId' in body) setRole('ticketSupportRoleId', body.ticketSupportRoleId);
   if ('djRoleId' in body) setRole('djRoleId', body.djRoleId);
+  // DJ mode (1.11.1): on/off + whether only the control commands are gated.
+  if ('djEnabled' in body) {
+    const want = body.djEnabled === true || body.djEnabled === 'true';
+    if (want) {
+      const current = await getGuildSettings(req.params.id);
+      const roleId = ('djRoleId' in body) ? (body.djRoleId || '') : current.djRoleId;
+      if (!roleId) return res.status(400).json({ error: 'Set a DJ role before enabling DJ mode.' });
+    }
+    patch.djEnabled = want;
+  }
+  if ('djOnlySkip' in body) patch.djOnlySkip = body.djOnlySkip === true || body.djOnlySkip === 'true';
+  // Prestige role (1.11.4): granted when a member prestiges.
+  if ('prestigeRoleId' in body) setRole('prestigeRoleId', body.prestigeRoleId);
   if ('warnThreshold' in body) {
     const n = parseInt(body.warnThreshold, 10);
     if (!Number.isNaN(n) && n >= 0 && n <= 100) patch.warnThreshold = n || null;
@@ -516,14 +673,99 @@ app.post('/api/guilds/:id/settings', requireAuth, requireGuildAccess, async (req
     if (err) return res.status(400).json({ error: err });
     patch.liveChannelNameTemplate = body.liveChannelNameTemplate;
   }
+  // Thread archive (1.6.1) + confessions (1.6.4) + birthday role (1.6.5) + streaks (1.6.3).
+  if ('threadArchiveMinutes' in body) {
+    const n = parseInt(body.threadArchiveMinutes, 10);
+    if (!Number.isNaN(n) && n >= 0 && n <= 10080) patch.threadArchiveMinutes = n;
+  }
+  if ('confessionsEnabled' in body) patch.confessionsEnabled = body.confessionsEnabled === true || body.confessionsEnabled === 'true';
+  if ('confessionsChannelId' in body) setChannel('confessionsChannelId', body.confessionsChannelId);
+  if ('confessionsRequireApproval' in body) patch.confessionsRequireApproval = body.confessionsRequireApproval === true || body.confessionsRequireApproval === 'true';
+  if ('birthdayRoleId' in body) setRole('birthdayRoleId', body.birthdayRoleId);
+  if ('streakBonusPerDay' in body) {
+    const n = parseInt(body.streakBonusPerDay, 10);
+    if (!Number.isNaN(n) && n >= 0 && n <= 500) patch.streakBonusPerDay = n;
+  }
+  if ('streakMilestoneBonuses' in body && typeof body.streakMilestoneBonuses === 'string') {
+    try { const parsed = JSON.parse(body.streakMilestoneBonuses); if (parsed && typeof parsed === 'object') patch.streakMilestoneBonuses = parsed; } catch {}
+  }
+  // Anti-ghost-ping (1.5.3).
+  if ('ghostpingEnabled' in body) patch.ghostpingEnabled = body.ghostpingEnabled === true || body.ghostpingEnabled === 'true';
+  if ('ghostpingChannelId' in body) setChannel('ghostpingChannelId', body.ghostpingChannelId);
+  // AI chat (1.4.1) + modmail (1.4.6).
+  if ('aiEnabled' in body) patch.aiEnabled = body.aiEnabled === true || body.aiEnabled === 'true';
+  if ('aiChannelId' in body) setChannel('aiChannelId', body.aiChannelId);
+  if ('modmailEnabled' in body) patch.modmailEnabled = body.modmailEnabled === true || body.modmailEnabled === 'true';
+  if ('modmailCategoryId' in body) {
+    const v = body.modmailCategoryId;
+    if (v === '' || channels.some((c) => c.id === v && c.type === 4)) patch.modmailCategoryId = v || '';
+  }
+  if ('voiceXpPerMinute' in body) {
+    const n = parseInt(body.voiceXpPerMinute, 10);
+    if (!Number.isNaN(n) && n >= 0 && n <= 100) patch.voiceXpPerMinute = n;
+  }
   // Welcome / goodbye (channel must exist in this server; message ≤2000 chars).
   if ('welcomeChannelId' in body) setChannel('welcomeChannelId', body.welcomeChannelId);
   if ('welcomeMessage' in body && typeof body.welcomeMessage === 'string' && body.welcomeMessage.length <= 2000) patch.welcomeMessage = body.welcomeMessage;
   if ('welcomeEnabled' in body) patch.welcomeEnabled = body.welcomeEnabled === true || body.welcomeEnabled === 'true';
+  // Welcome images (1.3.6): card image alongside (or instead of) the embed.
+  if ('welcomeImageEnabled' in body) patch.welcomeImageEnabled = body.welcomeImageEnabled === true || body.welcomeImageEnabled === 'true';
+  if ('welcomeImageOnly' in body) patch.welcomeImageOnly = body.welcomeImageOnly === true || body.welcomeImageOnly === 'true';
   if ('goodbyeChannelId' in body) setChannel('goodbyeChannelId', body.goodbyeChannelId);
   if ('goodbyeMessage' in body && typeof body.goodbyeMessage === 'string' && body.goodbyeMessage.length <= 2000) patch.goodbyeMessage = body.goodbyeMessage;
   if ('goodbyeEnabled' in body) patch.goodbyeEnabled = body.goodbyeEnabled === true || body.goodbyeEnabled === 'true';
   if ('suggestionChannelId' in body) setChannel('suggestionChannelId', body.suggestionChannelId);
+  // Verification gate (1.2.1).
+  if ('verificationEnabled' in body) patch.verificationEnabled = body.verificationEnabled === true || body.verificationEnabled === 'true';
+  if ('verificationChannelId' in body) setChannel('verificationChannelId', body.verificationChannelId);
+  if ('verificationRoleId' in body) setRole('verificationRoleId', body.verificationRoleId);
+  if ('verificationMode' in body && ['button', 'captcha'].includes(body.verificationMode)) patch.verificationMode = body.verificationMode;
+  // Temporary voice channels (1.4.0).
+  if ('tempvcCreateChannelId' in body) {
+    const v = body.tempvcCreateChannelId;
+    if (v === '' || channels.some((c) => c.id === v && c.type === 2)) patch.tempvcCreateChannelId = v || '';
+  }
+  if ('tempvcCategoryId' in body) {
+    const v = body.tempvcCategoryId;
+    if (v === '' || channels.some((c) => c.id === v && c.type === 4)) patch.tempvcCategoryId = v || '';
+  }
+  // 24/7 music mode (1.12.1), booster role (1.12.2), robbery toggle
+  // (1.12.6), new-member link block (1.12.5).
+  if ('music247Enabled' in body) patch.music247Enabled = body.music247Enabled === true || body.music247Enabled === 'true';
+  if ('music247ChannelId' in body) {
+    const v = body.music247ChannelId;
+    if (v === '' || channels.some((c) => c.id === v && c.type === 2)) patch.music247ChannelId = v || '';
+  }
+  if ('boosterRoleId' in body) setRole('boosterRoleId', body.boosterRoleId);
+  if ('robberyEnabled' in body) patch.robberyEnabled = body.robberyEnabled === true || body.robberyEnabled === 'true';
+  if ('newMemberLinkEnabled' in body) patch.newMemberLinkEnabled = body.newMemberLinkEnabled === true || body.newMemberLinkEnabled === 'true';
+  if ('newMemberLinkDays' in body) {
+    const n = parseInt(body.newMemberLinkDays, 10);
+    if (!Number.isNaN(n) && n >= 1 && n <= 90) patch.newMemberLinkDays = n;
+  }
+  // Birthdays (1.6.0) + bump reminders (1.3.0).
+  // Welcome DM (1.9.3) + lottery (1.9.4) + anti-nuke (1.9.6).
+  if ('welcomeDmEnabled' in body) patch.welcomeDmEnabled = body.welcomeDmEnabled === true || body.welcomeDmEnabled === 'true';
+  if ('welcomeDmMessage' in body && typeof body.welcomeDmMessage === 'string' && body.welcomeDmMessage.length <= 2000) patch.welcomeDmMessage = body.welcomeDmMessage;
+  if ('lotteryTicketPrice' in body) {
+    const n = parseInt(body.lotteryTicketPrice, 10);
+    if (!Number.isNaN(n) && n >= 10 && n <= 10000) patch.lotteryTicketPrice = n;
+  }
+  if ('lotteryChannelId' in body) setChannel('lotteryChannelId', body.lotteryChannelId);
+  if ('antinukeEnabled' in body) patch.antinukeEnabled = body.antinukeEnabled === true || body.antinukeEnabled === 'true';
+  if ('antinukeAction' in body && ['kick', 'ban', 'lockdown'].includes(body.antinukeAction)) patch.antinukeAction = body.antinukeAction;
+  if ('antinukeThreshold' in body) {
+    const n = parseInt(body.antinukeThreshold, 10);
+    if (!Number.isNaN(n) && n >= 1 && n <= 20) patch.antinukeThreshold = n;
+  }
+  if ('antinukeLogChannelId' in body) setChannel('antinukeLogChannelId', body.antinukeLogChannelId);
+  if ('antinukeWhitelistRoles' in body && Array.isArray(body.antinukeWhitelistRoles)) patch.antinukeWhitelistRoles = body.antinukeWhitelistRoles.filter((r) => roleIds.has(r));
+  if ('birthdayChannelId' in body) setChannel('birthdayChannelId', body.birthdayChannelId);
+  if ('birthdayAnnounceHour' in body) {
+    const n = parseInt(body.birthdayAnnounceHour, 10);
+    if (!Number.isNaN(n) && n >= 0 && n <= 23) patch.birthdayAnnounceHour = n;
+  }
+  if ('bumpChannelId' in body) setChannel('bumpChannelId', body.bumpChannelId);
   if ('levelRoles' in body && typeof body.levelRoles === 'object') {
     const clean = {};
     for (const [lvl, roleId] of Object.entries(body.levelRoles)) {
@@ -539,6 +781,329 @@ app.post('/api/guilds/:id/settings', requireAuth, requireGuildAccess, async (req
     return res.redirect(`${back}?saved=1`);
   }
   res.json({ ok: true, settings });
+});
+
+// --- Welcome image preview (1.3.6) ---------------------------------------------
+// Generates a sample card (sample avatar/name) so admins can see the look
+// before enabling it. Returns a PNG.
+app.get('/api/guilds/:id/welcome-preview', requireAuth, requireGuildAccess, async (req, res) => {
+  const { generateWelcomeCard, canvasAvailable } = require('./utils/welcomeCard');
+  if (!canvasAvailable) return res.status(503).json({ error: 'Canvas is not installed on the host — welcome images are unavailable.' });
+  const guild = await discordApi.get(`/guilds/${req.params.id}`, { headers: botHeaders() }).catch(() => null);
+  const buf = await generateWelcomeCard({
+    username: 'Ace',
+    avatarUrl: null,
+    serverName: guild?.data?.name || 'Your Server',
+    memberCount: 42,
+  }).catch(() => null);
+  if (!buf) return res.status(500).json({ error: 'Card generation failed.' });
+  res.setHeader('Content-Type', 'image/png');
+  res.send(buf);
+});
+
+// --- Color roles API (1.4.4) ---------------------------------------------------
+app.post('/api/guilds/:id/colorroles', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  const { roleId } = req.body || {};
+  const { roles } = await guildChannelsRoles(req.params.id).catch(() => ({ roles: [] }));
+  const role = roles.find((r) => r.id === roleId);
+  if (!role) return res.status(400).json({ error: 'Role does not exist in this server.' });
+  if (!role.color) return res.status(400).json({ error: 'That role has the default (no) color — give it a color first.' });
+  const { addColorRole } = require('./utils/colorRoles');
+  await addColorRole(req.params.id, role.id, `#${role.color.toString(16).padStart(6, '0')}`, role.name);
+  res.json({ ok: true });
+});
+
+app.delete('/api/guilds/:id/colorroles/:roleId', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  const { removeColorRole } = require('./utils/colorRoles');
+  await removeColorRole(req.params.id, req.params.roleId);
+  res.json({ ok: true });
+});
+
+// --- 1.10.x APIs: playlists, daily trivia, milestones, translate, role menus ---
+app.delete('/api/guilds/:id/playlists/:playlistId', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  const rows = await db.query('SELECT * FROM music_playlists WHERE id = ? AND guild_id = ?', [req.params.playlistId, req.params.id]);
+  if (!rows?.length) return res.status(404).json({ error: 'Playlist not found.' });
+  await db.query('DELETE FROM music_playlists WHERE id = ?', [req.params.playlistId]);
+  res.json({ ok: true });
+});
+
+app.delete('/api/guilds/:id/rolemenus/:menuId', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  const { deleteMenu, getMenu } = require('./utils/roleMenus');
+  const menu = await getMenu(req.params.id, Number(req.params.menuId));
+  if (!menu) return res.status(404).json({ error: 'Role menu not found.' });
+  await deleteMenu(req.params.id, Number(req.params.menuId));
+  res.json({ ok: true });
+});
+
+app.post('/api/guilds/:id/trivia-settings', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  const body = req.body || {};
+  const { channels } = await guildChannelsRoles(req.params.id).catch(() => ({ channels: [] }));
+  const channelId = body.channelId === '' ? '' : (channels.some((c) => c.id === body.channelId && c.type === 0) ? body.channelId : null);
+  if (channelId === null) return res.status(400).json({ error: 'That channel does not exist in this server.' });
+  const hour = parseInt(body.hour, 10);
+  if (Number.isNaN(hour) || hour < 0 || hour > 23) return res.status(400).json({ error: 'Hour must be 0–23 (UTC).' });
+  const { saveTriviaSettings } = require('./utils/dailyTrivia');
+  await saveTriviaSettings(req.params.id, { channelId, hour, enabled: body.enabled === true || body.enabled === 'true' });
+  if (req.is('application/x-www-form-urlencoded')) return res.redirect(`/guilds/${req.params.id}/games?saved=1`);
+  res.json({ ok: true });
+});
+
+app.post('/api/guilds/:id/milestone-settings', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  const body = req.body || {};
+  const { channels } = await guildChannelsRoles(req.params.id).catch(() => ({ channels: [] }));
+  const channelId = body.channelId === '' ? '' : (channels.some((c) => c.id === body.channelId && c.type === 0) ? body.channelId : null);
+  if (channelId === null) return res.status(400).json({ error: 'That channel does not exist in this server.' });
+  const { saveMilestoneSettings } = require('./utils/milestones');
+  await saveMilestoneSettings(req.params.id, { channelId, enabled: body.enabled === true || body.enabled === 'true' });
+  if (req.is('application/x-www-form-urlencoded')) return res.redirect(`/guilds/${req.params.id}/general?saved=1`);
+  res.json({ ok: true });
+});
+
+app.post('/api/guilds/:id/translate-settings', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  const body = req.body || {};
+  const { channels } = await guildChannelsRoles(req.params.id).catch(() => ({ channels: [] }));
+  const channelIds = Array.isArray(body.channels) ? body.channels : (body.channelId ? [body.channelId] : []);
+  const valid = channelIds.filter((id) => channels.some((c) => c.id === id && c.type === 0));
+  const targetLang = (body.targetLang || 'en').toLowerCase();
+  const { SUPPORTED, saveTranslateSettings } = require('./utils/translate');
+  if (!SUPPORTED[targetLang]) return res.status(400).json({ error: 'Unsupported target language.' });
+  await saveTranslateSettings(req.params.id, {
+    enabled: body.enabled === true || body.enabled === 'true',
+    channels: valid,
+    targetLang,
+  });
+  if (req.is('application/x-www-form-urlencoded')) return res.redirect(`/guilds/${req.params.id}/general?saved=1`);
+  res.json({ ok: true });
+});
+
+// --- Stream clip toggle API (1.4.5) --------------------------------------------
+app.post('/api/guilds/:id/streamers/:streamerId/clip', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  const enabled = req.body?.enabled === true || req.body?.enabled === 'true';
+  const rows = await db.query('SELECT * FROM streamers WHERE id = ? AND guild_id = ?', [req.params.streamerId, req.params.id]);
+  if (!rows?.length) return res.status(404).json({ error: 'Streamer not found.' });
+  await db.query('UPDATE streamers SET include_clip = ? WHERE id = ?', [enabled ? 1 : 0, req.params.streamerId]);
+  res.json({ ok: true, include_clip: enabled });
+});
+
+// --- Minecraft widget API (1.4.2) ----------------------------------------------
+app.delete('/api/guilds/:id/mcwidgets/:widgetId', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  await db.query('DELETE FROM mc_widgets WHERE id = ? AND guild_id = ?', [req.params.widgetId, req.params.id]);
+  res.json({ ok: true });
+});
+
+// --- Modmail API (1.4.6) --------------------------------------------------------
+// Close a thread: mark closed in DB, DM the user, delete the channel.
+app.post('/api/guilds/:id/modmail/:threadId/close', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  const rows = await db.query("SELECT * FROM modmail_threads WHERE id = ? AND guild_id = ? AND status = 'open'", [req.params.threadId, req.params.id]);
+  const thread = rows?.[0];
+  if (!thread) return res.status(404).json({ error: 'Open thread not found.' });
+  await db.query("UPDATE modmail_threads SET status = 'closed', closed_at = CURRENT_TIMESTAMP, closed_by = ? WHERE id = ?", [req.session.user.id, thread.id]);
+  // DM the user via the bot token.
+  try {
+    const dm = await discordApi.post('/users/@me/channels', { recipient_id: thread.user_id }, { headers: botHeaders() });
+    if (dm?.data?.id) {
+      await discordApi.post(`/channels/${dm.data.id}/messages`, { embeds: [{ title: '📬 Modmail closed', description: 'Your modmail thread has been closed by staff. DM the bot again if you need anything else.', color: 0x5865f2 }] }, { headers: botHeaders() });
+    }
+  } catch {}
+  try { await discordApi.delete(`/channels/${thread.channel_id}`, { headers: botHeaders() }); } catch {}
+  res.json({ ok: true });
+});
+
+app.delete('/api/guilds/:id/modmail-blocks/:userId', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  await db.query('DELETE FROM modmail_blocks WHERE guild_id = ? AND user_id = ?', [req.params.id, req.params.userId]);
+  res.json({ ok: true });
+});
+
+// --- Thread archive API (1.6.1) -----------------------------------------------
+app.post('/api/guilds/:id/thread-archive', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  const { channels } = await guildChannelsRoles(req.params.id).catch(() => ({ channels: [] }));
+  const { channelId, minutes } = req.body || {};
+  if (!channels.some((c) => c.id === channelId)) return res.status(400).json({ error: 'Channel does not exist in this server.' });
+  const mins = parseInt(minutes, 10);
+  if (Number.isNaN(mins) || mins < 0 || mins > 10080) return res.status(400).json({ error: 'Minutes must be 0–10080.' });
+  await db.query(
+    'INSERT INTO thread_archive_settings (guild_id, channel_id, archive_minutes) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE archive_minutes = VALUES(archive_minutes)',
+    [req.params.id, channelId, mins],
+  );
+  res.json({ ok: true });
+});
+
+app.delete('/api/guilds/:id/thread-archive/:channelId', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  await db.query('DELETE FROM thread_archive_settings WHERE guild_id = ? AND channel_id = ?', [req.params.id, req.params.channelId]);
+  res.json({ ok: true });
+});
+
+// --- XP shop API (1.6.2) -------------------------------------------------------
+app.post('/api/guilds/:id/xpshop', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  const { roles } = await guildChannelsRoles(req.params.id).catch(() => ({ roles: [] }));
+  const role = roles.find((r) => r.id === req.body?.roleId);
+  if (!role) return res.status(400).json({ error: 'Role does not exist in this server.' });
+  const price = parseInt(req.body?.xpPrice, 10);
+  if (Number.isNaN(price) || price < 1 || price > 1000000) return res.status(400).json({ error: 'Price must be 1–1,000,000 XP.' });
+  const { addShopItem } = require('./utils/xpShop');
+  await addShopItem(req.params.id, role.id, price, req.session.user.id);
+  res.json({ ok: true });
+});
+
+app.delete('/api/guilds/:id/xpshop/:roleId', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  const { removeShopItem } = require('./utils/xpShop');
+  await removeShopItem(req.params.id, req.params.roleId);
+  res.json({ ok: true });
+});
+
+// --- Confessions review API (1.6.4) --------------------------------------------
+app.post('/api/guilds/:id/confessions/:confessionId/review', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  const { decision } = req.body || {};
+  if (!['approved', 'denied'].includes(decision)) return res.status(400).json({ error: 'decision must be approved or denied.' });
+  const rows = await db.query('SELECT * FROM confessions WHERE id = ? AND guild_id = ? AND status = \'pending\'', [req.params.confessionId, req.params.id]);
+  const confession = rows?.[0];
+  if (!confession) return res.status(404).json({ error: 'Pending confession not found.' });
+  await db.query('UPDATE confessions SET status = ?, reviewed_by = ? WHERE id = ?', [decision, req.session.user.id, confession.id]);
+  if (decision === 'approved') {
+    // Post via REST (dashboard has no live client).
+    const { getGuildSettings } = require('./utils/guildSettings');
+    const settings = await getGuildSettings(req.params.id);
+    if (settings.confessionsChannelId) {
+      const embed = { title: `🤫 Anonymous Confession #${confession.id}`, description: confession.content, color: 0x9b59b6, footer: { text: 'Posted anonymously' }, timestamp: new Date(confession.created_at).toISOString() };
+      await discordApi.post(`/channels/${settings.confessionsChannelId}/messages`, { embeds: [embed] }, { headers: botHeaders() }).catch(() => {});
+    }
+  }
+  res.json({ ok: true, decision });
+});
+
+// --- Media auto-threads API (1.5.1) --------------------------------------------
+app.post('/api/guilds/:id/media', requireAuth, requireGuildAccess, async (req, res) => {
+  const { channels } = await guildChannelsRoles(req.params.id).catch(() => ({ channels: [] }));
+  const channelId = req.body?.channelId;
+  if (!channels.some((c) => c.id === channelId && c.type === 0)) return res.status(400).json({ error: 'Channel does not exist in this server.' });
+  const settings = await getGuildSettings(req.params.id);
+  const list = settings.mediaChannels || [];
+  if (!list.includes(channelId)) await setGuildSettings(req.params.id, { mediaChannels: [...list, channelId] });
+  res.json({ ok: true });
+});
+
+app.delete('/api/guilds/:id/media/:channelId', requireAuth, requireGuildAccess, async (req, res) => {
+  const settings = await getGuildSettings(req.params.id);
+  await setGuildSettings(req.params.id, { mediaChannels: (settings.mediaChannels || []).filter((id) => id !== req.params.channelId) });
+  res.json({ ok: true });
+});
+
+// --- Temp role early removal API (1.5.2) -----------------------------------------
+app.post('/api/guilds/:id/temproles/:tempId/remove', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  const rows = await db.query('SELECT * FROM temp_roles WHERE id = ? AND guild_id = ? AND removed = 0', [req.params.tempId, req.params.id]);
+  if (!rows?.length) return res.status(404).json({ error: 'Active temp role not found.' });
+  const row = rows[0];
+  // Remove the role via REST, then mark removed.
+  await discordApi.delete(`/guilds/${req.params.id}/members/${row.user_id}/roles/${row.role_id}`, { headers: botHeaders() }).catch(() => {});
+  await db.query('UPDATE temp_roles SET removed = 1 WHERE id = ?', [row.id]);
+  res.json({ ok: true });
+});
+
+// --- Server backups API (1.5.4, staff) -------------------------------------------
+// List is rendered on /staff/backups (serverBackups in data). Create snapshots
+// via REST; restore via REST with role/channel mapping by name.
+app.post('/api/staff/serverbackups', requireStaff, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  const { guildId, name } = req.body || {};
+  if (!guildId) return res.status(400).json({ error: 'guildId required.' });
+  const { snapshotData } = require('./utils/serverBackup');
+  try {
+    const [guildRes, rolesRes, channelsRes] = await Promise.all([
+      discordApi.get(`/guilds/${guildId}`, { headers: botHeaders() }),
+      discordApi.get(`/guilds/${guildId}/roles`, { headers: botHeaders() }),
+      discordApi.get(`/guilds/${guildId}/channels`, { headers: botHeaders() }),
+    ]);
+    const roles = (rolesRes.data || []).filter((r) => r.id !== guildId)
+      .sort((a, b) => (a.position || 0) - (b.position || 0))
+      .map((r) => ({ name: r.name, color: r.color, hoist: r.hoist, mentionable: r.mentionable, permissions: String(r.permissions), position: r.position }));
+    const channels = (channelsRes.data || [])
+      .sort((a, b) => (a.position || 0) - (b.position || 0))
+      .map((c) => ({
+        name: c.name, type: c.type, topic: c.topic || null, position: c.position,
+        parent: (channelsRes.data || []).find((p) => p.id === c.parent_id)?.name || null,
+        permissionOverwrites: (c.permission_overwrites || []).map((o) => ({ id: o.id, type: o.type, allow: String(o.allow), deny: String(o.deny) })),
+      }));
+    const settings = await getGuildSettings(guildId);
+    const result = await snapshotData(guildId, guildRes.data?.name || guildId, req.session.user, name || 'backup', roles, channels, settings);
+    await staffUtils.audit(req.session.user.id, 'serverbackup.create', String(result.id || ''), `${result.roles} roles, ${result.channels} channels`);
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    res.status(502).json({ error: `Snapshot failed: ${err.message}` });
+  }
+});
+
+app.post('/api/staff/serverbackups/:backupId/restore', requireStaff, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  const rows = await db.query('SELECT * FROM server_backups WHERE id = ?', [req.params.backupId]);
+  const backup = rows?.[0];
+  if (!backup) return res.status(404).json({ error: 'Backup not found.' });
+  const { restoreBackupViaApi } = require('./utils/serverBackup');
+  const replace = req.body?.replace === true || req.body?.replace === 'true';
+  const api = {
+    get: (url) => discordApi.get(url, { headers: botHeaders() }),
+    post: (url, data) => discordApi.post(url, data, { headers: botHeaders() }),
+    patch: (url, data) => discordApi.patch(url, data, { headers: botHeaders() }),
+    del: (url) => discordApi.delete(url, { headers: botHeaders() }),
+  };
+  try {
+    const summary = await restoreBackupViaApi(backup.guild_id, backup, { replace, api });
+    await staffUtils.audit(req.session.user.id, 'serverbackup.restore', String(backup.id), `${summary.rolesCreated} roles created, ${summary.channelsCreated} channels created${replace ? ', replace mode' : ''}`);
+    res.json({ ok: true, summary });
+  } catch (err) {
+    res.status(502).json({ error: `Restore failed: ${err.message}` });
+  }
+});
+
+app.delete('/api/staff/serverbackups/:backupId', requireStaff, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  const rows = await db.query('SELECT * FROM server_backups WHERE id = ?', [req.params.backupId]);
+  if (!rows?.length) return res.status(404).json({ error: 'Backup not found.' });
+  try { require('fs').unlinkSync(rows[0].file_path); } catch {}
+  await db.query('DELETE FROM server_backups WHERE id = ?', [req.params.backupId]);
+  res.json({ ok: true });
+});
+
+app.get('/staff/serverbackups/download/:backupId', requireStaff, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).send('Database unavailable.');
+  const rows = await db.query('SELECT * FROM server_backups WHERE id = ?', [req.params.backupId]);
+  const backup = rows?.[0];
+  if (!backup || !require('fs').existsSync(backup.file_path)) return res.status(404).send('Backup not found.');
+  res.download(backup.file_path, require('path').basename(backup.file_path));
+});
+
+// --- XP boost API (1.3.3) -----------------------------------------------------
+app.post('/api/guilds/:id/xpboost', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  const { startBoost, stopBoost, getActiveBoost } = require('./utils/leveling');
+  const body = req.body || {};
+  if (body.action === 'stop') {
+    const stopped = await stopBoost(req.params.id);
+    return res.json({ ok: true, stopped });
+  }
+  const multiplier = parseFloat(body.multiplier);
+  const durationMs = parseInt(body.durationMs, 10);
+  if (![2, 3].includes(multiplier) || !durationMs || durationMs < 60_000 || durationMs > 7 * 86_400_000) {
+    return res.status(400).json({ error: 'Multiplier must be 2 or 3, duration between 1 minute and 7 days.' });
+  }
+  const boost = await startBoost(req.params.id, multiplier, durationMs, req.session.user.id);
+  return res.json({ ok: true, boost });
 });
 
 app.get('/api/guilds/:id/streamers', requireAuth, requireGuildAccess, async (req, res) => {
@@ -632,6 +1197,124 @@ app.delete('/api/guilds/:id/streamers/:streamerId', requireAuth, requireGuildAcc
   if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
   await db.query('DELETE FROM streamers WHERE id = ? AND guild_id = ?', [req.params.streamerId, req.params.id]);
   res.json({ ok: true });
+});
+
+// --- Ticket panels (1.11.5) ---------------------------------------------------
+// Create a panel (posts the panel message to Discord) or delete one.
+app.post('/api/guilds/:id/ticket-panels', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  const { title, description, channelId, categoryId, staffRoleId } = req.body || {};
+  if (!title || typeof title !== 'string' || title.length > 256) return res.status(400).json({ error: 'A panel title (max 256 chars) is required.' });
+  const { channels, roles } = await guildChannelsRoles(req.params.id).catch(() => ({ channels: [], roles: [] }));
+  const channelIds = new Set(channels.map((c) => c.id));
+  const roleIds = new Set(roles.map((r) => r.id));
+  if (!channelId || !channelIds.has(channelId)) return res.status(400).json({ error: 'Pick a text channel for the panel.' });
+  if (categoryId && !channels.some((c) => c.id === categoryId && c.type === 4)) return res.status(400).json({ error: 'Category does not exist in this server.' });
+  if (staffRoleId && !roleIds.has(staffRoleId)) return res.status(400).json({ error: 'Staff role does not exist in this server.' });
+  const { createPanel } = require('./utils/tickets');
+  const panel = await createPanel(req.params.id, { channelId, categoryId: categoryId || null, staffRoleId: staffRoleId || null, title, description: description || null, createdBy: req.session.user.id });
+  if (!panel) return res.status(503).json({ error: 'Could not create the panel.' });
+  try {
+    const msg = await discordApi.post(`/channels/${channelId}/messages`, {
+      embeds: [{ title: `🎫 ${title}`, description: description || 'Need help? Click **Create Ticket** below and tell us what\'s going on.\n\nA private channel will be created just for you and the support team.', color: 0x5865f2 }],
+      components: [{ type: 1, components: [{ type: 2, style: 1, label: 'Create Ticket', emoji: { name: '🎫' }, custom_id: `ticket_create:${panel.id}` }] }],
+    }, { headers: botHeaders() });
+    await db.query('UPDATE ticket_panels SET message_id = ? WHERE id = ?', [msg.data.id, panel.id]).catch(() => {});
+  } catch (e) { console.warn('[dashboard] ticket panel post failed:', e.message); }
+  res.json({ ok: true, id: panel.id });
+});
+
+app.delete('/api/guilds/:id/ticket-panels/:panelId', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  const { deletePanel } = require('./utils/tickets');
+  const panel = await deletePanel(req.params.id, req.params.panelId);
+  if (!panel) return res.status(404).json({ error: 'Panel not found.' });
+  res.json({ ok: true });
+});
+
+// --- Invite role rules (1.11.6) ------------------------------------------------
+app.post('/api/guilds/:id/invite-roles', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  const { code, roleId } = req.body || {};
+  const clean = String(code || '').trim().replace(/^https?:\/\/(www\.)?discord\.gg\//i, '').replace(/^discord\.gg\//i, '').split(/[/?#]/)[0];
+  if (!clean) return res.status(400).json({ error: 'An invite code is required.' });
+  const { roles } = await guildChannelsRoles(req.params.id).catch(() => ({ channels: [], roles: [] }));
+  if (!roles.some((r) => r.id === roleId)) return res.status(400).json({ error: 'Role does not exist in this server.' });
+  const invites = await discordApi.get(`/guilds/${req.params.id}/invites`, { headers: botHeaders() }).catch(() => null);
+  if (!invites?.data?.some((i) => i.code === clean)) return res.status(400).json({ error: `discord.gg/${clean} is not an active invite in this server.` });
+  const { addRule } = require('./utils/inviteRoles');
+  await addRule(req.params.id, clean, roleId, req.session.user.id);
+  res.json({ ok: true });
+});
+
+app.delete('/api/guilds/:id/invite-roles/:code', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  const { removeRule } = require('./utils/inviteRoles');
+  const removed = await removeRule(req.params.id, req.params.code);
+  if (!removed) return res.status(404).json({ error: 'Rule not found.' });
+  res.json({ ok: true });
+});
+
+// --- Countdowns (1.11.3) --------------------------------------------------------
+app.post('/api/guilds/:id/countdowns', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  const { title, when, channelId } = req.body || {};
+  if (!title || typeof title !== 'string' || title.length > 256) return res.status(400).json({ error: 'A title (max 256 chars) is required.' });
+  const { parseWhen, countdownEmbed, createCountdown } = require('./utils/countdowns');
+  const endsAt = parseWhen(when);
+  if (!endsAt || endsAt.getTime() <= Date.now()) return res.status(400).json({ error: 'Use a future time like "in 2h30m", "in 3d", or "2026-12-25 18:00".' });
+  const { channels } = await guildChannelsRoles(req.params.id).catch(() => ({ channels: [], roles: [] }));
+  if (!channels.some((c) => c.id === channelId && c.type === 0)) return res.status(400).json({ error: 'Pick a text channel for the countdown.' });
+  const row = await createCountdown(req.params.id, channelId, title, endsAt, req.session.user.id);
+  if (!row) return res.status(503).json({ error: 'Could not create the countdown.' });
+  try {
+    const msg = await discordApi.post(`/channels/${channelId}/messages`, { embeds: [countdownEmbed(row, endsAt.getTime() - Date.now()).toJSON()] }, { headers: botHeaders() });
+    await db.query('UPDATE countdowns SET message_id = ? WHERE id = ?', [msg.data.id, row.id]).catch(() => {});
+  } catch (e) { console.warn('[dashboard] countdown post failed:', e.message); }
+  res.json({ ok: true, id: row.id });
+});
+
+app.delete('/api/guilds/:id/countdowns/:countdownId', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  const { cancelCountdown } = require('./utils/countdowns');
+  const row = await cancelCountdown(req.params.id, req.params.countdownId);
+  if (!row) return res.status(404).json({ error: 'Countdown not found.' });
+  res.json({ ok: true });
+});
+
+// --- Emojis (1.11.2) -------------------------------------------------------------
+app.post('/api/guilds/:id/emojis', requireAuth, requireGuildAccess, async (req, res) => {
+  const { name, imageUrl } = req.body || {};
+  if (!/^[a-zA-Z0-9_]{2,32}$/.test(name || '')) return res.status(400).json({ error: 'Emoji names must be 2–32 letters, numbers, or underscores.' });
+  if (!imageUrl || typeof imageUrl !== 'string') return res.status(400).json({ error: 'An image URL is required.' });
+  try {
+    const img = await discordApi.get(imageUrl, { responseType: 'arraybuffer', timeout: 15_000 }).catch(() => null);
+    if (!img?.data) return res.status(400).json({ error: 'Could not fetch that image URL.' });
+    const buf = Buffer.from(img.data);
+    if (buf.length > 256 * 1024) return res.status(400).json({ error: `Image is ${Math.round(buf.length / 1024)}KB — Discord emoji must be under 256KB.` });
+    const contentType = img.headers['content-type'] || '';
+    if (!/^image\/(png|jpe?g|gif|webp)/.test(contentType)) return res.status(400).json({ error: 'That URL is not an image.' });
+    const dataUri = `data:${contentType};base64,${buf.toString('base64')}`;
+    const created = await discordApi.post(`/guilds/${req.params.id}/emojis`, { name, image: dataUri }, { headers: botHeaders() });
+    if (db.isEnabled()) await db.query('INSERT INTO emoji_logs (guild_id, user_id, action, emoji_name) VALUES (?, ?, ?, ?)', [req.params.id, req.session.user.id, 'add', name]).catch(() => {});
+    res.json({ ok: true, id: created.data.id });
+  } catch (e) {
+    const msg = e.response?.data?.message || e.message;
+    res.status(400).json({ error: `Upload failed: ${msg}` });
+  }
+});
+
+app.delete('/api/guilds/:id/emojis/:emojiId', requireAuth, requireGuildAccess, async (req, res) => {
+  try {
+    const existing = await discordApi.get(`/guilds/${req.params.id}/emojis`, { headers: botHeaders() }).catch(() => null);
+    const emoji = existing?.data?.find((e) => e.id === req.params.emojiId);
+    if (!emoji) return res.status(404).json({ error: 'Emoji not found.' });
+    await discordApi.delete(`/guilds/${req.params.id}/emojis/${req.params.emojiId}`, { headers: botHeaders() });
+    if (db.isEnabled()) await db.query('INSERT INTO emoji_logs (guild_id, user_id, action, emoji_name) VALUES (?, ?, ?, ?)', [req.params.id, req.session.user.id, 'remove', emoji.name]).catch(() => {});
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(400).json({ error: `Delete failed: ${e.response?.data?.message || e.message}` });
+  }
 });
 
 app.get('/api/guilds/:id/commands', requireAuth, requireGuildAccess, async (req, res) => {
@@ -1063,7 +1746,9 @@ app.get('/staff/backups', requireStaff, async (req, res) => {
       return { name: f, size: st.size, mtime: st.mtime };
     }).sort((a, b) => b.mtime - a.mtime);
   } catch {}
-  res.render('staff', { user: req.session.user, section: 'backups', data: { logs, files, retentionDays: retentionDays(), scheduleTime: (config.backups?.time || '03:00') }, isStaff: true, inviteUrl: inviteUrl(), saved: req.query.saved === '1' });
+  const serverBackups = db.isEnabled() ? (await db.query('SELECT * FROM server_backups ORDER BY created_at DESC LIMIT 20') || []) : [];
+  const guilds = await botGuilds();
+  res.render('staff', { user: req.session.user, section: 'backups', data: { logs, files, serverBackups, guilds, retentionDays: retentionDays(), scheduleTime: (config.backups?.time || '03:00') }, isStaff: true, inviteUrl: inviteUrl(), saved: req.query.saved === '1' });
 });
 
 app.get('/staff/backups/download/:filename', requireStaff, async (req, res) => {
@@ -1079,6 +1764,55 @@ app.post('/api/staff/backup-now', requireStaff, async (req, res) => {
   if (!result.ok) return res.status(500).json({ error: result.error });
   await staffUtils.audit(req.session.user.id, 'backup.manual', result.filename, `${result.sizeBytes} bytes`);
   res.json({ ok: true, filename: result.filename, sizeBytes: result.sizeBytes });
+});
+
+// --- Ticket transcripts (staff) ------------------------------------------------
+// Transcripts are HTML files in transcripts/ (written on ticket close);
+// ticket_transcripts indexes them. The list page backfills the index from
+// any files on disk that aren't indexed yet, so old transcripts show up too.
+// Viewing/downloading is staff-only (requireStaff), like the rest of Staff.
+const { backfillTranscripts } = require('./utils/transcripts');
+
+app.get('/staff/transcripts', requireStaff, async (req, res) => {
+  const guilds = await botGuilds();
+  const guildId = req.query.guild || '';
+  const q = (req.query.q || '').trim();
+  let rows = [];
+  if (db.isEnabled()) {
+    await backfillTranscripts().catch(() => {});
+    const where = [];
+    const params = [];
+    if (guildId) { where.push('guild_id = ?'); params.push(guildId); }
+    if (q) {
+      if (/^\d+$/.test(q)) { where.push('(ticket_id = ? OR user_id = ? OR closed_by = ?)'); params.push(q, q, q); }
+      else { where.push('user_id LIKE ?'); params.push(`%${q}%`); }
+    }
+    rows = await db.query(
+      `SELECT * FROM ticket_transcripts ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY closed_at DESC LIMIT 100`,
+      params) || [];
+  }
+  res.render('staff', { user: req.session.user, section: 'transcripts', data: { transcripts: rows, guilds, guildId, q }, isStaff: true, inviteUrl: inviteUrl(), saved: req.query.saved === '1' });
+});
+
+app.get('/staff/transcripts/:id', requireStaff, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).send('Database unavailable.');
+  const rows = await db.query('SELECT * FROM ticket_transcripts WHERE id = ?', [req.params.id]);
+  const row = rows?.[0];
+  if (!row) return res.status(404).send('Transcript not found.');
+  const fsLocal = require('fs');
+  if (!fsLocal.existsSync(row.file_path)) return res.status(404).send('Transcript file is gone from disk.');
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(fsLocal.readFileSync(row.file_path, 'utf8'));
+});
+
+app.get('/staff/transcripts/:id/download', requireStaff, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).send('Database unavailable.');
+  const rows = await db.query('SELECT * FROM ticket_transcripts WHERE id = ?', [req.params.id]);
+  const row = rows?.[0];
+  if (!row) return res.status(404).send('Transcript not found.');
+  const full = require('path').basename(row.file_path);
+  if (!require('fs').existsSync(row.file_path)) return res.status(404).send('Transcript file is gone from disk.');
+  res.download(row.file_path, full);
 });
 
 // --- Bot tracking (staff) ------------------------------------------------------
@@ -1172,6 +1906,123 @@ app.post('/staff/bottracking/settings', requireStaff, async (req, res) => {
   });
   await staffUtils.audit(req.session.user.id, 'bottracking.settings', guildId, `threshold=${threshold} action=${autoAction} (form POST)`);
   res.redirect(`/staff/bottracking?guild=${encodeURIComponent(guildId)}&saved=1`);
+});
+
+
+// --- 1.9.x APIs: welcome-DM test, tempban cancel, rules, lottery ----------------
+// Welcome DM test (1.9.3): DM the requesting admin a rendered preview.
+app.post('/api/guilds/:id/welcome-dm-test', requireAuth, requireGuildAccess, async (req, res) => {
+  const settings = await getGuildSettings(req.params.id);
+  const template = settings.welcomeDmMessage || '';
+  if (!template) return res.status(400).json({ error: 'Set a welcome DM message first.' });
+  const admin = req.session.user;
+  const guildName = req.guildMeta?.name || 'your server';
+  const text = template.replaceAll('{user}', `<@${admin.id}>`).replaceAll('{username}', admin.username).replaceAll('{server}', guildName);
+  try {
+    const { infoEmbed } = require('./utils/embeds');
+    const dm = await discordApi.post('/users/@me/channels', { recipient_id: admin.id }, { headers: botHeaders() });
+    await discordApi.post(`/channels/${dm.data.id}/messages`, { embeds: [infoEmbed('Welcome DM preview', text).toJSON()] }, { headers: botHeaders() });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: `Could not DM you (DMs may be closed): ${err.response?.data?.message || err.message}` });
+  }
+});
+
+// Tempban cancel (1.9.1): unban via Discord REST, then mark the row cancelled.
+app.post('/api/guilds/:id/tempbans/:userId/cancel', requireAuth, requireGuildAccess, async (req, res) => {
+  const { cancelTempban } = require('./utils/tempban');
+  await discordApi.delete(`/guilds/${req.params.id}/bans/${req.params.userId}`, { headers: botHeaders() }).catch(() => {});
+  const cancelled = await cancelTempban(req.params.id, req.params.userId).catch(() => false);
+  if (!cancelled) return res.status(404).json({ error: 'No active tempban for that user.' });
+  res.json({ ok: true });
+});
+
+// Server rules (1.9.5): read + save/post (posts via Discord REST, edits in place).
+app.get('/api/guilds/:id/rules', requireAuth, requireGuildAccess, async (req, res) => {
+  const { getRules } = require('./utils/serverRules');
+  res.json(await getRules(req.params.id).catch(() => null) || {});
+});
+app.post('/api/guilds/:id/rules', requireAuth, requireGuildAccess, async (req, res) => {
+  const { title, content, channelId } = req.body || {};
+  if (!title || !content || !channelId) return res.status(400).json({ error: 'Title, rules text, and channel are required.' });
+  const { formatRulesEmbed, getRules, saveRules } = require('./utils/serverRules');
+  const existing = await getRules(req.params.id).catch(() => null);
+  const embed = formatRulesEmbed(title, content).toJSON();
+  let messageId = existing?.message_id || null;
+  try {
+    if (messageId && existing.channel_id === channelId) {
+      await discordApi.patch(`/channels/${channelId}/messages/${messageId}`, { embeds: [embed] }, { headers: botHeaders() });
+    } else {
+      const posted = await discordApi.post(`/channels/${channelId}/messages`, { embeds: [embed] }, { headers: botHeaders() });
+      messageId = posted.data.id;
+    }
+  } catch (err) {
+    return res.status(500).json({ error: `Could not post the rules: ${err.response?.data?.message || err.message}` });
+  }
+  const saved = await saveRules(req.params.id, { title, content, channelId, messageId }).catch(() => false);
+  if (!saved) return res.status(503).json({ error: 'Rules posted, but the database is unavailable so they were not saved.' });
+  res.json({ ok: true, messageId });
+});
+
+// Lottery status (1.9.4): jackpot, tickets sold, next draw, recent draws.
+app.get('/api/guilds/:id/lottery', requireAuth, requireGuildAccess, async (req, res) => {
+  const lottery = require('./utils/lottery');
+  const weekStart = lottery.formatWeekStart(new Date());
+  const sold = await db.query('SELECT COUNT(*) AS n FROM lottery_tickets WHERE guild_id = ? AND week_start = ?', [req.params.id, weekStart]) || [];
+  const draws = await db.query('SELECT * FROM lottery_draws WHERE guild_id = ? ORDER BY drawn_at DESC LIMIT 10', [req.params.id]) || [];
+  res.json({
+    weekStart,
+    ticketsSold: sold[0]?.n || 0,
+    jackpot: await lottery.jackpotForWeek(req.params.id, weekStart).catch(() => 0),
+    nextDraw: lottery.nextDrawDate(new Date()).toISOString(),
+    draws,
+  });
+});
+
+// --- Anti-nuke staff page (1.9.6) ------------------------------------------------
+app.get('/staff/antinuke', requireStaff, async (req, res) => {
+  const guilds = await botGuilds();
+  const guildId = req.query.guild || guilds[0]?.id || '';
+  let events = [];
+  let antinukeSettings = null;
+  if (db.isEnabled() && guildId) {
+    events = await db.query('SELECT * FROM antinuke_events WHERE guild_id = ? ORDER BY created_at DESC LIMIT 50', [guildId]) || [];
+    antinukeSettings = await getGuildSettings(guildId);
+  }
+  res.render('staff', { user: req.session.user, section: 'antinuke', data: { guilds, guildId, events, antinukeSettings }, isStaff: true, inviteUrl: inviteUrl(), saved: req.query.saved === '1' });
+});
+
+app.post('/api/staff/antinuke/settings', requireStaff, async (req, res) => {
+  const { guildId, enabled, action, threshold, logChannelId, whitelistRoles } = req.body || {};
+  if (!guildId) return res.status(400).json({ error: 'guildId is required.' });
+  if (action && !['kick', 'ban', 'lockdown'].includes(action)) return res.status(400).json({ error: 'action must be kick, ban, or lockdown.' });
+  if (threshold != null && (threshold < 1 || threshold > 20)) return res.status(400).json({ error: 'Threshold must be 1–20.' });
+  const saved = await setGuildSettings(guildId, {
+    antinukeEnabled: enabled === true || enabled === 'true',
+    antinukeAction: action || 'kick',
+    antinukeThreshold: threshold == null || threshold === '' ? 5 : parseInt(threshold, 10),
+    antinukeLogChannelId: logChannelId || '',
+    antinukeWhitelistRoles: Array.isArray(whitelistRoles) ? whitelistRoles : [],
+  });
+  if (!saved.saved) return res.status(500).json({ error: 'Database unavailable — settings kept in memory only.' });
+  await staffUtils.audit(req.session.user.id, 'antinuke.settings', guildId, `enabled=${enabled} action=${action} threshold=${threshold}`);
+  res.json({ ok: true });
+});
+
+// Plain-POST fallback for the anti-nuke settings form (no-JS browsers).
+app.post('/staff/antinuke/settings', requireStaff, async (req, res) => {
+  const { guildId, enabled, action, threshold, logChannelId } = req.body || {};
+  if (!guildId) return res.redirect('/staff/antinuke?saved=0');
+  const whitelistRoles = Array.isArray(req.body.whitelistRoles) ? req.body.whitelistRoles : (req.body.whitelistRoles ? [req.body.whitelistRoles] : []);
+  await setGuildSettings(guildId, {
+    antinukeEnabled: enabled === 'true' || enabled === 'on',
+    antinukeAction: ['kick', 'ban', 'lockdown'].includes(action) ? action : 'kick',
+    antinukeThreshold: threshold ? parseInt(threshold, 10) : 5,
+    antinukeLogChannelId: logChannelId || '',
+    antinukeWhitelistRoles: whitelistRoles,
+  });
+  await staffUtils.audit(req.session.user.id, 'antinuke.settings', guildId, `enabled=${enabled} action=${action} (form POST)`);
+  res.redirect(`/staff/antinuke?guild=${encodeURIComponent(guildId)}&saved=1`);
 });
 
 // --- Staff JSON endpoints for the client-side JS layer --------------------------

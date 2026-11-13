@@ -6,7 +6,7 @@
       <strong><%= guild.name %></strong>
     </div>
     <nav>
-      <% const MODS = [['general','⚙️ General'],['moderation','🛡️ Moderation'],['tickets','🎫 Tickets'],['serverstats','📊 Server Stats'],['streams','📺 Streams'],['music','🎵 Music'],['leveling','🏆 Leveling'],['reactionroles','🎭 Reaction Roles'],['gameservers','🖥️ Game Servers'],['applications','📝 Applications'],['commands','⌨️ Commands'],['invites','📨 Invites'],['welcome','👋 Welcome'],['automod','🤖 Automod'],['suggestions','💡 Suggestions'],['economy','🪙 Economy'],['starboard','⭐ Starboard'],['customcommands','⌨️ Custom Commands'],['faq','💬 FAQ'],['scheduled','⏰ Scheduled'],['roles','🎭 Roles']]; %>
+      <% const MODS = [['general','⚙️ General'],['moderation','🛡️ Moderation'],['tickets','🎫 Tickets'],['serverstats','📊 Server Stats'],['streams','📺 Streams'],['music','🎵 Music'],['leveling','🏆 Leveling'],['reactionroles','🎭 Reaction Roles'],['gameservers','🖥️ Game Servers'],['applications','📝 Applications'],['commands','⌨️ Commands'],['invites','📨 Invites'],['welcome','👋 Welcome'],['automod','🤖 Automod'],['suggestions','💡 Suggestions'],['economy','🪙 Economy'],['starboard','⭐ Starboard'],['customcommands','⌨️ Custom Commands'],['faq','💬 FAQ'],['scheduled','⏰ Scheduled'],['roles','🎭 Roles'],['verification','✅ Verification'],['counting','🔢 Counting'],['tempvc','🔊 Temp VC'],['birthdays','🎂 Birthdays'],['analytics','📈 Analytics'],['giveaways','🎉 Giveaways'],['ai','💬 AI Chat'],['modmail','📬 Modmail'],['games','🎲 Games'],['emojis','😀 Emojis']]; %>
       <% MODS.forEach(([m, label]) => { %>
         <a href="/guilds/<%= guild.id %>/<%= m %>" class="<%= module === m ? 'active' : '' %>"><%= label %></a>
       <% }); %>
@@ -31,6 +31,106 @@
       <input type="text" name="embedColor" value="<%= settings.embedColor || '' %>" placeholder="#5865F2">
       <br><br><button class="btn" type="submit">Save general settings</button>
     </form>
+    <h2>📜 Server rules</h2>
+    <p class="muted">One rules embed per server, posted in a channel. Saving edits the existing message instead of posting a duplicate. Same as /rules-setup in Discord.</p>
+    <form id="rules-form">
+      <label>Rules title</label>
+      <input type="text" name="title" maxlength="256" value="<%= serverRules?.title || '' %>" placeholder="Server Rules">
+      <label>Rules (one rule per line)</label>
+      <textarea name="content" rows="6"><%= serverRules?.content || '' %></textarea>
+      <label>Channel</label>
+      <select name="channelId">
+        <% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>" <%= serverRules?.channel_id === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }); %>
+      </select>
+      <br><br><button class="btn" type="submit">Save &amp; post rules</button>
+    </form>
+    <p id="rules-result" class="muted"></p>
+    <% if (serverRules?.message_id) { %><p class="muted">Posted message ID: <code><%= serverRules.message_id %></code></p><% } %>
+    <h2>🎉 Member milestones</h2>
+    <p class="muted">Round member counts (100, 250, 500, 1000…) get a celebration embed, and the member who triggers one earns 100 coins. Same as /milestone-setup in Discord.<%= milestoneNext ? ` Next milestone: <strong>${milestoneNext} members</strong>.` : '' %></p>
+    <form method="post" action="/api/guilds/<%= guild.id %>/milestone-settings">
+      <label class="toggle"><input type="checkbox" name="enabled" value="true" <%= milestoneSettings?.enabled !== 0 ? 'checked' : '' %>><span class="track"></span><span>Milestone celebrations enabled</span></label>
+      <label>Milestone channel</label>
+      <select name="channelId"><option value="">— none —</option>
+        <% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>" <%= milestoneSettings?.channel_id === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }); %>
+      </select>
+      <br><br><button class="btn" type="submit">Save milestone settings</button>
+    </form>
+    <h2>🌐 Auto-translate</h2>
+    <p class="muted">Messages in watched channels are auto-translated into the target language (Google's free unofficial endpoint — no key, no SLA). Same as /translate-setup in Discord.</p>
+    <form method="post" action="/api/guilds/<%= guild.id %>/translate-settings">
+      <label class="toggle"><input type="checkbox" name="enabled" value="true" <%= translateSettings?.enabled ? 'checked' : '' %>><span class="track"></span><span>Auto-translate enabled</span></label>
+      <label>Target language</label>
+      <select name="targetLang">
+        <% [['en','English'],['es','Spanish'],['fr','French'],['de','German'],['it','Italian'],['pt','Portuguese'],['nl','Dutch'],['ru','Russian'],['ja','Japanese'],['ko','Korean'],['zh','Chinese']].forEach(([code, name]) => { %><option value="<%= code %>" <%= (translateSettings?.target_lang || 'en') === code ? 'selected' : '' %>><%= name %></option><% }); %>
+      </select>
+      <label>Watched channel (add more with /translate-setup)</label>
+      <select name="channelId"><option value="">— none —</option>
+        <% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>" <%= (translateSettings?.channels || []).includes(c.id) ? 'selected' : '' %>>#<%= c.name %></option><% }); %>
+      </select>
+      <% if ((translateSettings?.channels || []).length) { %><p class="muted">Currently watched: <%= (translateSettings.channels || []).map(id => '#' + ((channels.find(c => c.id === id) || {}).name || id)).join(', ') %></p><% } %>
+      <br><br><button class="btn" type="submit">Save translate settings</button>
+    </form>
+    <% } %>
+
+    <% if (module === 'threads') { %>
+    <h1>🧵 Thread auto-archive</h1>
+    <p class="muted">Threads inactive longer than the configured duration are archived automatically (checked every 15 min). Pinned threads are never archived, and threads whose last message is from staff are skipped.</p>
+    <form method="post" action="/api/guilds/<%= guild.id %>/settings">
+      <label>Default auto-archive after (minutes, 0 = Discord default)</label>
+      <input type="number" name="threadArchiveMinutes" min="0" max="10080" value="<%= settings.threadArchiveMinutes ?? 1440 %>">
+      <br><br><button class="btn" type="submit">Save default</button>
+    </form>
+    <h2>Per-channel overrides</h2>
+    <% if (!threadOverrides.length) { %><p class="muted">No overrides — every channel uses the default.</p><% } else { %>
+      <table><tr><th>Channel</th><th>Minutes</th><th></th></tr>
+      <% threadOverrides.forEach(o => { %><tr><td>#<%= (channels.find(c => c.id === o.channel_id) || {}).name || o.channel_id %></td><td><%= o.archive_minutes %></td><td><button class="btn danger" data-delete="/api/guilds/<%= guild.id %>/thread-archive/<%= o.channel_id %>">Remove</button></td></tr><% }); %></table>
+    <% } %>
+    <form id="thread-override-form" action="/api/guilds/<%= guild.id %>/thread-archive">
+      <label>Channel</label>
+      <select name="channelId"><% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>">#<%= c.name %></option><% }); %></select>
+      <label>Minutes of inactivity</label>
+      <input type="number" name="minutes" min="0" max="10080" value="1440">
+      <br><br><button class="btn" type="submit">Add override</button>
+    </form>
+    <% } %>
+
+    <% if (module === 'confessions') { %>
+    <h1>🤫 Confessions</h1>
+    <p class="muted">Anonymous confessions via /confess. Authors are stored for moderation only and are <strong>never shown publicly</strong> — posted confessions show only "Anonymous" + a number. Review the pending queue below (the author is visible to you here, as staff).</p>
+    <form method="post" action="/api/guilds/<%= guild.id %>/settings">
+      <label class="toggle"><input type="checkbox" name="confessionsEnabled" value="true" <%= settings.confessionsEnabled ? 'checked' : '' %>><span class="track"></span><span>Confessions enabled</span></label>
+      <label>Confessions channel</label>
+      <select name="confessionsChannelId"><option value="">— none —</option>
+        <% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>" <%= settings.confessionsChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }); %>
+      </select>
+      <label class="toggle"><input type="checkbox" name="confessionsRequireApproval" value="true" <%= settings.confessionsRequireApproval ? 'checked' : '' %>><span class="track"></span><span>Require staff approval before posting</span></label>
+      <br><br><button class="btn" type="submit">Save confession settings</button>
+    </form>
+    <h2>Pending queue</h2>
+    <% if (!pendingConfessions.length) { %><p class="muted">Nothing awaiting review.</p><% } else { %>
+      <% pendingConfessions.forEach(c => { %>
+        <div class="card" style="text-align:left;margin-bottom:12px">
+          <strong>#<%= c.id %></strong> · by &lt;@<%= c.user_id %>&gt; (staff only) · <%= c.created_at %>
+          <p><%= c.content %></p>
+          <button class="btn green" data-confess-review="<%= c.id %>" data-confess-decision="approved">✅ Approve</button>
+          <button class="btn danger" data-confess-review="<%= c.id %>" data-confess-decision="denied">❌ Deny</button>
+        </div>
+      <% }); %>
+    <% } %>
+    <% } %>
+    <p class="muted">Image/video posts in these channels get a discussion thread automatically, so the channel stays clean. Same list as /mediathreads in Discord.</p>
+    <% if (!(settings.mediaChannels || []).length) { %><p class="muted">No media channels configured yet.</p><% } else { %>
+      <table><tr><th>Channel</th><th></th></tr>
+      <% settings.mediaChannels.forEach(id => { %><tr><td>#<%= (channels.find(c => c.id === id) || {}).name || id %></td><td><button class="btn danger" data-delete="/api/guilds/<%= guild.id %>/media/<%= id %>">Remove</button></td></tr><% }); %></table>
+    <% } %>
+    <form id="media-add-form" action="/api/guilds/<%= guild.id %>/media">
+      <label>Add a media channel</label>
+      <select name="channelId">
+        <% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>">#<%= c.name %></option><% }); %>
+      </select>
+      <br><br><button class="btn" type="submit">Add channel</button>
+    </form>
     <% } %>
 
     <% if (module === 'moderation') { %>
@@ -48,6 +148,16 @@
       </select>
       <br><br><button class="btn" type="submit">Save moderation settings</button>
     </form>
+    <h2>👻 Anti-ghost-ping</h2>
+    <p class="muted">When someone deletes a message that mentioned a user or role, the bot calls it out. Bot-deleted messages (automod, purge) are ignored; max 1 callout per user per minute; token/password patterns are redacted.</p>
+    <form method="post" action="/api/guilds/<%= guild.id %>/settings">
+      <label class="toggle"><input type="checkbox" name="ghostpingEnabled" value="true" <%= settings.ghostpingEnabled ? 'checked' : '' %>><span class="track"></span><span>Ghost-ping callouts enabled</span></label>
+      <label>Callout channel (blank = same channel as the deleted message)</label>
+      <select name="ghostpingChannelId"><option value="">— same channel —</option>
+        <% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>" <%= settings.ghostpingChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }); %>
+      </select>
+      <br><br><button class="btn" type="submit">Save ghost-ping settings</button>
+    </form>
     <h2>Message logging (modlog)</h2>
     <p class="muted">Deleted and edited messages are stored in MySQL and posted here. Content that looks like a token or password is redacted before it is stored. Same channel as /modlog-setup in Discord.</p>
     <form method="post" action="/api/guilds/<%= guild.id %>/premium">
@@ -56,6 +166,14 @@
         <% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>" <%= premiumSettings?.modlogChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }); %>
       </select>
       <br><br><button class="btn" type="submit">Save modlog channel</button>
+    </form>
+    <h2>⏳ Active tempbans</h2>
+    <p class="muted">Members temporarily banned — auto-unbanned at expiry. Same list as /tempban-list in Discord.</p>
+    <% if (!tempBans.length) { %><p class="muted">No active tempbans.</p><% } else { %>
+    <table><tr><th>User</th><th>Banned by</th><th>Reason</th><th>Expires</th><th></th></tr>
+    <% tempBans.forEach(t => { %><tr><td>&lt;@<%= t.user_id %>&gt;</td><td>&lt;@<%= t.banned_by %>&gt;</td><td><%= (t.reason || '').slice(0, 120) %></td><td><%= t.expires_at %></td><td><button class="btn danger" data-post="/api/guilds/<%= guild.id %>/tempbans/<%= t.user_id %>/cancel">Cancel (unban)</button></td></tr><% }); %></table>
+    <% } %>
+    <% } %>      <br><br><button class="btn" type="submit">Save modlog channel</button>
     </form>
     <% } %>
 
@@ -80,6 +198,29 @@
     <h3>Recent tickets</h3>
     <% if (!tickets.length) { %><p>No tickets yet.</p><% } %>
     <ul><% tickets.forEach(t => { %><li>#<%= t.id %> — <%= t.subject || '—' %> — <%= t.status %> — &lt;@<%= t.user_id %>&gt;</li><% }); %></ul>
+    <h3>Ticket panels</h3>
+    <p class="muted">Multiple panels per server — each with its own category and staff role. The default panel from /ticket-setup is separate from these. Create more with /ticket-panel create in Discord.</p>
+    <div id="ticket-panels-list">
+    <% if (!ticketPanels.length) { %><p class="muted">No extra panels yet.</p><% } else { %>
+      <table><tr><th>ID</th><th>Title</th><th>Category</th><th>Staff role</th><th>Channel</th><th></th></tr>
+      <% ticketPanels.forEach(p => { %><tr><td>#<%= p.id %></td><td><%= p.title %></td><td><%= p.category_id ? (channels.find(c => c.id === p.category_id)?.name || p.category_id) : 'default' %></td><td><%= p.staff_role_id ? '@' + (roles.find(r => r.id === p.staff_role_id)?.name || p.staff_role_id) : 'default' %></td><td>#<%= (channels.find(c => c.id === p.channel_id)?.name || p.channel_id) %></td><td><button class="btn danger" data-delete="/api/guilds/<%= guild.id %>/ticket-panels/<%= p.id %>">Delete</button></td></tr><% }); %></table>
+    <% } %>
+    </div>
+    <h3>Add a panel</h3>
+    <form id="add-ticket-panel-form">
+      <label>Title</label>
+      <input type="text" name="title" placeholder="Support" required maxlength="256">
+      <label>Description (optional)</label>
+      <input type="text" name="description" placeholder="Need help? Click Create Ticket below…" maxlength="500">
+      <label>Channel to post in</label>
+      <select name="channelId"><% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>">#<%= c.name %></option><% }); %></select>
+      <label>Category for new tickets (optional — default settings)</label>
+      <select name="categoryId"><option value="">— default —</option><% channels.filter(c => c.type === 4).forEach(c => { %><option value="<%= c.id %>"><%= c.name %></option><% }); %></select>
+      <label>Staff role (optional — default support role)</label>
+      <select name="staffRoleId"><option value="">— default —</option><% roles.forEach(r => { %><option value="<%= r.id %>"><%= r.name %></option><% }); %></select>
+      <br><br><button class="btn" type="submit">Create panel</button>
+    </form>
+    <p id="ticket-panel-result" class="muted"></p>
     <% } %>
 
     <% if (module === 'serverstats') { %>
@@ -109,7 +250,7 @@
     <h2>Watched streamers <button class="btn ghost" type="button" data-refresh-section="#streamers-list">🔄 Refresh</button></h2>
     <div id="streamers-list">
     <% if (!streamers.length) { %><p class="muted">None yet — add one below.</p><% } %>
-    <table><tr><th></th><th>Streamer</th><th>Platform</th><th>Announcements</th><th>Ping role</th><th>Live channel</th><th></th></tr>
+    <table><tr><th></th><th>Streamer</th><th>Platform</th><th>Announcements</th><th>Ping role</th><th>Live channel</th><th>Clips</th><th></th></tr>
     <% streamers.forEach(s => { %>
       <tr>
         <td><%= s.is_live ? '🔴' : '⚫' %></td>
@@ -118,6 +259,7 @@
         <td><%= s.notify_channel_id ? '#' + (channels.find(c => c.id === s.notify_channel_id)?.name || s.notify_channel_id) : '—' %></td>
         <td><%= s.ping_role_id ? '@' + (roles.find(r => r.id === s.ping_role_id)?.name || s.ping_role_id) : '—' %></td>
         <td><%= s.live_channel_id ? '#' + (channels.find(c => c.id === s.live_channel_id)?.name || s.live_channel_id) : 'none' %></td>
+        <td title="Attach latest clip (Twitch) or latest video (YouTube) to live announcements"><label class="toggle"><input type="checkbox" data-clip-toggle="<%= s.id %>" <%= s.include_clip !== 0 ? 'checked' : '' %>><span class="track"></span></label></td>
         <td>
           <button class="btn ghost" data-refresh-streamer="<%= s.id %>">Refresh</button>
           <button class="btn ghost" data-edit-streamer="<%= s.id %>">Edit</button>
@@ -160,15 +302,35 @@
 
     <% if (module === 'music') { %>
     <h1>Music</h1>
-    <p class="muted">Who can control the music.</p>
+    <p class="muted">Who can control the music. DJ mode gates the control commands — skip, stop, pause, resume, filter, queue-clear — behind the DJ role. /play, /lyrics, /queue and /nowplaying stay open to everyone while "gate only control commands" is on.</p>
     <form method="post" action="/api/guilds/<%= guild.id %>/settings">
-      <label>DJ role (only this role + admins can use music commands)</label>
-      <select name="djRoleId"><option value="">— none (everyone) —</option>
+      <label>DJ role</label>
+      <select name="djRoleId"><option value="">— none —</option>
         <% roles.forEach(r => { %><option value="<%= r.id %>" <%= settings.djRoleId === r.id ? 'selected' : '' %>><%= r.name %></option><% }); %>
       </select>
+      <label class="toggle"><input type="checkbox" name="djEnabled" value="true" <%= settings.djEnabled ? 'checked' : '' %>><span class="track"></span><span>DJ mode enabled (requires a DJ role above)</span></label>
+      <label class="toggle"><input type="checkbox" name="djOnlySkip" value="true" <%= settings.djOnlySkip ? 'checked' : '' %>><span class="track"></span><span>Gate only control commands (off = every music command needs the DJ role)</span></label>
       <br><br><button class="btn" type="submit">Save music settings</button>
     </form>
+    <h2>⏰ 24/7 music mode</h2>
+    <p class="muted">Keep the bot in a voice channel around the clock — it stays connected even with an empty queue and rejoins if disconnected or kicked. Same settings as /247 in Discord.</p>
+    <form method="post" action="/api/guilds/<%= guild.id %>/settings">
+      <label class="toggle"><input type="checkbox" name="music247Enabled" value="true" <%= settings.music247Enabled ? 'checked' : '' %>><span class="track"></span><span>24/7 mode enabled</span></label>
+      <label>Voice channel to stay in</label>
+      <select name="music247ChannelId"><option value="">— none —</option>
+        <% channels.filter(c => c.type === 2).forEach(c => { %><option value="<%= c.id %>" <%= settings.music247ChannelId === c.id ? 'selected' : '' %>><%= c.name %></option><% }); %>
+      </select>
+      <br><br><button class="btn" type="submit">Save 24/7 settings</button>
+    </form>
+    <p class="muted">DJ-gated when on: <code>/skip</code>, <code>/stop</code>, <code>/pause</code>, <code>/resume</code>, <code>/filter</code>, <code>/queue-clear</code>. Same as <code>/dj-setup</code> and <code>/dj</code> in Discord.</p>
     <p class="muted">Max queue size is set in config.json (<code>music.maxQueueSize</code>) and applies to all servers.</p>
+    <p class="muted">Music extras: <code>/filter</code> (bassboost, nightcore, vaporwave, 8d — restarts the current track with the filter, via FFmpeg re-encoding), <code>/lyrics</code> (lyrics.ovh, no key needed), <code>/nowplaying</code> (progress bar, queue, filter). <code>/play</code> also accepts Spotify track links — the track is matched on YouTube, since Spotify audio is never streamed directly.</p>
+    <h2>🎵 Saved playlists</h2>
+    <p class="muted">Playlists saved with /playlist save. Delete them here; members manage their own with /playlist in Discord.</p>
+    <% if (!playlists.length) { %><p class="muted">No saved playlists in this server yet.</p><% } else { %>
+      <table><tr><th>Name</th><th>Owner</th><th>Tracks</th><th>Updated</th><th></th></tr>
+      <% playlists.forEach(p => { %><tr><td><%= p.name %></td><td>&lt;@<%= p.user_id %>&gt;</td><td><%= (() => { try { return JSON.parse(p.tracks || '[]').length; } catch { return 0; } })() %></td><td><%= p.updated_at %></td><td><button class="btn danger" data-delete="/api/guilds/<%= guild.id %>/playlists/<%= p.id %>">Delete</button></td></tr><% }); %></table>
+    <% } %>
     <% } %>
 
     <% if (module === 'leveling') { %>
@@ -180,11 +342,200 @@
       <input type="text" name="levelRoles" value='<%= JSON.stringify(settings.levelRoles || {}) %>'>
       <br><br><button class="btn" type="submit">Save leveling settings</button>
     </form>
+    <h2>🎖️ Reward levels</h2>
+    <% const rewardLevels = Object.entries(settings.levelRoles || {}).map(([lvl, roleId]) => ({ level: parseInt(lvl, 10), roleId })).sort((a, b) => a.level - b.level); %>
+    <% if (!rewardLevels.length) { %><p class="muted">No reward roles configured yet. Members can check their next rewards with /levelrewards, and get a "Remind me" button when a reward is 1 level away.</p><% } else { %>
+      <table><tr><th>Level</th><th>Role</th></tr>
+      <% rewardLevels.forEach(r => { %><tr><td><%= r.level %></td><td><%= (roles.find(x => x.id === r.roleId) || {}).name || r.roleId %></td></tr><% }); %></table>
+    <% } %>
+    <h2>🎙️ Voice XP</h2>
+    <p class="muted">Members earn XP for time in voice — only while unmuted, undeafened, and not alone in the channel (anti-AFK-farm rule). Voice XP feeds the same levels and role rewards as text XP.</p>
+    <form method="post" action="/api/guilds/<%= guild.id %>/settings">
+      <label>Voice XP per minute (blank = config default)</label>
+      <input type="number" name="voiceXpPerMinute" min="0" max="100" value="<%= voiceRate ?? '' %>" placeholder="2">
+      <br><br><button class="btn" type="submit">Save voice XP rate</button>
+    </form>
+    <% if (!voiceStats.length) { %><p class="muted">No voice time logged yet.</p><% } else { %>
+      <table><tr><th>User</th><th>Voice time</th><th>Sessions</th></tr>
+      <% voiceStats.forEach(v => { %><tr><td>&lt;@<%= v.user_id %>&gt;</td><td><%= Math.floor(v.total_minutes / 60) %>h <%= v.total_minutes % 60 %>m</td><td><%= v.sessions %></td></tr><% }); %></table>
+    <% } %>
+    <h2>⚡ XP boost</h2>
+    <p class="muted">Multiply all XP earned in this server for a while. Same as /xpboost in Discord.</p>
+    <% if (analyticsData?.activeBoost) { %>
+      <p><strong>Active:</strong> <%= parseFloat(analyticsData.activeBoost.multiplier) %>x XP until <%= analyticsData.activeBoost.ends_at %></p>
+      <form method="post" action="/api/guilds/<%= guild.id %>/xpboost">
+        <input type="hidden" name="action" value="stop">
+        <button class="btn danger" type="submit">Stop boost</button>
+      </form>
+    <% } else { %>
+      <p class="muted">No boost active right now.</p>
+    <% } %>
+    <form id="xpboost-form" action="/api/guilds/<%= guild.id %>/xpboost">
+      <input type="hidden" name="action" value="start">
+      <label>Multiplier</label>
+      <select name="multiplier"><option value="2">2x (double XP)</option><option value="3">3x (triple XP)</option></select>
+      <label>Duration</label>
+      <select name="durationMs">
+        <option value="3600000">1 hour</option>
+        <option value="7200000">2 hours</option>
+        <option value="43200000">12 hours</option>
+        <option value="86400000">1 day</option>
+        <option value="172800000">2 days</option>
+        <option value="604800000">7 days</option>
+      </select>
+      <br><br><button class="btn" type="submit">Start boost</button>
+    </form>
+    <h2>⭐ Prestige</h2>
+    <p class="muted">At the max level (100, from config.json <code>leveling.maxLevel</code>) members can run /prestige to reset to level 1 and gain +1 prestige — a permanent +10% XP multiplier, capped at +100% (prestige 10). The prestige role below is granted when they prestige.</p>
+    <form method="post" action="/api/guilds/<%= guild.id %>/settings">
+      <label>Prestige role (optional)</label>
+      <select name="prestigeRoleId"><option value="">— none —</option>
+        <% roles.forEach(r => { %><option value="<%= r.id %>" <%= settings.prestigeRoleId === r.id ? 'selected' : '' %>><%= r.name %></option><% }); %>
+      </select>
+      <br><br><button class="btn" type="submit">Save prestige role</button>
+    </form>
+    <% if (!prestigeLeaderboard.length) { %><p class="muted">Nobody has prestiged in this server yet.</p><% } else { %>
+      <table><tr><th>#</th><th>User</th><th>Prestige</th><th>XP multiplier</th></tr>
+      <% prestigeLeaderboard.forEach((r, i) => { %><tr><td><%= i + 1 %></td><td>&lt;@<%= r.user_id %>&gt;</td><td>⭐ <%= r.prestige %></td><td>x<%= (1 + Math.min(r.prestige, 10) * 0.1).toFixed(1) %></td></tr><% }); %></table>
+    <% } %>
+    <% } %>
+
+    <% if (module === 'analytics') { %>
+    <h1>📈 Server analytics</h1>
+    <p class="muted">Last 30 days. Joins come from the invite tracker, leaves from recorded departures, messages from the bot's message counter (running since this feature was added — earlier days show 0). "Top channels" counts <strong>commands used</strong> per channel (from command_logs — the bot doesn't log every message's channel), and top users are by XP and by commands used.</p>
+    <% if (!analyticsData || !analyticsData.daily.length) { %><p class="muted">No daily stats yet — the bot snapshots once an hour and shortly after startup. Check back soon.</p><% } else { %>
+      <% const maxJoins = Math.max(1, ...analyticsData.daily.map(d => d.joins || 0)); const maxMsgs = Math.max(1, ...analyticsData.daily.map(d => d.messages_count || 0)); %>
+      <h2>Joins &amp; leaves — last 30 days</h2>
+      <% analyticsData.daily.forEach(d => { %>
+        <div style="display:flex;align-items:center;gap:8px;margin:3px 0">
+          <code style="width:110px"><%= String(d.date).slice(0, 10) %></code>
+          <div style="flex:1;background:var(--border);border-radius:4px;height:14px"><div style="width:<%= Math.round((d.joins || 0) / maxJoins * 100) %>%;background:#57f287;height:14px;border-radius:4px"></div></div>
+          <span style="width:170px">+<%= d.joins || 0 %> / −<%= d.leaves || 0 %> · <%= d.member_count || 0 %> members</span>
+        </div>
+      <% }); %>
+      <h2>Messages per day</h2>
+      <% analyticsData.daily.forEach(d => { %>
+        <div style="display:flex;align-items:center;gap:8px;margin:3px 0">
+          <code style="width:110px"><%= String(d.date).slice(0, 10) %></code>
+          <div style="flex:1;background:var(--border);border-radius:4px;height:14px"><div style="width:<%= Math.round((d.messages_count || 0) / maxMsgs * 100) %>%;background:#5865f2;height:14px;border-radius:4px"></div></div>
+          <span style="width:80px"><%= d.messages_count || 0 %></span>
+        </div>
+      <% }); %>
+    <% } %>
+    <h2>Top users by XP</h2>
+    <% if (!analyticsData?.topXp?.length) { %><p class="muted">No XP yet.</p><% } else { %>
+      <table><tr><th>User</th><th>XP</th><th>Level</th></tr>
+      <% analyticsData.topXp.forEach(u => { %><tr><td>&lt;@<%= u.user_id %>&gt;</td><td><%= u.xp %></td><td><%= u.level %></td></tr><% }); %></table>
+    <% } %>
+    <h2>Top channels by commands used (30 days)</h2>
+    <% if (!analyticsData?.topChannels?.length) { %><p class="muted">No commands logged yet.</p><% } else { %>
+      <table><tr><th>Channel</th><th>Commands</th></tr>
+      <% analyticsData.topChannels.forEach(c => { %><tr><td>#<%= (channels.find(ch => ch.id === c.channel_id) || {}).name || c.channel_id %></td><td><%= c.uses %></td></tr><% }); %></table>
+    <% } %>
+    <h2>Top users by commands used</h2>
+    <% if (!analyticsData?.topCommandUsers?.length) { %><p class="muted">No commands logged yet.</p><% } else { %>
+      <table><tr><th>User</th><th>Commands</th></tr>
+      <% analyticsData.topCommandUsers.forEach(u => { %><tr><td>&lt;@<%= u.user_id %>&gt;</td><td><%= u.commands_used %></td></tr><% }); %></table>
+    <% } %>
+    <% } %>
+
+    <% if (module === 'giveaways') { %>
+    <h1>🎉 Giveaways</h1>
+    <p class="muted">Giveaways in this server, with their entry requirements. Create them with /giveaway start (required role, min days in server, min leveling level are optional). Members who miss a requirement get an ephemeral message naming exactly what they missed.</p>
+    <% if (!giveaways.length) { %><p class="muted">No giveaways yet.</p><% } else { %>
+      <table><tr><th>ID</th><th>Prize</th><th>Status</th><th>Ends</th><th>Requirements</th><th>Bonus entries</th></tr>
+      <% giveaways.forEach(g => { %>
+        <tr><td>#<%= g.id %></td><td><%= g.prize %></td><td><%= g.status %></td><td><%= g.ends_at %></td>
+        <td><%= [g.required_role_id ? `role <@&${g.required_role_id}>` : null, (g.min_days_in_server !== null && g.min_days_in_server !== undefined) ? `${g.min_days_in_server}d+` : null, (g.min_level !== null && g.min_level !== undefined) ? `level ${g.min_level}+` : null].filter(Boolean).join(', ') || 'none' %></td><td><%= g.bonus_role_id ? `+${g.bonus_entries || 1} for <@&${g.bonus_role_id}> · +1 booster` : '—' %></td></tr>
+      <% }); %></table>
+    <% } %>
     <% } %>
 
     <% if (module === 'reactionroles') { %>
     <h1>Reaction Roles</h1>
-    <p class="muted">Reaction roles are managed with <code>/reactionroles-setup</code>, <code>/reactionroles-add</code>, <code>/reactionroles-remove</code> and <code>/reactionroles-list</code> in Discord. Mappings live in the <code>reaction_roles</code> MySQL table.</p>
+    <p class="muted">Reaction roles are managed with <code>/reactionroles-setup</code>, <code>/reactionroles-add</code>, <code>/reactionroles-remove</code> and <code>/reactionroles-list</code> in Discord. Mappings live in the <code>reaction_roles</code> MySQL table. Requirements (required role, minimum days in server, minimum leveling level) are set with <code>/reactionroles-add</code> — members who miss one get an ephemeral message naming exactly what they missed.</p>
+    <% if (reactionRoleMappings.length) { %>
+      <div>
+      <% reactionRoleMappings.forEach(m => { %>
+        <div class="card" style="text-align:left;margin-bottom:8px">
+          <%= m.emoji %> → <code>&lt;@&amp;<%= m.role_id %>&gt;</code> · message <code><%= m.message_id %></code><br>
+          <span class="muted">Requirements: <%= m.required_role_id ? `needs <@&${m.required_role_id}> · ` : '' %><%= (m.min_days_in_server !== null && m.min_days_in_server !== undefined) ? `${m.min_days_in_server}d+ in server · ` : '' %><%= (m.min_level !== null && m.min_level !== undefined) ? `level ${m.min_level}+` : '' %><%= (!m.required_role_id && m.min_days_in_server === null && m.min_level === null) ? 'none' : '' %></span>
+        </div>
+      <% }); %>
+      </div>
+    <% } else { %><p class="muted">No reaction-role mappings yet.</p><% } %>
+    <% } %>
+
+    <% if (module === 'verification') { %>
+    <h1>Verification</h1>
+    <p class="muted">New members verify before getting the member role. Button mode: click Verify and you're in. Captcha mode: click Verify, then answer a quick math question in a modal (image-free captcha). Same settings as /verify-setup and /verify-toggle in Discord. Verifications are logged to the <code>verification_logs</code> table.</p>
+    <form method="post" action="/api/guilds/<%= guild.id %>/settings">
+      <label class="toggle"><input type="checkbox" name="verificationEnabled" value="true" <%= settings.verificationEnabled ? 'checked' : '' %>><span class="track"></span><span>Verification gate enabled</span></label>
+      <label>Verification channel (where the Verify button panel lives)</label>
+      <select name="verificationChannelId"><option value="">— none —</option>
+        <% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>" <%= settings.verificationChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }); %>
+      </select>
+      <label>Role granted after verifying</label>
+      <select name="verificationRoleId"><option value="">— none —</option>
+        <% roles.forEach(r => { %><option value="<%= r.id %>" <%= settings.verificationRoleId === r.id ? 'selected' : '' %>><%= r.name %></option><% }); %>
+      </select>
+      <label>Mode</label>
+      <select name="verificationMode">
+        <option value="button" <%= settings.verificationMode === 'button' ? 'selected' : '' %>>Button — click to verify</option>
+        <option value="captcha" <%= settings.verificationMode === 'captcha' ? 'selected' : '' %>>Captcha — math question in a modal</option>
+      </select>
+      <br><br><button class="btn" type="submit">Save verification settings</button>
+    </form>
+    <p class="muted">Run /verify-setup in Discord to (re)post the Verify button panel in the channel.</p>
+    <% } %>
+
+    <% if (module === 'counting') { %>
+    <h1>Counting &amp; Bump Reminders</h1>
+    <p class="muted">Counting: each message in the counting channel must start with the next number. A wrong number, or the same person counting twice in a row, deletes the message and resets the count to 0. Bump reminders: 2 hours after the last bump the bot reminds the bump channel. Same settings as /counting-setup, /counting-reset, /bump-setup and /bump in Discord.</p>
+    <p>Current count: <strong><%= countingSettings?.current_count ?? 0 %></strong> · Highest: <strong><%= countingSettings?.highest_count ?? 0 %></strong> · Channel: <strong><%= countingSettings?.channel_id ? `#${(channels.find(c => c.id === countingSettings.channel_id) || {}).name || countingSettings.channel_id}` : '— none —' %></strong></p>
+    <form method="post" action="/api/guilds/<%= guild.id %>/settings">
+      <label>Bump reminder channel</label>
+      <select name="bumpChannelId"><option value="">— none —</option>
+        <% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>" <%= settings.bumpChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }); %>
+      </select>
+      <br><br><button class="btn" type="submit">Save counting &amp; bump settings</button>
+    </form>
+    <p class="muted">The counting channel itself is set with /counting-setup in Discord.</p>
+    <% } %>
+
+    <% if (module === 'tempvc') { %>
+    <h1>Temporary Voice Channels</h1>
+    <p class="muted">Joining the "create" voice channel spins up a personal voice channel for that member (named after them); it is deleted when it becomes empty. Owners manage theirs with /tempvc (limit, lock/unlock, rename, kick, claim).</p>
+    <form method="post" action="/api/guilds/<%= guild.id %>/settings">
+      <label>"Create" voice channel (joining it creates a temp channel)</label>
+      <select name="tempvcCreateChannelId"><option value="">— none —</option>
+        <% channels.filter(c => c.type === 2).forEach(c => { %><option value="<%= c.id %>" <%= settings.tempvcCreateChannelId === c.id ? 'selected' : '' %>><%= c.name %></option><% }); %>
+      </select>
+      <label>Category for temp channels</label>
+      <select name="tempvcCategoryId"><option value="">— none —</option>
+        <% channels.filter(c => c.type === 4).forEach(c => { %><option value="<%= c.id %>" <%= settings.tempvcCategoryId === c.id ? 'selected' : '' %>><%= c.name %></option><% }); %>
+      </select>
+      <br><br><button class="btn" type="submit">Save temp VC settings</button>
+    </form>
+    <% } %>
+
+    <% if (module === 'birthdays') { %>
+    <h1>Birthdays</h1>
+    <p class="muted">Members set their birthday with /birthday set (year optional). On the day, the bot posts a birthday embed in the announcement channel at the hour below (bot host local time), once per user per year. Same settings as /birthday-setup in Discord.</p>
+    <form method="post" action="/api/guilds/<%= guild.id %>/settings">
+      <label>Birthday announcement channel</label>
+      <select name="birthdayChannelId"><option value="">— none —</option>
+        <% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>" <%= settings.birthdayChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }); %>
+      </select>
+      <label>Announce hour (0–23, bot host local time)</label>
+      <input type="number" name="birthdayAnnounceHour" min="0" max="23" value="<%= settings.birthdayAnnounceHour ?? 9 %>">
+      <br><br><button class="btn" type="submit">Save birthday settings</button>
+    </form>
+    <h2>Upcoming birthdays</h2>
+    <% if (!birthdays.length) { %><p class="muted">No birthdays saved yet.</p><% } %>
+    <% birthdays.forEach(b => { %>
+      <div class="card" style="text-align:left;margin-bottom:8px"><code>&lt;@<%= b.user_id %>&gt;</code> — <%= b.month %>/<%= b.day %><%= b.year ? `, ${b.year}` : '' %></div>
+    <% }); %>
     <% } %>
 
     <% if (module === 'commands') { %>
@@ -259,6 +610,22 @@
       <br><br><button class="btn" type="submit">Save invite settings</button>
     </form>
     <p class="muted">The bot needs Manage Server permission to fetch the invite list — without it, joins show as "unknown invite".</p>
+    <h2>Invite role rules <button class="btn ghost" type="button" data-refresh-section="#invite-roles-list">🔄 Refresh</button></h2>
+    <p class="muted">Members who join via a specific invite link automatically get the matching role. Same as /inviterole in Discord.</p>
+    <div id="invite-roles-list">
+    <% if (!inviteRoleRules.length) { %><p class="muted">No rules yet.</p><% } else { %>
+      <table><tr><th>Invite</th><th>Role granted</th><th></th></tr>
+      <% inviteRoleRules.forEach(r => { %><tr><td>discord.gg/<%= r.invite_code %></td><td>@<%= (roles.find(x => x.id === r.role_id) || {}).name || r.role_id %></td><td><button class="btn danger" data-delete="/api/guilds/<%= guild.id %>/invite-roles/<%= r.invite_code %>">Remove</button></td></tr><% }); %></table>
+    <% } %>
+    </div>
+    <form id="add-invite-role-form">
+      <label>Invite code (or full discord.gg link)</label>
+      <input type="text" name="code" placeholder="abc123" required>
+      <label>Role to grant</label>
+      <select name="roleId"><% roles.forEach(r => { %><option value="<%= r.id %>"><%= r.name %></option><% }); %></select>
+      <br><br><button class="btn" type="submit">Add rule</button>
+    </form>
+    <p id="invite-role-result" class="muted"></p>
     <h2>Leaderboard <button class="btn ghost" type="button" data-refresh-section="#invites-list">🔄 Refresh</button></h2>
     <div id="invites-list">
     <% if (!inviteLeaderboard.length) { %><p class="muted">No invites tracked yet.</p><% } %>
@@ -276,6 +643,51 @@
     <% if (!gameServers.length) { %><p>None tracked in this server yet — add one with /gameserver-add in Discord.</p><% } %>
     <ul><% gameServers.forEach(s => { %><li><strong><%= s.name %></strong> — <%= s.provider %> · <%= s.host %><% if (s.port) { %>:<%= s.port %><% } %></li><% }); %></ul>
     <p class="muted">Config-level examples (Minecraft, Rust, The Isle) live in config.json <code>gameServers.custom</code>. The Isle has no public query protocol — it is manual status only.</p>
+    <h2>🟢 Minecraft live status widgets</h2>
+    <p class="muted">One embed per widget, updated every 5 minutes (config <code>gameServers.mcStatusIntervalSeconds</code>). Set one up with /mcstatus-setup in Discord; remove it here.</p>
+    <% if (!mcWidgets.length) { %><p class="muted">No Minecraft widgets yet.</p><% } else { %>
+      <table><tr><th>Server</th><th>Channel</th><th>Message</th><th></th></tr>
+      <% mcWidgets.forEach(w => { %><tr><td><%= w.server_name || w.server_id %></td><td>#<%= (channels.find(c => c.id === w.channel_id) || {}).name || w.channel_id %></td><td><%= w.message_id || '—' %></td><td><button class="btn danger" data-delete="/api/guilds/<%= guild.id %>/mcwidgets/<%= w.id %>">Remove</button></td></tr><% }); %></table>
+    <% } %>
+    <% } %>
+
+    <% if (module === 'ai') { %>
+    <h1>💬 AI Chat</h1>
+    <p class="muted">Members can ask the AI in the AI channel (plain messages are answered) or with /ask anywhere. The bot uses an OpenAI-compatible API — the owner's own key in config.json <code>ai</code> (get one at <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">platform.openai.com/api-keys</a>). Without a key the feature is disabled with a clear message. History is in-memory only (last 10 messages per channel) and never stored in the DB.</p>
+    <p><strong>API key configured:</strong> <%= aiConfigured ? '✅ yes' : '❌ no — add ai.apiKey in config.json' %></p>
+    <p><strong>Usage today:</strong> <%= aiUsage ? `${aiUsage.count} questions, ${aiUsage.tokens} tokens` : '—' %> (daily limit: 100)</p>
+    <form method="post" action="/api/guilds/<%= guild.id %>/settings">
+      <label class="toggle"><input type="checkbox" name="aiEnabled" value="true" <%= settings.aiEnabled ? 'checked' : '' %>><span class="track"></span><span>AI chat enabled</span></label>
+      <label>AI channel</label>
+      <select name="aiChannelId"><option value="">— none —</option>
+        <% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>" <%= settings.aiChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }); %>
+      </select>
+      <br><br><button class="btn" type="submit">Save AI settings</button>
+    </form>
+    <% } %>
+
+    <% if (module === 'modmail') { %>
+    <h1>📬 Modmail</h1>
+    <p class="muted">Users DM the bot; staff answer from a private thread channel here. When enabled, DMs are routed to the first server where the user is a member and modmail is on.</p>
+    <form method="post" action="/api/guilds/<%= guild.id %>/settings">
+      <label class="toggle"><input type="checkbox" name="modmailEnabled" value="true" <%= settings.modmailEnabled ? 'checked' : '' %>><span class="track"></span><span>Modmail enabled</span></label>
+      <label>Thread category</label>
+      <select name="modmailCategoryId"><option value="">— none —</option>
+        <% channels.filter(c => c.type === 4).forEach(c => { %><option value="<%= c.id %>" <%= settings.modmailCategoryId === c.id ? 'selected' : '' %>><%= c.name %></option><% }); %>
+      </select>
+      <br><br><button class="btn" type="submit">Save modmail settings</button>
+    </form>
+    <h2>Open threads</h2>
+    <% const openThreads = modmailThreads.filter(t => t.status === 'open'); %>
+    <% if (!openThreads.length) { %><p class="muted">No open threads.</p><% } else { %>
+      <table><tr><th>User</th><th>Channel</th><th>Opened</th><th></th></tr>
+      <% openThreads.forEach(t => { %><tr><td>&lt;@<%= t.user_id %>&gt;</td><td><%= t.channel_id %></td><td><%= t.created_at %></td><td><button class="btn danger" data-post="/api/guilds/<%= guild.id %>/modmail/<%= t.id %>/close">Close</button></td></tr><% }); %></table>
+    <% } %>
+    <h2>Blocked users</h2>
+    <% if (!modmailBlocks.length) { %><p class="muted">Nobody is blocked from modmail.</p><% } else { %>
+      <table><tr><th>User</th><th>Reason</th><th></th></tr>
+      <% modmailBlocks.forEach(b => { %><tr><td>&lt;@<%= b.user_id %>&gt;</td><td><%= b.reason || '—' %></td><td><button class="btn danger" data-delete="/api/guilds/<%= guild.id %>/modmail-blocks/<%= b.user_id %>">Unblock</button></td></tr><% }); %></table>
+    <% } %>
     <% } %>
 
     <% if (module === 'economy') { %>
@@ -296,6 +708,26 @@
       <input type="text" name="economyCurrencyEmoji" value="<%= premiumSettings?.economyCurrencyEmoji || '🪙' %>" maxlength="32">
       <br><br><button class="btn" type="submit">Save economy settings</button>
     </form>
+    <h2>🎟️ Lottery</h2>
+    <p class="muted">Weekly draw, Sundays 20:00 server time. Jackpot is 50% of this week's ticket sales, split between players matching all 3 numbers; 2 matches pay 100 coins. Results post to the lottery channel and winners are DM'd. Same as /lottery in Discord.</p>
+    <form method="post" action="/api/guilds/<%= guild.id %>/settings">
+      <label>Ticket price (coins, 10–10000)</label>
+      <input type="number" name="lotteryTicketPrice" min="10" max="10000" value="<%= settings.lotteryTicketPrice ?? 100 %>">
+      <label>Lottery results channel</label>
+      <select name="lotteryChannelId"><option value="">— none —</option>
+        <% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>" <%= settings.lotteryChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }); %>
+      </select>
+      <br><br><button class="btn" type="submit">Save lottery settings</button>
+    </form>
+    <% if (lotteryStatus) { %>
+    <table><tr><th>Week</th><th>Tickets sold</th><th>Jackpot</th><th>Next draw</th></tr>
+    <tr><td><%= lotteryStatus.weekStart %></td><td><%= lotteryStatus.ticketsSold %></td><td><%= lotteryStatus.jackpot %> coins</td><td><%= lotteryStatus.nextDraw %></td></tr></table>
+    <% } %>
+    <% if (lotteryDraws.length) { %>
+    <h3>Recent draws</h3>
+    <table><tr><th>Week</th><th>Winning numbers</th><th>Winner</th><th>Prize</th><th>Drawn</th></tr>
+    <% lotteryDraws.forEach(d => { %><tr><td><%= String(d.week_start).slice(0, 10) %></td><td><%= d.winning_numbers %></td><td><%= d.winner_id ? '&lt;@' + d.winner_id + '&gt;' : '— (no winner)' %></td><td><%= d.prize %></td><td><%= d.drawn_at %></td></tr><% }); %></table>
+    <% } %>
     <h2>Shop items <button class="btn ghost" type="button" data-refresh-section="#shop-list">🔄 Refresh</button></h2>
     <div id="shop-list">
     <% if (!shopItems.length) { %><p class="muted">Shop is empty — add an item below (or /shop-add in Discord).</p><% } %>
@@ -312,6 +744,23 @@
       <br><br><button class="btn" type="submit">Add item</button>
     </form>
     <p id="shop-result" class="muted"></p>
+    <h2>💼 Work jobs</h2>
+    <p class="muted">Per-server job catalog — /work pays from the member's chosen job. Defaults (Dishwasher, Barista, Mechanic, Developer) are seeded on first use. Manage jobs with /job in Discord.</p>
+    <% if (typeof workJobs !== 'undefined' && workJobs.length) { %>
+      <table><tr><th>Job</th><th>Pay/shift</th><th>Unlock cost</th><th>Min level</th></tr>
+      <% workJobs.forEach(j => { %><tr><td><strong><%= j.name %></strong><% if (j.flavor_text) { %><br><span class="muted"><%= j.flavor_text %></span><% } %></td><td><%= j.min_payout %>–<%= j.max_payout %></td><td><%= j.cost %></td><td><%= j.required_level %></td></tr><% }); %></table>
+    <% } else { %><p class="muted">No jobs yet — they seed automatically the first time someone runs /jobs or /work.</p><% } %>
+    <h2>🦹 Robbery</h2>
+    <p class="muted">/rob lets members steal 10–30% of another member's wallet (35% success). On failure the robber pays a fine of up to 100 coins to the victim, capped at what they can afford. The bank can never be robbed.</p>
+    <form method="post" action="/api/guilds/<%= guild.id %>/settings">
+      <label class="toggle"><input type="checkbox" name="robberyEnabled" value="true" <%= settings.robberyEnabled !== false ? 'checked' : '' %>><span class="track"></span><span>Robbery enabled</span></label>
+      <br><br><button class="btn" type="submit">Save robbery setting</button>
+    </form>
+    <% if (typeof recentRobs !== 'undefined' && recentRobs.length) { %>
+      <h3>Recent robberies</h3>
+      <table><tr><th>When</th><th>Robber</th><th>Victim</th><th>Result</th><th>Amount</th></tr>
+      <% recentRobs.forEach(r => { %><tr><td><%= r.created_at %></td><td>&lt;@<%= r.user_id %>&gt;</td><td>&lt;@<%= r.target_id %>&gt;</td><td><%= r.result %></td><td><%= r.amount %></td></tr><% }); %></table>
+    <% } %>
     <% } %>
 
     <% if (module === 'starboard') { %>
@@ -375,6 +824,45 @@
     <% scheduledMessages.forEach(s => { %><tr><td>#<%= s.id %></td><td>#<%= (channels.find(c => c.id === s.channel_id)?.name || s.channel_id) %></td><td><%= s.send_at %></td><td><%= (s.content || (() => { try { return JSON.parse(s.embed_json).title; } catch { return '(embed)'; } })()).slice(0, 120) %></td><td><button class="btn danger" data-cancel-scheduled="<%= s.id %>">Cancel</button></td></tr><% }); %></table>
     </div>
     <p class="muted">Schedule new messages with <code>/schedule</code> in Discord (times like "in 2h", "tomorrow 9am", "2026-11-14 15:00").</p>
+    <h2>⏳ Countdowns</h2>
+    <p class="muted">Live countdown embeds that update themselves — every minute once under 24h is left, every 5 minutes before that. Same as /countdown in Discord.</p>
+    <div id="countdowns-list">
+    <% if (!countdowns.length) { %><p class="muted">No active countdowns.</p><% } else { %>
+      <table><tr><th>ID</th><th>Title</th><th>Channel</th><th>Ends at</th><th></th></tr>
+      <% countdowns.forEach(c => { %><tr><td>#<%= c.id %></td><td><%= c.title %></td><td>#<%= (channels.find(x => x.id === c.channel_id)?.name || c.channel_id) %></td><td><%= c.ends_at %></td><td><button class="btn danger" data-delete="/api/guilds/<%= guild.id %>/countdowns/<%= c.id %>">Cancel</button></td></tr><% }); %></table>
+    <% } %>
+    </div>
+    <form id="add-countdown-form">
+      <label>Title</label>
+      <input type="text" name="title" placeholder="Christmas" required maxlength="256">
+      <label>When ("in 2h30m", "in 3d", or "2026-12-25 18:00")</label>
+      <input type="text" name="when" placeholder="in 2h" required>
+      <label>Channel</label>
+      <select name="channelId"><% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>">#<%= c.name %></option><% }); %></select>
+      <br><br><button class="btn" type="submit">Create countdown</button>
+    </form>
+    <p id="countdown-result" class="muted"></p>
+    <% } %>
+
+    <% if (module === 'games') { %>
+    <h1>Games</h1>
+    <p class="muted">Daily trivia and other games. Same settings as /trivia-daily setup in Discord.</p>
+    <h2>🧠 Daily trivia</h2>
+    <form method="post" action="/api/guilds/<%= guild.id %>/trivia-settings">
+      <label class="toggle"><input type="checkbox" name="enabled" value="true" <%= triviaSettings?.enabled !== 0 ? 'checked' : '' %>><span class="track"></span><span>Daily trivia enabled</span></label>
+      <label>Channel to post the daily question in</label>
+      <select name="channelId"><option value="">— none —</option>
+        <% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>" <%= triviaSettings?.channel_id === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }); %>
+      </select>
+      <label>Posting hour (UTC, 0–23)</label>
+      <input type="number" name="hour" min="0" max="23" value="<%= triviaSettings?.hour ?? 12 %>">
+      <br><br><button class="btn" type="submit">Save trivia settings</button>
+    </form>
+    <h2>🏆 Trivia leaderboard</h2>
+    <% if (!triviaLeaderboard.length) { %><p class="muted">No daily-trivia wins yet.</p><% } else { %>
+      <table><tr><th>#</th><th>User</th><th>Points</th><th>Wins</th></tr>
+      <% triviaLeaderboard.forEach((r, i) => { %><tr><td><%= i + 1 %></td><td>&lt;@<%= r.user_id %>&gt;</td><td><%= r.points %></td><td><%= r.wins %></td></tr><% }); %></table>
+    <% } %>
     <% } %>
 
     <% if (module === 'roles') { %>
@@ -388,7 +876,41 @@
       <label class="toggle"><input type="checkbox" name="stickyRolesEnabled" value="true" <%= premiumSettings?.stickyRolesEnabled ? 'checked' : '' %>><span class="track"></span><span>Sticky roles enabled</span></label>
       <br><br><button class="btn" type="submit">Save role settings</button>
     </form>
+    <h2>🚀 Nitro booster role</h2>
+    <p class="muted">Granted automatically when a member starts boosting, removed when they stop. Same settings as /boosterrole in Discord.</p>
+    <form method="post" action="/api/guilds/<%= guild.id %>/settings">
+      <label>Booster role</label>
+      <select name="boosterRoleId"><option value="">— none —</option>
+        <% roles.forEach(r => { %><option value="<%= r.id %>" <%= settings.boosterRoleId === r.id ? 'selected' : '' %>><%= r.name %></option><% }); %>
+      </select>
+      <br><br><button class="btn" type="submit">Save booster role</button>
+    </form>
+    <h2>🎨 Color roles</h2>
+    <p class="muted">Self-assignable color roles — members pick one with /color set (one at a time). Only roles below the bot's highest role can be assigned.</p>
+    <% if (!colorRoles.length) { %><p class="muted">No color roles registered yet.</p><% } else { %>
+      <table><tr><th>Role</th><th>Color</th><th></th></tr>
+      <% colorRoles.forEach(c => { %><tr><td><%= (roles.find(r => r.id === c.role_id) || {}).name || c.name || c.role_id %></td><td><span style="display:inline-block;width:16px;height:16px;border-radius:4px;background:<%= c.hex %>;vertical-align:middle"></span> <%= c.hex %></td><td><button class="btn danger" data-delete="/api/guilds/<%= guild.id %>/colorroles/<%= c.role_id %>">Remove</button></td></tr><% }); %></table>
+    <% } %>
+    <form id="colorrole-add-form" action="/api/guilds/<%= guild.id %>/colorroles">
+      <label>Add a color role</label>
+      <select name="roleId">
+        <% roles.filter(r => r.color).forEach(r => { %><option value="<%= r.id %>"><%= r.name %></option><% }); %>
+      </select>
+      <br><br><button class="btn" type="submit">Add color role</button>
+    </form>
+    <h2>⏳ Temporary roles</h2>
+    <p class="muted">Roles granted with an expiry (/temprole) — the bot removes them automatically when they expire. Remove one early here.</p>
+    <% if (!tempRoles.length) { %><p class="muted">No active temporary roles.</p><% } else { %>
+      <table><tr><th>User</th><th>Role</th><th>Expires</th><th></th></tr>
+      <% tempRoles.forEach(t => { %><tr><td>&lt;@<%= t.user_id %>&gt;</td><td><%= (roles.find(r => r.id === t.role_id) || {}).name || t.role_id %></td><td><%= t.expires_at %></td><td><button class="btn danger" data-post="/api/guilds/<%= guild.id %>/temproles/<%= t.id %>/remove">Remove early</button></td></tr><% }); %></table>
+    <% } %>
     <p class="muted">AFK and polls are Discord-only (see README) — no dashboard tab needed.</p>
+    <h2>🎭 Role menus</h2>
+    <p class="muted">Select-menu role pickers — members pick a role from a dropdown, select again to remove it. Reaction-role requirements (required role / days / level) apply. Manage options with /rolemenu in Discord.</p>
+    <% if (!roleMenus.length) { %><p class="muted">No role menus yet.</p><% } else { %>
+      <table><tr><th>ID</th><th>Title</th><th>Channel</th><th>Options</th><th></th></tr>
+      <% roleMenus.forEach(m => { %><tr><td>#<%= m.id %></td><td><%= m.title %></td><td>#<%= (channels.find(c => c.id === m.channel_id) || {}).name || m.channel_id %></td><td><%= m.item_count %></td><td><button class="btn danger" data-delete="/api/guilds/<%= guild.id %>/rolemenus/<%= m.id %>">Delete</button></td></tr><% }); %></table>
+    <% } %>
     <% } %>
 
     <% if (module === 'welcome') { %>
@@ -411,6 +933,18 @@
       <label>Goodbye message template</label>
       <textarea name="goodbyeMessage" rows="3" id="goodbye-template"><%= settings.goodbyeMessage || '' %></textarea>
       <p class="muted">Preview: <code id="goodbye-preview"></code></p>
+      <h2>🖼️ Welcome image</h2>
+      <p class="muted">Post a 900×300 welcome card (dark gradient, avatar in a circle, server name + member count) when someone joins. Needs the <code>canvas</code> package on the host — if it's missing, the bot logs a warning and sends the plain embed instead, so joins never break.</p>
+      <label class="toggle"><input type="checkbox" name="welcomeImageEnabled" value="true" <%= settings.welcomeImageEnabled ? 'checked' : '' %>><span class="track"></span><span>Generate welcome image</span></label>
+      <label class="toggle"><input type="checkbox" name="welcomeImageOnly" value="true" <%= settings.welcomeImageOnly ? 'checked' : '' %>><span class="track"></span><span>Image only (skip the welcome embed)</span></label>
+      <p><button class="btn ghost" type="button" id="welcome-preview-btn">Preview sample card</button></p>
+      <div id="welcome-preview-img"></div>
+      <h2>✉️ Welcome DM</h2>
+      <p class="muted">Also send new members a private welcome DM. Placeholders: <code>{user}</code>, <code>{username}</code>, <code>{server}</code>. If a member's DMs are closed, the DM is skipped silently and logged. Same as /welcome-dm in Discord.</p>
+      <label class="toggle"><input type="checkbox" name="welcomeDmEnabled" value="true" <%= settings.welcomeDmEnabled ? 'checked' : '' %>><span class="track"></span><span>Welcome DMs enabled</span></label>
+      <label>Welcome DM message</label>
+      <textarea name="welcomeDmMessage" rows="3" id="welcome-dm-template"><%= settings.welcomeDmMessage || '' %></textarea>
+      <p><button class="btn ghost" type="button" id="welcome-dm-test-btn">Send me a test DM</button> <span id="welcome-dm-test-result" class="muted"></span></p>
       <br><button class="btn" type="submit">Save welcome &amp; goodbye settings</button>
     </form>
     <% } %>
@@ -451,6 +985,14 @@
       <br><br><button class="btn" type="submit">Save Automod settings</button>
     </form>
     <p id="automod-result" class="muted"></p>
+    <h2>🔗 New-member link block</h2>
+    <p class="muted">Members who joined less than N days ago cannot post links — the message is deleted, they get a warning that deletes itself after 10 seconds, and the block is logged in Automod actions. Staff roles and Automod-exempt roles/channels bypass it. Same settings as /newmemberlinks-setup in Discord.</p>
+    <form method="post" action="/api/guilds/<%= guild.id %>/settings">
+      <label class="toggle"><input type="checkbox" name="newMemberLinkEnabled" value="true" <%= settings.newMemberLinkEnabled ? 'checked' : '' %>><span class="track"></span><span>New-member link block enabled</span></label>
+      <label>Block links for members younger than (days)</label>
+      <input type="number" name="newMemberLinkDays" min="1" max="90" value="<%= settings.newMemberLinkDays ?? 7 %>">
+      <br><br><button class="btn" type="submit">Save link block settings</button>
+    </form>
     <h2>Recent Automod actions <button class="btn ghost" type="button" data-refresh-section="#automod-actions-list">🔄 Refresh</button></h2>
     <div id="automod-actions-list">
     <% if (!automodActions.length) { %><p class="muted">No Automod actions logged yet.</p><% } %>
@@ -491,6 +1033,25 @@
       </div>
     <% }); %>
     </div>
+    <% } %>
+    <% if (module === 'emojis') { %>
+    <h1>😀 Emojis</h1>
+    <p class="muted">The server's custom emoji — same as /emoji-list, /emoji-add and /emoji-remove in Discord. Adding or removing from here is logged in the database (emoji_logs). Discord limits emoji to PNG, JPG, GIF or WEBP under 256KB.</p>
+    <div id="emojis-list">
+    <% if (!emojis.length) { %><p class="muted">No custom emoji in this server yet.</p><% } else { %>
+      <table><tr><th>Emoji</th><th>Name</th><th>Animated</th><th></th></tr>
+      <% emojis.forEach(e => { %><tr><td><img src="https://cdn.discordapp.com/emojis/<%= e.id %>.<%= e.animated ? 'gif' : 'png' %>" alt=":<%= e.name %>:" width="32" height="32"></td><td>:<%= e.name %>:</td><td><%= e.animated ? 'yes' : 'no' %></td><td><button class="btn danger" data-delete="/api/guilds/<%= guild.id %>/emojis/<%= e.id %>">Remove</button></td></tr><% }); %></table>
+    <% } %>
+    </div>
+    <h2>Add an emoji</h2>
+    <form id="add-emoji-form">
+      <label>Name (2–32 letters, numbers, underscores)</label>
+      <input type="text" name="name" placeholder="my_emoji" required pattern="[A-Za-z0-9_]{2,32}" maxlength="32">
+      <label>Image URL (PNG, JPG, GIF or WEBP under 256KB)</label>
+      <input type="url" name="imageUrl" placeholder="https://example.com/emoji.png" required>
+      <br><br><button class="btn" type="submit">Upload emoji</button>
+    </form>
+    <p id="emoji-result" class="muted"></p>
     <% } %>
   </section>
 </div>
