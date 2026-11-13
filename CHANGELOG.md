@@ -6,6 +6,36 @@ in `package.json` is the source of truth for the current release — every
 version below must match a `package.json` version, and the dashboard
 `/version` page renders from this file.
 
+## [1.12.6] - 2026-11-13
+
+### Added
+- Economy robbery (1.12.6) — `/rob @user` steals from another member's **wallet** (never the bank) at a flat 35% success chance; success takes 10–30% of the victim's wallet (min 10, max 1,000 coins), failure costs the robber a fine of up to 100 coins paid to the victim, capped at what the robber can afford (never a debt). Cooldowns: 30 minutes after a success, 1 hour after a failure (`rob_attempts` table). Guards: no robbing bots or yourself, victim needs 50+ wallet coins; the victim gets a DM when possible. Per-server toggle (`guild_settings.robbery_enabled`, default on) plus a recent-robs list on the dashboard Economy tab. Logged as `rob_win` / `rob_loss` / `rob_fine` in `economy_transactions`.
+
+## [1.12.5] - 2026-11-13
+
+### Added
+- New-member link block (1.12.5) — members who joined less than N days ago (default 7) cannot post links: the message is deleted, they get a warning that deletes itself after 10 seconds, and the block is logged to Automod actions. Runs independently of the main Automod toggle; staff roles and Automod-exempt roles/channels bypass it. `/newmemberlinks-setup` (admin) and the dashboard Automod tab. Settings in `guild_settings` (`new_member_link_enabled`, `new_member_link_days`).
+
+## [1.12.4] - 2026-11-13
+
+### Added
+- Giveaway bonus entries (1.12.4) — `/giveaway start` takes optional `bonus_role` + `bonus_entries` (default 1, max 10); holders of that role get +N entries, and Nitro boosters get +1 automatically when the guild has a booster role configured. The draw is now **weighted** by total entries (`pickWeightedWinners`), and a winner's tickets are removed after winning so nobody wins twice in one draw. Entry confirmations show `Entries: N (includes X bonus)` with the reasons. Bonus entries live in the `giveaway_bonus` table; the giveaway embed, `/giveaway list`, and the dashboard Giveaways tab show the bonus rules.
+
+## [1.12.3] - 2026-11-13
+
+### Added
+- Work job upgrades (1.12.3) — per-server job catalog (`work_jobs` table, chosen job in `user_jobs`): Dishwasher (30–80 coins, free, level 0), Barista (50–120, 200 coins, level 2), Mechanic (80–200, 500 coins, level 5), Developer (150–400, 1,500 coins, level 10), seeded on first use. `/jobs` lists them, `/job buy <name>` unlocks one (wallet coins + level requirement), `/job set <name>` picks an unlocked job. `/work` pays from your job's payout range with that job's flavor text (no job = the old 50–250 range). Dashboard Economy tab lists the server's jobs.
+
+## [1.12.2] - 2026-11-13
+
+### Added
+- Nitro booster role (1.12.2) — `/boosterrole set <role>` (admin) picks the role Nitro boosters get automatically: granted when a member starts boosting, removed when they stop, with a one-time sweep granting it to current boosters on setup. `/boosterrole view` / `/boosterrole remove`. Guard: the role must sit below the bot's highest role. Stored in `guild_settings.booster_role_id`; dashboard Roles tab has the dropdown.
+
+## [1.12.1] - 2026-11-13
+
+### Added
+- 24/7 music mode (1.12.1) — `/247 enable <voice channel>` (admin) keeps the bot in that voice channel around the clock: it stays connected even with an empty queue and rejoins if disconnected or kicked. `/247 disable` turns it off (the bot leaves); `/247 status` shows the state. A per-minute checker rejoins dropped connections. Settings in `guild_settings` (`music247_enabled`, `music247_channel_id`); dashboard Music tab has the toggle + channel dropdown. Rejoins are logged via the error logger (info level).
+
 ## [1.11.6] - 2026-11-13
 
 ### Added
@@ -65,36 +95,6 @@ version below must match a `package.json` version, and the dashboard
 
 ### Added
 - Saved music playlists (1.10.1) — `/playlist save <name>` saves the current queue (playing track + queued tracks) as a named playlist, `/playlist load <name>` queues it back (voice channel required), `/playlist list [user]`, `/playlist delete`, `/playlist rename`. Per-user, per-server; max 10 playlists per user per server, max 50 tracks each. Dashboard Music tab lists playlists with delete.
-
-## [1.12.6] - 2026-11-13
-
-### Added
-- Economy robbery (1.12.6) — `/rob @user` steals from another member's **wallet** (never the bank) at a flat 35% success chance; success takes 10–30% of the victim's wallet (min 10, max 1,000 coins), failure costs the robber a fine of up to 100 coins paid to the victim, capped at what the robber can afford (never a debt). Cooldowns: 30 minutes after a success, 1 hour after a failure (`rob_attempts` table). Guards: no robbing bots or yourself, victim needs 50+ wallet coins; the victim gets a DM when possible. Per-server toggle (`guild_settings.robbery_enabled`, default on) plus a recent-robs list on the dashboard Economy tab. Logged as `rob_win` / `rob_loss` / `rob_fine` in `economy_transactions`.
-
-## [1.12.5] - 2026-11-13
-
-### Added
-- New-member link block (1.12.5) — members who joined less than N days ago (default 7) cannot post links: the message is deleted, they get a warning that deletes itself after 10 seconds, and the block is logged to Automod actions. Runs independently of the main Automod toggle; staff roles and Automod-exempt roles/channels bypass it. `/newmemberlinks-setup` (admin) and the dashboard Automod tab. Settings in `guild_settings` (`new_member_link_enabled`, `new_member_link_days`).
-
-## [1.12.4] - 2026-11-13
-
-### Added
-- Giveaway bonus entries (1.12.4) — `/giveaway start` takes optional `bonus_role` + `bonus_entries` (default 1, max 10); holders of that role get +N entries, and Nitro boosters get +1 automatically when the guild has a booster role configured. The draw is now **weighted** by total entries (`pickWeightedWinners`), and a winner's tickets are removed after winning so nobody wins twice in one draw. Entry confirmations show `Entries: N (includes X bonus)` with the reasons. Bonus entries live in the `giveaway_bonus` table; the giveaway embed, `/giveaway list`, and the dashboard Giveaways tab show the bonus rules.
-
-## [1.12.3] - 2026-11-13
-
-### Added
-- Work job upgrades (1.12.3) — per-server job catalog (`work_jobs` table, chosen job in `user_jobs`): Dishwasher (30–80 coins, free, level 0), Barista (50–120, 200 coins, level 2), Mechanic (80–200, 500 coins, level 5), Developer (150–400, 1,500 coins, level 10), seeded on first use. `/jobs` lists them, `/job buy <name>` unlocks one (wallet coins + level requirement), `/job set <name>` picks an unlocked job. `/work` pays from your job's payout range with that job's flavor text (no job = the old 50–250 range). Dashboard Economy tab lists the server's jobs.
-
-## [1.12.2] - 2026-11-13
-
-### Added
-- Nitro booster role (1.12.2) — `/boosterrole set <role>` (admin) picks the role Nitro boosters get automatically: granted when a member starts boosting, removed when they stop, with a one-time sweep granting it to current boosters on setup. `/boosterrole view` / `/boosterrole remove`. Guard: the role must sit below the bot's highest role. Stored in `guild_settings.booster_role_id`; dashboard Roles tab has the dropdown.
-
-## [1.12.1] - 2026-11-13
-
-### Added
-- 24/7 music mode (1.12.1) — `/247 enable <voice channel>` (admin) keeps the bot in that voice channel around the clock: it stays connected even with an empty queue and rejoins if disconnected or kicked. `/247 disable` turns it off (the bot leaves); `/247 status` shows the state. A per-minute checker rejoins dropped connections. Settings in `guild_settings` (`music247_enabled`, `music247_channel_id`); dashboard Music tab has the toggle + channel dropdown. Rejoins are logged via the error logger (info level).
 
 ## [1.9.6] - 2026-11-13
 
