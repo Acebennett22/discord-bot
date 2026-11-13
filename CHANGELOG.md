@@ -6,6 +6,86 @@ in `package.json` is the source of truth for the current release — every
 version below must match a `package.json` version, and the dashboard
 `/version` page renders from this file.
 
+## [1.13.15] - 2026-11-13
+
+### Added
+- Emoji steal (1.13.15) — `/steal-emoji <emoji> [name]` copies a custom emoji from another server (or an image URL) into this server, with an optional new name. Requires Manage Emojis; same validation as `/emoji-add` (PNG/JPG/GIF under 256KB, name 2–32 letters/numbers/underscores, emoji slot limit checked first) and logged to `emoji_logs`.
+
+## [1.13.14] - 2026-11-13
+
+### Added
+- Temp VC setup command (1.13.14) — admin-only `/tempvc-setup` configures temporary voice channels in Discord (create channel, optional category, on/off) instead of only via the dashboard. Saves the existing `tempvcCreateChannelId` / `tempvcCategoryId` settings; disabling clears the create channel (there is no separate enabled flag).
+
+## [1.13.13] - 2026-11-13
+
+### Added
+- Translate context menu (1.13.13) — a "Translate message" message context menu command translates any message into the server's configured auto-translate target language (English by default) and replies ephemerally with the original text and the translation. Uses the same free, no-key Google translate helper as `/translate`; messages already in the target language (or with no text) get a clear ephemeral note instead.
+
+## [1.13.12] - 2026-11-13
+
+### Added
+- Weather home location (1.13.12) — `/weather-home set <location>` / `clear` / `view` saves a personal home location per user per server (`user_weather` table). `/weather` with no location now uses your home location first, then the server default from `/weather-set`.
+
+## [1.13.11] - 2026-11-13
+
+### Added
+- Custom color roles (1.13.11) — `/color custom <hex>` sets any `#RRGGBB` color: it creates (or recolors) a personal color role named `color-<your user id>`, positioned below the bot's highest role, and wears it like any other color role — one color at a time, so your old color role comes off. Your personal role shows in `/color list`, and `/color remove` deletes it entirely instead of leaving a dead role behind. Personal roles are tracked in the `user_color_roles` table.
+
+## [1.13.10] - 2026-11-13
+
+### Added
+- Role shop (1.13.10) — `/roleshop list` shows roles for sale with prices; `/roleshop buy <role>` spends wallet coins for a one-time purchase (refused if you already have the role or already bought it once). `/roleshop add <role> <price>` and `/roleshop remove <role>` are admin-only. The role must sit below the bot's highest role, and it is granted before any coins are taken so a failed grant never charges you; if the purchase record cannot be written, the charge is refunded and the role removed. Listings in `roleshop_items`, purchases in `roleshop_purchases`.
+
+## [1.13.9] - 2026-11-13
+
+### Added
+- Daily quests (1.13.9) — `/quest list` shows today's 5 quests with done/claimed state; `/quest claim [quest]` claims one by ID, or all completed ones if omitted. Quests: claim `/daily`, work a shift, use 5 slash commands, spend 10 minutes in voice, play a casino game — each verified at claim time from tables the bot already writes, and each paying coins + XP (50–100 coins, 20–30 XP). One claim per quest per day, tracked in the `user_quests` table.
+
+## [1.13.8] - 2026-11-13
+
+### Added
+- Social actions (1.13.8) — `/ship @user [@user2]` (second user defaults to you) gives a deterministic compatibility % — same pair, same score every time (FNV-1a hash of the two user IDs) — as a public embed with a percentage bar and a playful label. `/hug`, `/kiss`, and `/slap @user [message]` fetch a GIF from the free, no-key nekos.best API and post it as a public embed naming actor and target; if the GIF service is down you get a clear error embed instead of a crash. No database use.
+
+## [1.13.7] - 2026-11-13
+
+### Added
+- Confessions setup command (1.13.7) — admin-only `/confess-setup` sets the confessions channel, whether staff approval is required (default true), and whether confessions are enabled (default true), and replies with the current setup. Previously these settings could only be changed on the dashboard. Saves via the existing `confessionsEnabled` / `confessionsChannelId` / `confessionsRequireApproval` settings; `/confess` itself (modal submission, approval queue) is unchanged.
+
+## [1.13.6] - 2026-11-13
+
+### Added
+- Counting leaderboard (1.13.6) — `/counting-leaderboard` shows the current count, the highest count, and the top 10 counters by correct counts. Per-user correct counts are now tracked on every valid count in the `counting_counts` table (counts start at 0 for everyone — no backfill from past counting history). The counting rules themselves are unchanged.
+
+## [1.13.5] - 2026-11-13
+
+### Added
+- Birthday today/next (1.13.5) — `/birthday today` lists members with a birthday today, and `/birthday next` shows the next upcoming birthday in the server and how many days away it is. Reuses the existing `birthdays` table and the Feb 29 handling from the daily checker; set/remove/list, setup, and the birthday role are unchanged.
+
+## [1.13.4] - 2026-11-13
+
+### Added
+- Channel lockdown (1.13.4) — `/lockdown lock [channel] [reason]` (moderators, Manage Channels) locks a channel so @everyone cannot send messages — the previous @everyone overwrite is stored and restored exactly on `/lockdown release`, which posts a public unlock notice; `/lockdown status` lists currently locked channels. Lock state lives in the `lockdowns` table. Separate from the anti-nuke system's automatic lockdown action.
+
+## [1.13.3] - 2026-11-13
+
+### Added
+- Verify from anywhere (1.13.3) — `/verify` lets a member verify without finding the panel: it reports if they are already verified, otherwise sends them a working Verify button (captcha mode opens the math-question modal, same as the panel), or points them to `/verify-setup` if verification is not enabled. Reuses the existing verification gate and `verificationInteraction` handler; no new table.
+
+## [1.13.2] - 2026-11-13
+
+### Added
+- User reports (1.13.2) — `/report submit @user <reason> [evidence]` files a report with the moderators: it is stored in the `reports` table and posted as an embed to the modlog channel configured with `/modlog-setup` (falling back to the core log channel). `/report list` (Manage Messages) shows open reports. Self-reports and bot reports are refused.
+
+## [1.13.1] - 2026-11-13
+
+### Added
+- AFK list (1.13.1) — `/afk-list` shows an ephemeral embed of everyone currently AFK in the server, with their reason and how long they have been away. Reads the existing `afk_users` table written by `/afk`; the mention notices, auto-clear on return, and nickname prefix are unchanged.
+
+## [1.13.0] - 2026-11-13
+
+### Added
+- Reminder management (1.13.0) — `/remind` with `set`, `list`, and `cancel` subcommands: set a personal reminder (same time formats as `/remindme`), list your pending reminders with IDs and relative due times, or cancel one of your own pending reminders. Delivery still goes through the existing 1-minute scheduler loop (DM, falling back to the channel where it was set); reuses the `reminders` table, no new table.
+
 ## [1.12.6] - 2026-11-13
 
 ### Added

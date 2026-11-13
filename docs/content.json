@@ -353,7 +353,8 @@
     "Check the weather anywhere with /weather <city, ZIP, or \"lat,lon\"> \u2014 temperature, feels-like, condition, humidity, wind, pressure, visibility, sunrise and sunset.",
     "See ahead with /forecast <location> [days 1-7] \u2014 high/low, condition, and precipitation chance per day.",
     "An admin can set a server default with /weather-set (location + imperial/metric units), so /weather with no location just works.",
-    "Weather comes from Open-Meteo \u2014 free, no API key needed."
+    "Weather comes from Open-Meteo \u2014 free, no API key needed.",
+    "Save a personal home with /weather-home set <location> \u2014 bare /weather uses your home first, then the server default."
    ],
    "title": "Weather"
   },
@@ -413,7 +414,8 @@
     "An admin runs /translate-setup with a channel and a target language \u2014 messages in that channel are auto-translated into it.",
     "Translation uses Google's free unofficial endpoint (no key, no SLA) \u2014 if it fails, the message is simply left untranslated.",
     "Anyone can translate text on demand with /translate and a target language code (e.g. es, fr, de).",
-    "Bot messages and commands are never translated."
+    "Bot messages and commands are never translated.",
+    "Right-click any message \u2192 Apps \u2192 \"Translate message\" translates that one message on demand."
    ],
    "title": "Auto-translate"
   },
@@ -649,6 +651,121 @@
     "Staff can preview a sample card on the dashboard Leveling tab."
    ],
    "title": "Rank card image"
+  },
+  {
+   "id": "reminders",
+   "steps": [
+    "Set one with /remind set <time> <text> \u2014 times like \"in 2h\", \"tomorrow 9am\", or \"2026-11-14 15:00\".",
+    "See your pending reminders with /remind list, and cancel one with /remind cancel <id>.",
+    "When it is due the bot DMs you; if your DMs are closed it posts in the channel where you set it."
+   ],
+   "title": "Reminders"
+  },
+  {
+   "id": "report",
+   "steps": [
+    "Report someone with /report submit @user <reason> [evidence] \u2014 the report is saved and posted to the modlog channel.",
+    "Moderators list open reports with /report list (needs Manage Messages).",
+    "Reports only work if an admin has set a modlog channel with /modlog-setup."
+   ],
+   "title": "Reporting users"
+  },
+  {
+   "id": "verify-anywhere",
+   "steps": [
+    "New members verify from the panel posted by /verify-setup (button, or a math-question captcha).",
+    "Any member can also run /verify anywhere \u2014 it tells you if you are already verified, or sends you a working Verify button."
+   ],
+   "title": "Verifying"
+  },
+  {
+   "id": "lockdown",
+   "steps": [
+    "A moderator runs /lockdown lock [channel] [reason] \u2014 @everyone can no longer send messages there.",
+    "/lockdown release unlocks it and restores the channel\u2019s previous permissions exactly; /lockdown status lists locked channels."
+   ],
+   "title": "Locking a channel"
+  },
+  {
+   "id": "counting-leaderboard",
+   "steps": [
+    "Play counting in the configured channel: each message must start with the next number, and the same person cannot count twice in a row.",
+    "/counting-leaderboard shows the current count, the highest count, and the top 10 counters by correct counts."
+   ],
+   "title": "Counting leaderboard"
+  },
+  {
+   "id": "confess-setup",
+   "steps": [
+    "An admin runs /confess-setup with a channel (approval queue on by default).",
+    "Members submit with /confess, which opens a modal \u2014 the bot posts it anonymously; staff approve or deny it first when approval is on."
+   ],
+   "title": "Confessions"
+  },
+  {
+   "id": "social-actions",
+   "steps": [
+    "/ship @user [@user2] shows a compatibility % for the pair \u2014 the same pair always gets the same score.",
+    "/hug, /kiss, and /slap @user [message] post a GIF in the channel naming who did it and to whom."
+   ],
+   "title": "Social actions"
+  },
+  {
+   "id": "quests",
+   "steps": [
+    "/quest list shows today\u2019s 5 quests (claim /daily, work a shift, use 5 slash commands, 10 voice minutes, play a casino game) with done/claimed state.",
+    "/quest claim [quest] claims one, or all completed ones if you leave it out. Each pays coins + XP, once per quest per day."
+   ],
+   "title": "Daily quests"
+  },
+  {
+   "id": "roleshop",
+   "steps": [
+    "Admins list roles for sale with /roleshop add <role> <price> and remove them with /roleshop remove <role>.",
+    "Members buy with /roleshop buy <role> using wallet coins \u2014 one-time purchases, no refunds.",
+    "A role must sit below the bot\u2019s highest role, and it is granted before any coins are taken."
+   ],
+   "title": "Role shop"
+  },
+  {
+   "id": "color-custom",
+   "steps": [
+    "/color custom <hex> creates a personal color role in any #RRGGBB color and wears it (one color at a time).",
+    "Your personal role shows in /color list; /color remove deletes it entirely instead of leaving a dead role behind."
+   ],
+   "title": "Custom color roles"
+  },
+  {
+   "id": "weather-home",
+   "steps": [
+    "Save a personal home with /weather-home set <location> \u2014 /weather with no location uses it first, then the server default from /weather-set.",
+    "/weather-home view shows your saved home; /weather-home clear removes it."
+   ],
+   "title": "Weather home location"
+  },
+  {
+   "id": "translate-message",
+   "steps": [
+    "Right-click any message, go to Apps, and pick \"Translate message\".",
+    "The bot replies ephemerally with the original text and the translation in the server\u2019s auto-translate target language (English by default)."
+   ],
+   "title": "Translating a message"
+  },
+  {
+   "id": "tempvc-setup",
+   "steps": [
+    "An admin runs /tempvc-setup with a create channel and an optional category.",
+    "Joining the create channel spins up a personal voice channel named after you; it is deleted when empty. Manage yours with /tempvc limit/lock/unlock/rename/kick/claim."
+   ],
+   "title": "Temporary voice channels"
+  },
+  {
+   "id": "steal-emoji",
+   "steps": [
+    "/steal-emoji <emoji> [name] copies a custom emoji from another server into this one (or use a direct image URL).",
+    "Same rules as /emoji-add: PNG/JPG/GIF under 256KB, name 2\u201332 letters/numbers/underscores, and the server must have a free emoji slot."
+   ],
+   "title": "Stealing an emoji"
   }
  ]
 }

@@ -17,7 +17,7 @@ User-facing docs live on the dashboard at **`/docs`** (also linked from the head
 | Moderation | `/kick`, `/ban`, `/timeout`, `/warn` (add/list, JSON-backed + DB mirror), `/clear`, `/unban`, `/setup` (per-server settings), `/tempban`, `/tempban-list`, `/tempban-cancel` (v1.9.1), `/purge` (v1.9.2 — by user / contains text) |
 | Music | `/play`, `/skip`, `/stop`, `/queue`, `/pause`, `/resume`, `/filter`, `/lyrics`, `/nowplaying`, `/playlist` (save/load/list/delete/rename — saved queues, per-user per-server) — `@discordjs/voice` + `play-dl`, DJ-role enforcement, Spotify track links matched on YouTube |
 | Status / monitoring | `/ping` (shard-aware, lists every shard), `/uptime`, `/serverinfo`, `/userinfo`, `/status`, `/botstats`, `/mystats`, `/shards`, `/topcommands`, `/topusers`, `/guildstats`, `/globalstats` (owner), `/hostinfo` (owner — host OS/CPU/memory/disk/runtime specs) |
-| Fun & games | `/8ball`, `/coinflip`, `/dice`, `/rps`, `/trivia` (built-in bank, no external API), `/trivia-daily`, `/trivia-leaderboard` — daily server-wide trivia, first correct answer wins 50 coins (v1.10.2) |
+| Fun & games | `/8ball`, `/coinflip`, `/dice`, `/rps`, `/trivia` (built-in bank, no external API), `/trivia-daily`, `/trivia-leaderboard` — daily server-wide trivia, first correct answer wins 50 coins (v1.10.2); `/ship`, `/hug`, `/kiss`, `/slap` — social actions (v1.13.8) |
 | Tickets | `/ticket-setup`, `/ticket-close`, `/ticket-add`, `/ticket-remove`, `/ticket-claim` — panel + modals + HTML transcripts |
 | Server Stats | `/serverstats-setup`, `/serverstats-toggle` — live stat voice channels |
 | Streams | `/stream-add`, `/stream-remove`, `/stream-list`, `/stream-announce` — Twitch/YouTube/Kick live alerts |
@@ -25,31 +25,34 @@ User-facing docs live on the dashboard at **`/docs`** (also linked from the head
 | Steam | `/steam`, `/linksteam` |
 | Giveaways | `/giveaway` (start/end/reroll/list) — button entry, random winners |
 | Reaction Roles | `/reactionroles-setup`, `/reactionroles-add`, `/reactionroles-remove`, `/reactionroles-list` — button toggles, with optional requirements (required role, min days in server, min leveling level) |
-| Verification | `/verify-setup`, `/verify-toggle` — button or math-question captcha gate (v1.2.1) |
-| Counting & bumps | `/counting-setup`, `/counting-reset`, `/bump-setup`, `/bump` — counting game + 2-hour bump reminders (v1.2.2) |
-| Temp voice | `/tempvc` (limit/lock/unlock/rename/kick/claim) — personal voice channels (v1.2.3) |
-| Birthdays | `/birthday` (set/remove/list), `/birthday-setup` — daily birthday announcements (v1.2.5) |
-| Weather | `/weather`, `/forecast`, `/weather-set` — Open-Meteo, no API key (v1.2.7) |
+| Verification | `/verify-setup`, `/verify-toggle` — button or math-question captcha gate (v1.2.1); `/verify` — verify from anywhere (v1.13.3) |
+| Counting & bumps | `/counting-setup`, `/counting-reset`, `/counting-leaderboard` — counting game + 2-hour bump reminders (v1.2.2, leaderboard v1.13.6) |
+| Temp voice | `/tempvc` (limit/lock/unlock/rename/kick/claim), `/tempvc-setup` — personal voice channels (v1.2.3, setup command v1.13.14) |
+| Birthdays | `/birthday` (set/remove/list/today/next), `/birthday-setup` — daily birthday announcements (v1.2.5, today/next v1.13.5) |
+| Weather | `/weather`, `/forecast`, `/weather-set`, `/weather-home` — Open-Meteo, no API key (v1.2.7, home location v1.13.12) |
 | Game Servers | `/serverstatus`, `/gameserver-add`, `/gameserver-remove`, `/gameserver-list` — pluggable providers |
 | Owner | `/restart`, `/reload`, `/shutdown`, `/eval` (owner-only, `ownerId` in config), `/hostinfo` (owner-only — host OS/CPU/memory/disk/runtime specs) |
 | Announcements | `/announce` (admin — post an announcement in a channel: title, description, optional color hex, image URL, footer, role ping, plain-text mode) |
 | Welcome | `/welcome-setup`, `/welcome-toggle`, `/goodbye-setup`, `/goodbye-toggle`, `/welcome-test` — templated join/leave embeds (`{user}` `{username}` `{server}` `{membercount}`), `/welcome-dm set\|toggle` — private welcome DM (v1.9.3) |
 | Automod | `/automod`, `/automod-setup`, `/automod-words add\|remove\|list`, `/automod-exempt add-role\|remove-role\|add-channel\|remove-channel\|list` — spam, banned words, link/invite blocking |
 | Suggestions | `/suggest` (modal), `/suggestions-setup`, `/suggest-status` — 👍/👎 voting, staff Approve/Deny/Implement |
-| Economy | `/balance`, `/daily`, `/work`, `/pay`, `/eco-leaderboard`, `/shop`, `/shop-add`, `/deposit`, `/withdraw` — wallet + bank, shop roles, `/lottery buy\|status\|winners` — weekly draw (v1.9.4) |
+| Economy | `/balance`, `/daily`, `/work`, `/pay`, `/eco-leaderboard`, `/shop`, `/shop-add`, `/deposit`, `/withdraw`, `/quest`, `/roleshop` — wallet + bank, shop roles, `/lottery buy\|status\|winners` — weekly draw (v1.9.4, quests v1.13.9, role shop v1.13.10) |
 | Casino | `/slots`, `/blackjack`, `/roulette`, `/gamble-coinflip`, `/gamble-dice`, `/heist` — group heist, 40% + 10%/extra crew member (cap 90%), bet back x2 on success (v1.10.3) — same wallet balance, min bet 10 / max 10,000 |
 | Milestones | `/milestones`, `/milestone-setup` — round member-count celebrations + 100-coin trigger bonus (v1.10.4) |
 | Role Menus | `/rolemenu` (create/add/remove/list/delete) — select-menu role pickers with the same requirements as reaction roles (v1.10.5) |
-| Translate | `/translate`, `/translate-setup` — on-demand + auto-translation via Google's free unofficial endpoint (v1.10.6) |
+| Translate | `/translate`, `/translate-setup`, "Translate message" context menu — on-demand + auto-translation via Google's free unofficial endpoint (v1.10.6, context menu v1.13.13) |
 | Inventory & Trading | `/buy`, `/sell`, `/inventory`, `/open-crate`, `/use`, `/trade`, `/trade-cancel` — crates, daily items, daily deals, atomic player trades |
 | Bot Tracking | `/botflags`, `/botflag`, `/botflag-clear`, `/bottrack` (staff) — join scoring, raid watch, Staff → Bot Tracking page |
 | Starboard | `/starboard-setup` — starred messages posted to a starboard channel |
 | Custom Commands | `/custom-add`, `/custom-remove`, `/custom-list` — trigger words with stored replies |
 | Message Logging | `/modlog-setup` — deleted/edited messages logged to a modlog channel |
-| AFK | `/afk`, `/afk-remove` — mentions answered, auto-clear on return |
+| Moderation | `/report` (submit/list) — user reports to the modlog (v1.13.2); `/lockdown` (lock/release/status) — lock a channel to mods (v1.13.4) |
+| Emojis | `/emoji-add`, `/emoji-remove`, `/emoji-list` (v1.11.2); `/steal-emoji` — copy an emoji from another server (v1.13.15) |
+| Confessions | `/confess` (modal, anonymous, approval queue) (v1.6.4); `/confess-setup` — configure channel + approval (v1.13.7) |
+| AFK | `/afk`, `/afk-remove`, `/afk-list` — mentions answered, auto-clear on return (list v1.13.1) |
 | Polls | `/poll`, `/poll-end` — reaction voting, one vote per user, live tally |
 | Auto-role | `/autorole set\|remove\|view\|sticky` — join role + sticky roles |
-| Scheduled | `/schedule`, `/schedule-list`, `/schedule-cancel`, `/remindme` — DB-backed, survives restarts |
+| Scheduled | `/schedule`, `/schedule-list`, `/schedule-cancel`, `/remindme`, `/remind` (set/list/cancel) — DB-backed, survives restarts (v1.13.0) |
 | FAQ | `/faq-add`, `/faq-remove`, `/faq-list` — auto-responder for common questions |
 | Presence | `/presence set\|reset\|list` (owner) — rotating Discord status with live stats |
 | Server rules & Anti-nuke | `/rules-setup`, `/rules`, `/rules-edit` — one rules embed per server (v1.9.5); `/antinuke-setup`, `/antinuke-status` (staff) — destructive-action burst protection (v1.9.6) |
@@ -179,7 +182,7 @@ Members set their birthday with `/birthday set <month> <day> [year]` — real da
 
 ## Weather (v1.2.7)
 
-`/weather <location>` shows current weather — temperature, feels-like, condition, humidity, wind speed/direction, pressure, visibility, sunrise/sunset — in an embed with a condition emoji. `/forecast <location> [days 1-7]` (default 3) shows one field per day: high/low, condition, precipitation chance. Locations accept a city name, ZIP code, or `"latitude,longitude"`. **Source: Open-Meteo (https://open-meteo.com) — free, no API key required** (geocoding + forecast APIs). `/weather-set` (admin) stores a per-server default location and default units in `guild_settings` (`default_weather_location`, `weather_units`), so `/weather` with no location uses it. Units are imperial (°F, mph) by default and metric (°C, km/h) with the `units` option or the server default. Unknown places get a clear "couldn't find that place" embed; if Open-Meteo is down, the error is logged and the user gets an error embed instead of a crash.
+`/weather <location>` shows current weather — temperature, feels-like, condition, humidity, wind speed/direction, pressure, visibility, sunrise/sunset — in an embed with a condition emoji. `/forecast <location> [days 1-7]` (default 3) shows one field per day: high/low, condition, precipitation chance. Locations accept a city name, ZIP code, or `"latitude,longitude"`. **Source: Open-Meteo (https://open-meteo.com) — free, no API key required** (geocoding + forecast APIs). `/weather-set` (admin) stores a per-server default location and default units in `guild_settings` (`default_weather_location`, `weather_units`), so `/weather` with no location uses it. `/weather-home set <location>` (v1.13.12) saves a personal home location per user, which `/weather` prefers over the server default. Units are imperial (°F, mph) by default and metric (°C, km/h) with the `units` option or the server default. Unknown places get a clear "couldn't find that place" embed; if Open-Meteo is down, the error is logged and the user gets an error embed instead of a crash.
 
 ## Giveaway requirements, transcripts, XP boosts, analytics, level rewards, welcome images, AI chat, Minecraft widget, voice XP, color roles, clips, modmail, media threads, temp roles, ghost-ping, backups, quotes, thread archive, XP shop, streaks, confessions, birthday role, voice leaderboard (v1.3.x–v1.6.x)
 
@@ -192,7 +195,7 @@ Members set their birthday with `/birthday set <month> <day> [year]` — real da
 - **AI chat/Q&A (v1.4.1):** `/ask <question>` plus an AI channel, answered from the owner's own OpenAI-compatible API key in `config.json` (`ai.apiKey`, `ai.model` default `gpt-4o-mini`, `ai.baseUrl`, `ai.dailyLimit` default 100; get a key at platform.openai.com/api-keys). 10-second per-user rate limit, daily per-guild cap, usage in `ai_usage`. No key configured = a clear disabled message, not a crash.
 - **Minecraft live status widget (v1.4.2):** `/mcstatus-setup <server> [channel]` (admin) posts an embed with a Minecraft server's live status (players, version, MOTD), refreshed every 5 minutes (`mc_widgets` table). Reuses the existing Minecraft ping provider.
 - **Voice XP (v1.4.3):** members earn leveling XP for voice time (default 2 XP/min, same `user_levels` table). Only counts when not muted/deafened and at least one other non-bot user is present. `/voicexp` (admin) shows the setting; sessions in `voice_sessions`.
-- **Self-assignable color roles (v1.4.4):** `/color list`, `/color set <role>` (one at a time — your old one is removed), `/color remove`. `/color-add` and `/color-remove-role` (admin) manage the catalog (`color_roles` table). Role hierarchy is checked before granting.
+- **Self-assignable color roles (v1.4.4):** `/color list`, `/color set <role>` (one at a time — your old one is removed), `/color remove`. `/color custom <hex>` (v1.13.11) creates a personal color role in any `#RRGGBB` color. `/color-add` and `/color-remove-role` (admin) manage the catalog (`color_roles` table). Role hierarchy is checked before granting.
 - **Clips with live announcements (v1.4.5):** live announcements can include the streamer's latest Twitch clip (Helix) or latest YouTube video (YouTube has no clips API). `/stream-clip-toggle <streamer>` (admin) per streamer. A clip fetch failure never blocks the live announcement.
 - **Modmail (v1.4.6):** members DM the bot to open a thread in a staff channel; replies relay both ways (`modmail_threads` / `modmail_messages`). `/modmail-setup` (admin), `/modmail-close` (staff), `/modmail-block` (staff, `modmail_blocks`).
 - **Media auto-threads (v1.5.1):** messages with image/video attachments in a configured media channel get a thread for discussion. `/mediathreads set <channel>` (admin), `/mediathreads list`.
@@ -203,7 +206,7 @@ Members set their birthday with `/birthday set <month> <day> [year]` — real da
 - **Thread auto-archive control (v1.6.1):** `/threadarchive set <channel> <duration>` (admin) — per-channel overrides (1h/24h/3d/1w/off) in `thread_archive_settings`. Skips pinned threads and threads with recent staff activity.
 - **XP role shop (v1.6.2):** per-server configurable — each guild has its own `xp_shop_items` catalog and prices. `/xpshop`, `/xpshop-add <role> <xp_price>` (admin), `/xpshop-remove <role>` (admin). Buying spends leveling XP and grants the role.
 - **Daily streaks (v1.6.3):** `/daily` builds a streak — +25 XP per streak day, bonus capped at +500, milestone crates at 7/30/100 days (`streaks` table). `/streak`, `/streak-leaderboard`. Missing a day resets the streak.
-- **Confessions (v1.6.4):** `/confess <text>` posts anonymously (author never shown publicly). Staff approval queue is on by default; denied confessions are never posted. Authors are visible to staff only in the review queue (`confessions` table).
+- **Confessions (v1.6.4):** `/confess` (modal) posts anonymously (author never shown publicly). `/confess-setup` (v1.13.7, admin) configures the channel and approval queue in Discord instead of only on the dashboard. Staff approval queue is on by default; denied confessions are never posted. Authors are visible to staff only in the review queue (`confessions` table).
 - **Birthday role (v1.6.5):** `/birthday-role` (admin) picks a role granted on a member's birthday and removed the next day (`birthday_roles_granted` tracks grants).
 - **Voice leaderboard (v1.6.6):** `/voicelb` ranks members by total voice time (`voice_sessions`); `/voicetime [user]` shows total voice time.
 
@@ -233,6 +236,25 @@ Members set their birthday with `/birthday set <month> <day> [year]` — real da
 - **Giveaway bonus entries (v1.12.4):** `/giveaway start` takes optional `bonus_role` + `bonus_entries` (default 1, max 10). Holders of that role get +N entries, and Nitro boosters get +1 automatically when the guild has a booster role configured. The winner draw is **weighted** by total entries (`pickWeightedWinners` in `src/utils/giveaways.js`) — a member with 4 entries is 4x as likely to win as a member with 1 — and a winner's tickets are removed after winning, so nobody wins twice in one draw. The entry confirmation shows `Entries: N (includes X bonus)` with the reasons. Bonus entries are stored in `giveaway_bonus` (one row per entrant per giveaway); the giveaway embed and `/giveaway list` show the bonus rules, and the dashboard Giveaways tab has a Bonus entries column.
 - **New-member link block (v1.12.5):** members who joined less than N days ago (default 7, `/newmemberlinks-setup` admin, or the dashboard Automod tab) cannot post links — the message is deleted, they get a warning that deletes itself after 10 seconds, and the block is logged to Automod actions. Runs independently of the main Automod toggle. Staff roles and Automod-exempt roles/channels bypass it; admins are always exempt. Settings live in `guild_settings` (`new_member_link_enabled`, `new_member_link_days`).
 - **Economy robbery (v1.12.6):** `/rob @user` tries to steal from another member's **wallet** — the bank can never be robbed, so `/deposit` is the safe place for coins. Flat **35%** success chance. Success steals **10–30% of the victim's wallet** (min 10, max 1,000 coins). Failure: the robber pays a **fine of up to 100 coins to the victim**, capped at whatever the robber can actually afford (never below 0, never a debt — if the robber is broke, the fine is 0). Cooldowns: **30 minutes** after a success, **1 hour** after a failure (tracked in `rob_attempts`). Guards: no robbing bots or yourself, and the victim needs at least 50 coins in their wallet. The victim gets a DM if possible ("You were robbed!"). A per-server toggle (`guild_settings.robbery_enabled`, default on; dashboard Economy tab) lets a server turn robbery off entirely. Logged as `rob_win` / `rob_loss` / `rob_fine` in `economy_transactions`; recent robs are listed on the dashboard Economy tab.
+
+## Reminders, reports, verify anywhere, lockdown, birthdays, counting leaderboard, confessions setup, social actions, quests, role shop, custom colors, weather home, translate menu, temp VC setup, emoji steal (v1.13.x)
+
+- **Reminder management (v1.13.0):** `/remind set <time> <text>` (same time formats as `/remindme`), `/remind list` shows your pending reminders with IDs and relative due times, `/remind cancel <id>` cancels one of your own. Delivery still goes through the 1-minute scheduler loop (DM, falling back to the channel where it was set); reuses the `reminders` table.
+- **AFK list (v1.13.1):** `/afk-list` shows everyone currently AFK in the server with their reason and how long they have been away.
+- **User reports (v1.13.2):** `/report submit @user <reason> [evidence]` saves a report (`reports` table) and posts it to the modlog channel set with `/modlog-setup` (falling back to the core log channel). `/report list` (Manage Messages) shows open reports. Self-reports and bot reports are refused.
+- **Verify from anywhere (v1.13.3):** `/verify` reports if you are already verified, otherwise sends you a working Verify button (captcha mode opens the math-question modal, same as the panel).
+- **Channel lockdown (v1.13.4):** `/lockdown lock [channel] [reason]` (Manage Channels) stops @everyone from sending messages — the previous overwrite is stored and restored exactly by `/lockdown release`; `/lockdown status` lists locked channels (`lockdowns` table).
+- **Birthday today/next (v1.13.5):** `/birthday today` lists today's birthdays; `/birthday next` shows the next upcoming birthday and how many days away it is.
+- **Counting leaderboard (v1.13.6):** `/counting-leaderboard` shows the current count, the highest count, and the top 10 counters. Correct counts are tracked per user in `counting_counts` (no backfill from past games).
+- **Confessions setup (v1.13.7):** admin-only `/confess-setup` sets the confessions channel, approval requirement (default true), and enabled state in Discord.
+- **Social actions (v1.13.8):** `/ship @user [@user2]` gives a deterministic compatibility % (same pair, same score) as a public embed with a percentage bar. `/hug`, `/kiss`, `/slap @user [message]` fetch a GIF from the free, no-key nekos.best API and post it publicly; API failures get a clear error embed instead of a crash.
+- **Daily quests (v1.13.9):** `/quest list` shows today's 5 quests (claim `/daily`, work a shift, use 5 slash commands, 10 voice minutes, play a casino game); `/quest claim [quest]` claims one, or all completed ones if omitted. Each pays 50–100 coins + 20–30 XP; one claim per quest per day (`user_quests` table).
+- **Role shop (v1.13.10):** `/roleshop list` / `buy <role>` spends wallet coins for a one-time role purchase; `/roleshop add <role> <price>` / `remove <role>` are admin-only. The role is granted before any coins are taken, and a failed purchase record refunds the charge and removes the role. Listings in `roleshop_items`, purchases in `roleshop_purchases`.
+- **Custom color roles (v1.13.11):** `/color custom <hex>` creates or recolors a personal color role (`color-<your user id>`) in any `#RRGGBB` color, positioned below the bot's highest role. It shows in `/color list`; `/color remove` deletes it entirely. Tracked in `user_color_roles`.
+- **Weather home location (v1.13.12):** `/weather-home set <location>` / `clear` / `view` saves a personal home location (`user_weather` table); bare `/weather` uses home first, then the server default.
+- **Translate context menu (v1.13.13):** right-click a message → Apps → "Translate message" translates it into the server's auto-translate target language (English by default) and replies ephemerally with original + translation.
+- **Temp VC setup (v1.13.14):** admin-only `/tempvc-setup` sets the create channel, optional category, and on/off in Discord instead of only on the dashboard.
+- **Emoji steal (v1.13.15):** `/steal-emoji <emoji> [name]` (Manage Emojis) copies a custom emoji from another server — or an image URL — into this server, with the same validation as `/emoji-add` and logging to `emoji_logs`.
 
 ## Wordle, event scheduler, slowmode presets, AFK voice, image starboard, status roles, snipe, embed builder (v1.7.x)
 

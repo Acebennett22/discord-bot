@@ -2,6 +2,7 @@ const { SlashCommandBuilder } = require('discord.js');
 const { successEmbed, errorEmbed, infoEmbed } = require('../../utils/embeds');
 const { getWeather, describeCode, windDirection } = require('../../utils/weather');
 const { getGuildSettings } = require('../../utils/guildSettings');
+const db = require('../../utils/database');
 
 function fmtTime(iso) {
   if (!iso) return '—';
@@ -20,9 +21,14 @@ module.exports = {
     )),
   async execute(interaction) {
     const settings = await getGuildSettings(interaction.guildId);
-    const location = interaction.options.getString('location') || settings.defaultWeatherLocation;
+    let location = interaction.options.getString('location');
+    if (!location && db.isEnabled()) {
+      const rows = await db.query('SELECT location FROM user_weather WHERE guild_id = ? AND user_id = ?', [interaction.guildId, interaction.user.id]).catch(() => null);
+      location = rows?.[0]?.location || null;
+    }
+    if (!location) location = settings.defaultWeatherLocation;
     if (!location) {
-      return interaction.reply({ embeds: [errorEmbed('Where?', 'Give a location — `/weather location: Blairsville, PA` — or set a server default with `/weather-set`.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Where?', 'Give a location — `/weather location: Blairsville, PA` — set a personal home with `/weather-home set`, or ask an admin to set a server default with `/weather-set`.')], ephemeral: true });
     }
     const units = interaction.options.getString('units') || settings.weatherUnits || 'imperial';
     await interaction.deferReply({ ephemeral: true });

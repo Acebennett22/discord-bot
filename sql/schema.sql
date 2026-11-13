@@ -1337,6 +1337,77 @@ CREATE TABLE IF NOT EXISTS reengage_optouts (
   PRIMARY KEY (guild_id, user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- v1.13.x tables (reminders reuse `reminders`; AFK reuses `afk_users`).
+CREATE TABLE IF NOT EXISTS reports (
+  id INT NOT NULL AUTO_INCREMENT,
+  guild_id VARCHAR(32) NOT NULL,
+  reporter_id VARCHAR(32) NOT NULL,
+  reported_id VARCHAR(32) NOT NULL,
+  reason TEXT NOT NULL,
+  evidence TEXT NULL,
+  status VARCHAR(16) NOT NULL DEFAULT 'open',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  INDEX idx_reports_guild_status (guild_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS lockdowns (
+  guild_id VARCHAR(32) NOT NULL,
+  channel_id VARCHAR(32) NOT NULL,
+  target_id VARCHAR(32) NOT NULL,
+  allow BIGINT NULL,
+  deny BIGINT NULL,
+  locked_by VARCHAR(32) NOT NULL,
+  locked_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (guild_id, channel_id, target_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS counting_counts (
+  guild_id VARCHAR(32) NOT NULL,
+  user_id VARCHAR(32) NOT NULL,
+  correct_counts INT NOT NULL DEFAULT 0,
+  PRIMARY KEY (guild_id, user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS user_quests (
+  guild_id VARCHAR(32) NOT NULL,
+  user_id VARCHAR(32) NOT NULL,
+  quest_id VARCHAR(32) NOT NULL,
+  quest_date DATE NOT NULL,
+  claimed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (guild_id, user_id, quest_id, quest_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS roleshop_items (
+  guild_id VARCHAR(32) NOT NULL,
+  role_id VARCHAR(32) NOT NULL,
+  price INT NOT NULL,
+  PRIMARY KEY (guild_id, role_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS roleshop_purchases (
+  guild_id VARCHAR(32) NOT NULL,
+  user_id VARCHAR(32) NOT NULL,
+  role_id VARCHAR(32) NOT NULL,
+  price INT NOT NULL,
+  purchased_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (guild_id, user_id, role_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS user_color_roles (
+  guild_id VARCHAR(32) NOT NULL,
+  user_id VARCHAR(32) NOT NULL,
+  role_id VARCHAR(32) NOT NULL,
+  PRIMARY KEY (guild_id, user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS user_weather (
+  guild_id VARCHAR(32) NOT NULL,
+  user_id VARCHAR(32) NOT NULL,
+  location VARCHAR(128) NOT NULL,
+  PRIMARY KEY (guild_id, user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- v1.7.x / v1.8.x migration note for existing installs: the guild_settings
 -- columns added after 1.12.6 are NOT created by CREATE TABLE IF NOT EXISTS
 -- on a table that already exists. Run once:
