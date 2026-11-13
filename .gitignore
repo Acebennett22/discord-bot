@@ -1,0 +1,7 @@
+node_modules/
+config.json
+src/data/warns.json
+.DS_Store
+backups/
+logs/
+setup-token.txt

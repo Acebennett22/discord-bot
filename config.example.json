@@ -1,0 +1,102 @@
+{
+  "_whereToGetKeys": {
+    "discordBotToken_clientId_clientSecret": "https://discord.com/developers/applications \u2014 Discord Developer Portal: create an application, copy the Bot Token (Bot tab) and the Client ID + Client Secret (OAuth2 tab).",
+    "twitchClientId_clientSecret": "https://dev.twitch.tv/console \u2014 Twitch Developer Console: register an application, copy the Client ID and Client Secret.",
+    "youtubeApiKey": "https://console.cloud.google.com/apis/library/youtube.googleapis.com \u2014 Google Cloud Console: enable the YouTube Data API v3, then create an API key under APIs & Services > Credentials.",
+    "steamApiKey": "https://steamcommunity.com/dev/apikey \u2014 Steam: sign in and register for a Web API key."
+  },
+  "setupComplete": false,
+  "token": "YOUR_DISCORD_BOT_TOKEN_HERE",
+  "clientId": "YOUR_CLIENT_ID_HERE",
+  "guildId": "",
+  "welcomeChannelId": "",
+  "ownerId": "",
+  "embedColor": "#5865F2",
+  "music": {
+    "maxQueueSize": 25
+  },
+  "database": {
+    "host": "localhost",
+    "port": 3306,
+    "user": "discord_bot",
+    "password": "YOUR_MYSQL_PASSWORD_HERE",
+    "database": "discord_bot"
+  },
+  "sharding": {
+    "mode": "auto",
+    "totalShards": null
+  },
+  "serverStats": {
+    "updateIntervalMinutes": 10
+  },
+  "streams": {
+    "checkIntervalMinutes": 5,
+    "twitch": {
+      "clientId": "YOUR_TWITCH_CLIENT_ID_HERE",
+      "clientSecret": "YOUR_TWITCH_CLIENT_SECRET_HERE",
+      "_getItHere": "https://dev.twitch.tv/console"
+    },
+    "youtube": {
+      "apiKey": "YOUR_YOUTUBE_API_KEY_HERE",
+      "_getItHere": "https://console.cloud.google.com/apis/library/youtube.googleapis.com"
+    },
+    "announceOfflineMessage": false,
+    "liveChannelNameTemplate": "\ud83d\udd34 LIVE: {name}"
+  },
+  "dashboard": {
+    "clientSecret": "YOUR_DISCORD_CLIENT_SECRET_HERE",
+    "redirectUri": "http://localhost:3000/callback",
+    "sessionSecret": "CHANGE_ME_TO_A_LONG_RANDOM_STRING",
+    "port": 3000,
+    "invitePermissions": 1099951041558,
+    "_getItHere": "https://discord.com/developers/applications \u2014 same Discord application: OAuth2 tab for the Client Secret; the redirect URI must match dashboard.redirectUri.",
+    "allowRemoteSetup": false,
+    "setupViaDomain": true,
+    "publicUrl": "https://bot.example.com"
+  },
+  "leveling": {
+    "xpPerMessageMin": 15,
+    "xpPerMessageMax": 25,
+    "cooldownSeconds": 60,
+    "levelUpMessages": true
+  },
+  "steam": {
+    "apiKey": "YOUR_STEAM_API_KEY_HERE",
+    "_getItHere": "https://steamcommunity.com/dev/apikey"
+  },
+  "gameServers": {
+    "checkIntervalMinutes": 5,
+    "custom": [
+      {
+        "id": "minecraft-example",
+        "name": "Minecraft",
+        "provider": "minecraft",
+        "host": "YOUR_MINECRAFT_HOST_HERE",
+        "port": 25565
+      },
+      {
+        "id": "rust-example",
+        "name": "Rust",
+        "provider": "source",
+        "host": "YOUR_RUST_HOST_HERE",
+        "port": 28015
+      },
+      {
+        "id": "isle-example",
+        "name": "The Isle",
+        "provider": "manual",
+        "host": "",
+        "port": null,
+        "note": "The Isle Evrima has no public query protocol \u2014 manual status only."
+      }
+    ]
+  },
+  "staffUserIds": [],
+  "invites": {
+    "minAccountAgeDays": 7
+  },
+  "backups": {
+    "retentionDays": 30,
+    "time": "03:00"
+  }
+}

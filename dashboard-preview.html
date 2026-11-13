@@ -1,0 +1,143 @@
+<!doctype html><html><head><meta charset=utf-8><title>Ace Bot Dashboard — Preview</title><style>body{font-family:Arial,sans-serif;background:#1e1f22;color:#dbdee1;margin:0}
+header{background:#111214;padding:12px 20px;display:flex;justify-content:space-between;align-items:center}
+header a{color:#fff;text-decoration:none;margin-right:16px}
+.btn{background:#5865f2;color:#fff;padding:8px 16px;border-radius:6px;text-decoration:none;display:inline-block;border:none;cursor:pointer}
+.btn.green{background:#57f287;color:#111}
+main{max-width:900px;margin:0 auto;padding:24px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+.card{background:#2b2d31;border-radius:10px;padding:16px;text-align:center}
+.card img{width:64px;height:64px;border-radius:50%}
+nav.tabs a{color:#b5bac1;margin-right:12px;text-decoration:none}
+nav.tabs a.active{color:#fff;border-bottom:2px solid #5865f2;padding-bottom:4px}
+label{display:block;margin:12px 0 4px}
+input,select{width:100%;padding:8px;border-radius:6px;border:1px solid #444;background:#111214;color:#fff}
+form{max-width:560px}
+.saved{background:#57f28722;border:1px solid #57f287;color:#57f287;padding:10px;border-radius:6px}
+</style></head><body><div style=max-width:900px;margin:0 auto;padding:24px><p style="color:#57f287">PREVIEW — sample data, not logged in for real</p><!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Ace Bot Dashboard</title><link rel="stylesheet" href="/style.css"></head>
+<body>
+<header>
+  <div><a href="/servers"><strong>🤖 Ace Bot Dashboard</strong></a></div>
+  <div>
+    <a class="btn" href="/invite" target="_blank" rel="noopener">➕ Add to Server</a>
+    <span>Ace</span> <a href="/logout">Logout</a>
+  </div>
+</header>
+<main>
+
+
+  <h1>Your servers</h1>
+  
+  <div class="grid">
+    
+      <div class="card">
+        
+        <h3>Dumpster Dinos</h3>
+        <a class="btn" href="/guilds/1">Manage</a>
+      </div>
+    
+      <div class="card">
+        
+        <h3>Blairsville Network</h3>
+        <a class="btn" href="/guilds/2">Manage</a>
+      </div>
+    
+      <div class="card">
+        
+        <h3>Rust Squad</h3>
+        <a class="btn" href="/guilds/3">Manage</a>
+      </div>
+    
+  </div>
+
+
+</main>
+</body></html>
+
+<hr style="margin:48px 0;border-color:#444"><!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Ace Bot Dashboard</title><link rel="stylesheet" href="/style.css"></head>
+<body>
+<header>
+  <div><a href="/servers"><strong>🤖 Ace Bot Dashboard</strong></a></div>
+  <div>
+    <a class="btn" href="/invite" target="_blank" rel="noopener">➕ Add to Server</a>
+    <span>Ace</span> <a href="/logout">Logout</a>
+  </div>
+</header>
+<main>
+
+<h1>Dumpster Dinos — Settings</h1>
+<nav class="tabs">
+  
+    <a href="/guilds/1/general" class="active">general</a>
+  
+    <a href="/guilds/1/moderation" class="">moderation</a>
+  
+    <a href="/guilds/1/tickets" class="">tickets</a>
+  
+    <a href="/guilds/1/serverstats" class="">serverstats</a>
+  
+    <a href="/guilds/1/streams" class="">streams</a>
+  
+    <a href="/guilds/1/music" class="">music</a>
+  
+    <a href="/guilds/1/leveling" class="">leveling</a>
+  
+    <a href="/guilds/1/reactionroles" class="">reactionroles</a>
+  
+</nav>
+
+
+
+<form method="post" action="/api/guilds/1/settings" id="settings-form">
+  <label>Welcome channel</label>
+  <select name="welcomeChannelId"><option value="">— none —</option>
+    <option value="10" >#general</option><option value="11" >#welcome</option>
+  </select>
+  <label>Mod log channel</label>
+  <select name="logChannelId"><option value="">— none —</option>
+    <option value="10" >#general</option><option value="11" >#welcome</option>
+  </select>
+  <label>Embed color</label>
+  <input type="text" name="embedColor" value="#5865F2" placeholder="#5865F2">
+  <br><br><button class="btn" type="submit">Save general settings</button>
+</form>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script>
+// Forms post JSON to the API (the API is the single source of truth).
+document.querySelectorAll('form[action^="/api/"]').forEach(form => {
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = {};
+    new FormData(form).forEach((v, k) => { data[k] = v; });
+    // Unchecked checkboxes are absent from FormData — treat as false.
+    form.querySelectorAll('input[type=checkbox]').forEach(cb => { if (!data[cb.name]) data[cb.name] = false; });
+    if (data.levelRoles) { try { data.levelRoles = JSON.parse(data.levelRoles); } catch { alert('levelRoles must be valid JSON'); return; } }
+    const res = await fetch(form.action, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    if (res.ok) window.location.href = window.location.pathname + '?saved=1';
+    else alert('Save failed: ' + (await res.text()));
+  });
+});
+</script>
+
+</main>
+</body></html>
+
+</div></body></html>

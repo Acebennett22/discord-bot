@@ -1,0 +1,12 @@
+[
+  { "question": "What is the capital of France?", "options": ["Paris", "London", "Berlin", "Madrid"], "answer": "Paris" },
+  { "question": "Which planet is known as the Red Planet?", "options": ["Venus", "Mars", "Jupiter", "Saturn"], "answer": "Mars" },
+  { "question": "What is 9 x 8?", "options": ["72", "81", "64", "76"], "answer": "72" },
+  { "question": "Which language runs in a web browser?", "options": ["Python", "C++", "JavaScript", "Rust"], "answer": "JavaScript" },
+  { "question": "What year did the first iPhone come out?", "options": ["2005", "2007", "2009", "2010"], "answer": "2007" },
+  { "question": "How many sides does a hexagon have?", "options": ["5", "6", "7", "8"], "answer": "6" },
+  { "question": "What is the largest ocean on Earth?", "options": ["Atlantic", "Indian", "Arctic", "Pacific"], "answer": "Pacific" },
+  { "question": "Which Discord library does this bot use?", "options": ["discord.py", "discord.js", "JDA", "Eris"], "answer": "discord.js" },
+  { "question": "What does HTTP stand for?", "options": ["HyperText Transfer Protocol", "High Transfer Text Protocol", "Hyperlink Text Transfer Process", "Host Transfer Text Protocol"], "answer": "HyperText Transfer Protocol" },
+  { "question": "Which animal is the largest land mammal?", "options": ["Hippopotamus", "Giraffe", "African elephant", "Polar bear"], "answer": "African elephant" }
+]

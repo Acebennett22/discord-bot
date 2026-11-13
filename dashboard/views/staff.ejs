@@ -1,0 +1,205 @@
+<%- include('partials/header') %>
+<div class="settings-layout">
+  <aside class="sidebar">
+    <div class="server-head"><img src="/favicon.svg" alt=""><strong>Staff Area</strong></div>
+    <nav>
+      <a href="/staff" class="<%= section === 'overview' ? 'active' : '' %>">📊 Bot Overview</a>
+      <a href="/staff/commands" class="<%= section === 'commands' ? 'active' : '' %>">⌨️ Command Management</a>
+      <a href="/staff/features" class="<%= section === 'features' ? 'active' : '' %>">🧩 Feature Management</a>
+      <a href="/staff/manage" class="<%= section === 'manage' ? 'active' : '' %>">👥 Staff Management</a>
+      <a href="/staff/broadcast" class="<%= section === 'broadcast' ? 'active' : '' %>">📣 Broadcast</a>
+      <a href="/staff/errors" class="<%= section === 'errors' || section === 'error-detail' ? 'active' : '' %>">🐛 Errors</a>
+      <a href="/staff/backups" class="<%= section === 'backups' ? 'active' : '' %>">💾 Backups</a>
+      <a href="/servers">← Back to servers</a>
+    </nav>
+  </aside>
+  <section class="settings-content">
+    <% if (saved) { %><div class="toast">✅ Saved.</div><% } %>
+
+    <% if (section === 'errors') { %>
+      <h1>Error logs</h1>
+      <p class="muted">Every error/warn the bot logs lands in the MySQL <code>error_logs</code> table (and in <code>logs/bot-errors.log</code> on the host). Filter below, click an entry for the full stack trace.</p>
+      <form method="get" action="/staff/errors" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
+        <div><label>Level</label><select name="level"><option value="">all</option><option value="error" <%= data.filters.level === 'error' ? 'selected' : '' %>>error</option><option value="warn" <%= data.filters.level === 'warn' ? 'selected' : '' %>>warn</option><option value="info" <%= data.filters.level === 'info' ? 'selected' : '' %>>info</option></select></div>
+        <div><label>Command/event</label><input type="text" name="command" value="<%= data.filters.command %>"></div>
+        <div><label>Shard</label><input type="number" name="shard" value="<%= data.filters.shard %>"></div>
+        <div><button class="btn" type="submit">Filter</button></div>
+      </form>
+      <table style="margin-top:16px"><tr><th>ID</th><th>Level</th><th>Shard</th><th>Command</th><th>Message</th><th>When</th><th></th></tr>
+      <% data.errors.forEach(e => { %>
+        <tr><td>#<%= e.id %></td><td><%= e.level %></td><td><%= e.shard_id ?? '—' %></td><td><%= e.command_name || '—' %></td>
+        <td><%= e.message.slice(0, 120) %><%= e.resolved ? ' ✅' : '' %></td><td><%= e.created_at %></td>
+        <td><a class="btn ghost" href="/staff/errors/<%= e.id %>">Details</a></td></tr>
+      <% }); %></table>
+      <% if (!data.errors.length) { %><p class="muted">No errors match. 🎉</p><% } %>
+    <% } %>
+
+    <% if (section === 'error-detail') { %>
+      <h1>Error #<%= data.error.id %></h1>
+      <p><strong>Level:</strong> <%= data.error.level %> · <strong>Shard:</strong> <%= data.error.shard_id ?? '—' %> · <strong>Guild:</strong> <%= data.error.guild_id || '—' %></p>
+      <p><strong>Command/event:</strong> <%= data.error.command_name || '—' %> · <strong>User:</strong> <%= data.error.user_id || '—' %></p>
+      <p><strong>When:</strong> <%= data.error.created_at %> · <strong>Resolved:</strong> <%= data.error.resolved ? 'yes (by ' + (data.error.resolved_by || '?') + ')' : 'no' %></p>
+      <h2>Message</h2>
+      <p><%= data.error.message %></p>
+      <% if (data.error.stack) { %><h2>Stack trace</h2><pre style="background:#111214;border:1px solid var(--border);border-radius:10px;padding:14px;overflow:auto;font-size:12px"><%= data.error.stack %></pre><% } %>
+      <% if (data.error.context) { %><h2>Context</h2><pre style="background:#111214;border:1px solid var(--border);border-radius:10px;padding:14px;overflow:auto;font-size:12px"><%= data.error.context %></pre><% } %>
+      <% if (!data.error.resolved) { %><button class="btn green" id="resolve-error">✅ Mark resolved</button><% } %>
+      <a class="btn ghost" href="/staff/errors">← Back to errors</a>
+      <script>
+      const rb = document.getElementById('resolve-error');
+      if (rb) rb.addEventListener('click', async () => {
+        const res = await fetch('/api/staff/errors/<%= data.error.id %>/resolve', { method: 'POST' });
+        if (res.ok) window.location.reload(); else alert('Failed.');
+      });
+      </script>
+    <% } %>
+
+    <% if (section === 'backups') { %>
+      <h1>Database backups</h1>
+      <p class="muted">Daily backup at <strong><%= data.scheduleTime %></strong> (node-cron, in the bot process). Retention: keep the last <strong><%= data.retentionDays %> days</strong> — older files are deleted automatically after a successful new backup. Backups live in <code>backups/</code> (git-ignored, never uploaded to Drive).</p>
+      <button class="btn" id="backup-now">💾 Backup now</button>
+      <p id="backup-result" class="muted"></p>
+      <h2>Backup files on disk</h2>
+      <% if (!data.files.length) { %><p class="muted">No backup files yet.</p><% } %>
+      <table><tr><th>File</th><th>Size</th><th>Created</th><th></th></tr>
+      <% data.files.forEach(f => { %><tr><td><code><%= f.name %></code></td><td><%= (f.size / 1024).toFixed(1) %> KB</td><td><%= f.mtime %></td><td><a class="btn ghost" href="/staff/backups/download/<%= f.name %>">Download</a></td></tr><% }); %></table>
+      <h2>Backup run log</h2>
+      <table><tr><th>File</th><th>Size</th><th>Status</th><th>When</th><th>Error</th></tr>
+      <% data.logs.forEach(l => { %><tr><td><%= l.filename || '—' %></td><td><%= l.size_bytes ? (l.size_bytes / 1024).toFixed(1) + ' KB' : '—' %></td><td><%= l.status %></td><td><%= l.created_at %></td><td><%= l.error_message || '' %></td></tr><% }); %></table>
+      <p class="muted">Restore: <code>node scripts/restore-db.js &lt;file&gt; --confirm</code> (overwrites the database), or manually: <code>gunzip -c backups/&lt;file&gt; | mysql -u user -p database</code>.</p>
+    <% } %>
+
+    <% if (section === 'overview') { %>
+      <h1>Bot overview</h1>
+      <p class="muted"><%= data.shardInfo %></p>
+      <p><strong>Errors in the last 24h:</strong> <%= data.errors24h ?? '—' %> — <a href="/staff/errors">view errors</a></p>
+      <p><strong>Total guilds:</strong> <%= data.totalGuilds ?? '—' %> &nbsp;·&nbsp; <strong>Total users seen:</strong> <%= data.totalUsers ?? '—' %> &nbsp;·&nbsp; <strong>Commands run:</strong> <%= data.totalCommands ?? '—' %> &nbsp;·&nbsp; <strong>Songs played:</strong> <%= data.songs ?? '—' %></p>
+      <h2>Top commands</h2>
+      <% if (!data.topCommands || !data.topCommands.length) { %><p class="muted">No command logs yet.</p><% } %>
+      <table><tr><th>Command</th><th>Uses</th></tr>
+      <% (data.topCommands || []).forEach(c => { %><tr><td>/<%= c.command_name %></td><td><%= c.c %></td></tr><% }); %></table>
+      <h2>Top guilds by usage</h2>
+      <table><tr><th>Guild ID</th><th>Commands</th></tr>
+      <% (data.topGuilds || []).forEach(g => { %><tr><td><%= g.guild_id %></td><td><%= g.c %></td></tr><% }); %></table>
+      <h2>Recent errors</h2>
+      <% if (!data.errors || !data.errors.length) { %><p class="muted">No recent errors. 🎉</p><% } %>
+      <ul><% (data.errors || []).forEach(e => { %><li><code>/<%= e.command_name %></code> by <%= e.username || e.user_id %> — <%= e.error_message || 'unknown error' %></li><% }); %></ul>
+      <h2>Recent command logs (last 50)</h2>
+      <table><tr><th>Command</th><th>User</th><th>Guild</th><th>OK?</th><th>When</th></tr>
+      <% (data.recent || []).forEach(r => { %><tr><td>/<%= r.command_name %></td><td><%= r.username || r.user_id %></td><td><%= r.guild_id %></td><td><%= r.success ? '✅' : '❌' %></td><td><%= r.created_at %></td></tr><% }); %></table>
+    <% } %>
+
+    <% if (section === 'commands') { %>
+      <h1>Command management</h1>
+      <p class="muted">Global toggles — turning a command off here disables it everywhere. Per-server toggles live on each server's Commands tab. The bot checks the toggle before running any command and replies with a "this command is disabled" embed.</p>
+      <table><tr><th>Command</th><th>Category</th><th>Enabled</th></tr>
+      <% data.catalog.forEach(c => { %>
+        <tr><td>/<%= c.name %></td><td><%= c.category %></td>
+        <td><label class="toggle"><input type="checkbox" data-command="<%= c.name %>" <%= (data.toggles[c.name] !== false) ? 'checked' : '' %>><span class="track"></span></label></td></tr>
+      <% }); %></table>
+    <% } %>
+
+    <% if (section === 'features') { %>
+      <h1>Feature management</h1>
+      <p class="muted">Whole-module toggles. Music off = /play refuses; streams off = the live checker skips that server; and so on. Per-server overrides live in the feature_toggles table.</p>
+      <table><tr><th>Feature</th><th>Enabled</th></tr>
+      <% data.features.forEach(f => { %>
+        <tr><td><%= f %></td>
+        <td><label class="toggle"><input type="checkbox" data-feature="<%= f %>" <%= (data.toggles[f] !== false) ? 'checked' : '' %>><span class="track"></span></label></td></tr>
+      <% }); %></table>
+    <% } %>
+
+    <% if (section === 'manage') { %>
+      <h1>Staff management</h1>
+      <p class="muted">Owner only. The owner is always staff implicitly. Bootstrap staff can also be listed in config.json <code>staffUserIds</code>.</p>
+      <p><strong>Owner ID:</strong> <code><%= data.ownerId || 'not set in config.json' %></code></p>
+      <h2>Current staff</h2>
+      <table><tr><th>User ID</th><th>Role</th><th>Added by</th><th></th></tr>
+      <% data.staff.forEach(s => { %>
+        <tr><td><%= s.user_id %></td><td><%= s.role %></td><td><%= s.added_by || '—' %></td>
+        <td><button class="btn danger" data-remove-staff="<%= s.user_id %>">Remove</button></td></tr>
+      <% }); %></table>
+      <h2>Add staff</h2>
+      <form id="add-staff-form">
+        <label>Discord user ID</label>
+        <input type="text" name="userId" placeholder="123456789012345678" required>
+        <label>Role</label>
+        <select name="role"><option value="staff">Staff</option><option value="admin">Admin</option></select>
+        <br><br><button class="btn" type="submit">Add staff member</button>
+      </form>
+      <h2>Staff audit log</h2>
+      <ul><% data.audit.forEach(a => { %><li><%= a.created_at %> — <%= a.actor_id %> — <strong><%= a.action %></strong> — <%= a.target_id || '' %> <%= a.details || '' %></li><% }); %></ul>
+    <% } %>
+
+    <% if (section === 'broadcast') { %>
+      <h1>Broadcast announcement</h1>
+      <p class="muted">Owner only. Sends an embed announcement. Pick one server + channel, or a channel <em>name</em> to hit that channel in every server. Sends are spaced out to stay within Discord rate limits, and every broadcast is logged.</p>
+      <form id="broadcast-form">
+        <label>Server (leave blank for ALL servers)</label>
+        <select name="guildId"><option value="">— All servers —</option>
+          <% data.guilds.forEach(g => { %><option value="<%= g.id %>"><%= g.name %></option><% }); %>
+        </select>
+        <label>Channel ID (single server only)</label>
+        <input type="text" name="channelId" placeholder="Channel ID — required when a server is picked">
+        <label>Channel name (all-servers only)</label>
+        <input type="text" name="channelName" placeholder="e.g. announcements">
+        <label>Title</label>
+        <input type="text" name="title" required maxlength="256">
+        <label>Message</label>
+        <textarea name="body" rows="5" required></textarea>
+        <label class="toggle"><input type="checkbox" name="confirm" value="true" required><span class="track"></span><span>I confirm — send this announcement</span></label>
+        <br><button class="btn danger" type="submit">Send broadcast</button>
+      </form>
+      <p id="broadcast-result" class="muted"></p>
+    <% } %>
+  </section>
+</div>
+<script>
+async function postJSON(url, data) {
+  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+document.querySelectorAll('input[data-command]').forEach(cb => cb.addEventListener('change', async () => {
+  try { await postJSON('/api/staff/commands', { commandName: cb.dataset.command, enabled: cb.checked }); }
+  catch (e) { alert('Failed: ' + e.message); cb.checked = !cb.checked; }
+}));
+document.querySelectorAll('input[data-feature]').forEach(cb => cb.addEventListener('change', async () => {
+  try { await postJSON('/api/staff/features', { feature: cb.dataset.feature, enabled: cb.checked }); }
+  catch (e) { alert('Failed: ' + e.message); cb.checked = !cb.checked; }
+}));
+const addForm = document.getElementById('add-staff-form');
+if (addForm) addForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fd = new FormData(addForm);
+  try { await postJSON('/api/staff/users', { userId: fd.get('userId'), role: fd.get('role') }); window.location.reload(); }
+  catch (err) { alert('Failed: ' + err.message); }
+});
+document.querySelectorAll('[data-remove-staff]').forEach(btn => btn.addEventListener('click', async () => {
+  if (!confirm('Remove this staff member?')) return;
+  const res = await fetch('/api/staff/users/' + btn.dataset.removeStaff, { method: 'DELETE' });
+  if (res.ok) window.location.reload(); else alert('Failed: ' + await res.text());
+}));
+const backupBtn = document.getElementById('backup-now');
+if (backupBtn) backupBtn.addEventListener('click', async () => {
+  const out = document.getElementById('backup-result');
+  out.textContent = 'Backing up…';
+  try {
+    const r = await postJSON('/api/staff/backup-now', {});
+    out.textContent = `✅ Saved ${r.filename} (${(r.sizeBytes / 1024).toFixed(1)} KB).`;
+    setTimeout(() => window.location.reload(), 1000);
+  } catch (err) { out.textContent = '❌ Failed: ' + err.message; }
+});
+const bForm = document.getElementById('broadcast-form');
+if (bForm) bForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fd = new FormData(bForm);
+  const out = document.getElementById('broadcast-result');
+  out.textContent = 'Sending…';
+  try {
+    const r = await postJSON('/api/staff/broadcast', { guildId: fd.get('guildId'), channelId: fd.get('channelId'), channelName: fd.get('channelName'), title: fd.get('title'), body: fd.get('body'), confirm: fd.get('confirm') === 'true' });
+    out.textContent = `✅ Sent to ${r.sent} of ${r.attempted} channels.`;
+  } catch (err) { out.textContent = '❌ Failed: ' + err.message; }
+});
+</script>
+<%- include('partials/footer') %>

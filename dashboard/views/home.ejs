@@ -1,0 +1,29 @@
+<%- include('partials/header') %>
+<% if (!user) { %>
+  <section class="hero">
+    <h1>Run your Discord server,<br>beautifully.</h1>
+    <p>Ace Bot brings moderation, tickets, music, leveling, giveaways, live stats and more — configured from this dashboard, no commands to memorize.</p>
+    <div class="actions">
+      <a class="btn" href="/login">Login with Discord</a>
+      <a class="btn ghost" href="/invite" target="_blank" rel="noopener">➕ Add to Server</a>
+    </div>
+    <p class="muted" style="margin-top:16px">Only servers where you have Manage Guild permission — and where the bot is a member — are shown after login.</p>
+  </section>
+<% } else { %>
+  <h1>Your servers</h1>
+  <p class="muted">Pick a server to manage its settings.</p>
+  <% if (!guilds.length) { %>
+    <p>No manageable servers with the bot found yet.</p>
+    <p><a class="btn" href="/invite" target="_blank" rel="noopener">➕ Add to Server</a></p>
+  <% } %>
+  <div class="grid">
+    <% guilds.forEach(g => { %>
+      <div class="card">
+        <% if (g.icon) { %><img src="https://cdn.discordapp.com/icons/<%= g.id %>/<%= g.icon %>.png" alt=""><% } else { %><img src="/favicon.svg" alt=""><% } %>
+        <h3><%= g.name %></h3>
+        <a class="btn" href="/guilds/<%= g.id %>">Manage</a>
+      </div>
+    <% }); %>
+  </div>
+<% } %>
+<%- include('partials/footer') %>

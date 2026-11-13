@@ -1,0 +1,362 @@
+<%- include('partials/header') %>
+<div class="settings-layout">
+  <aside class="sidebar">
+    <div class="server-head">
+      <% if (guild.icon) { %><img src="https://cdn.discordapp.com/icons/<%= guild.id %>/<%= guild.icon %>.png" alt=""><% } else { %><img src="/favicon.svg" alt=""><% } %>
+      <strong><%= guild.name %></strong>
+    </div>
+    <nav>
+      <% const MODS = [['general','⚙️ General'],['moderation','🛡️ Moderation'],['tickets','🎫 Tickets'],['serverstats','📊 Server Stats'],['streams','📺 Streams'],['music','🎵 Music'],['leveling','🏆 Leveling'],['reactionroles','🎭 Reaction Roles'],['gameservers','🖥️ Game Servers'],['applications','📝 Applications'],['commands','⌨️ Commands'],['invites','📨 Invites']]; %>
+      <% MODS.forEach(([m, label]) => { %>
+        <a href="/guilds/<%= guild.id %>/<%= m %>" class="<%= module === m ? 'active' : '' %>"><%= label %></a>
+      <% }); %>
+    </nav>
+  </aside>
+  <section class="settings-content">
+    <% if (saved) { %><div class="toast">✅ Settings saved.</div><% } %>
+
+    <% if (module === 'general') { %>
+    <h1>General settings</h1>
+    <p class="muted">Welcome messages, logs, and the bot's look in this server.</p>
+    <form method="post" action="/api/guilds/<%= guild.id %>/settings">
+      <label>Welcome channel</label>
+      <select name="welcomeChannelId"><option value="">— none —</option>
+        <% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>" <%= settings.welcomeChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }); %>
+      </select>
+      <label>Mod log channel</label>
+      <select name="logChannelId"><option value="">— none —</option>
+        <% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>" <%= settings.logChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }); %>
+      </select>
+      <label>Embed color</label>
+      <input type="text" name="embedColor" value="<%= settings.embedColor || '' %>" placeholder="#5865F2">
+      <br><br><button class="btn" type="submit">Save general settings</button>
+    </form>
+    <% } %>
+
+    <% if (module === 'moderation') { %>
+    <h1>Moderation</h1>
+    <p class="muted">Warn thresholds and automatic actions.</p>
+    <form method="post" action="/api/guilds/<%= guild.id %>/settings">
+      <label>Warn threshold (warns before auto-action, 0 = off)</label>
+      <input type="number" name="warnThreshold" min="0" max="100" value="<%= settings.warnThreshold ?? '' %>">
+      <label>Auto-action at threshold</label>
+      <select name="warnAction">
+        <option value="">— none —</option>
+        <option value="timeout" <%= settings.warnAction === 'timeout' ? 'selected' : '' %>>Timeout 10 min</option>
+        <option value="kick" <%= settings.warnAction === 'kick' ? 'selected' : '' %>>Kick</option>
+        <option value="ban" <%= settings.warnAction === 'ban' ? 'selected' : '' %>>Ban</option>
+      </select>
+      <br><br><button class="btn" type="submit">Save moderation settings</button>
+    </form>
+    <% } %>
+
+    <% if (module === 'tickets') { %>
+    <h1>Tickets</h1>
+    <p class="muted">Where tickets live and who can work them.</p>
+    <form method="post" action="/api/guilds/<%= guild.id %>/settings">
+      <label>Ticket category</label>
+      <select name="ticketCategoryId"><option value="">— none —</option>
+        <% channels.filter(c => c.type === 4).forEach(c => { %><option value="<%= c.id %>" <%= settings.ticketCategoryId === c.id ? 'selected' : '' %>><%= c.name %></option><% }); %>
+      </select>
+      <label>Ticket support role</label>
+      <select name="ticketSupportRoleId"><option value="">— none —</option>
+        <% roles.forEach(r => { %><option value="<%= r.id %>" <%= settings.ticketSupportRoleId === r.id ? 'selected' : '' %>><%= r.name %></option><% }); %>
+      </select>
+      <label>Ticket log channel</label>
+      <select name="ticketLogChannelId"><option value="">— none —</option>
+        <% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>" <%= settings.ticketLogChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }); %>
+      </select>
+      <br><br><button class="btn" type="submit">Save ticket settings</button>
+    </form>
+    <h3>Recent tickets</h3>
+    <% if (!tickets.length) { %><p>No tickets yet.</p><% } %>
+    <ul><% tickets.forEach(t => { %><li>#<%= t.id %> — <%= t.subject || '—' %> — <%= t.status %> — &lt;@<%= t.user_id %>&gt;</li><% }); %></ul>
+    <% } %>
+
+    <% if (module === 'serverstats') { %>
+    <h1>Server Stats</h1>
+    <p class="muted">Live stat channels, like the ServerStats bot.</p>
+    <p>Server Stats are <%= settings.serverStatsEnabled ? '✅ enabled' : '❌ disabled' %> in this server.</p>
+    <p>Enabled channels: <%= Object.keys(settings.serverStatsChannels || {}).join(', ') || 'none' %></p>
+    <form method="post" action="/api/guilds/<%= guild.id %>/settings">
+      <label class="toggle"><input type="checkbox" name="serverStatsEnabled" value="true" <%= settings.serverStatsEnabled ? 'checked' : '' %>><span class="track"></span><span>Server stats enabled</span></label>
+      <br><button class="btn" type="submit">Save</button>
+    </form>
+    <p class="muted">Use <code>/serverstats-setup</code> and <code>/serverstats-toggle</code> in Discord to manage individual stat channels.</p>
+    <% } %>
+
+    <% if (module === 'streams') { %>
+    <h1>Streams</h1>
+    <p class="muted">Watched streamers, live alerts, and the live-channel name. Discord commands (/stream-add, /stream-remove, /stream-list) use the same table — dashboard and Discord stay in sync.</p>
+
+    <h2>Live channel name template</h2>
+    <p class="muted">Used when a streamer's live channel is renamed while they stream. Placeholders: <code>{name}</code> (required), <code>{game}</code>, <code>{title}</code>. Max 100 characters, one line. Stored in the database (guild_settings) — the same field /stream-template edits in Discord.</p>
+    <form method="post" action="/api/guilds/<%= guild.id %>/settings" id="template-form">
+      <input type="text" name="liveChannelNameTemplate" id="template-input" value="<%= settings.liveChannelNameTemplate || '' %>" placeholder="🔴 LIVE: {name}" maxlength="100">
+      <p class="muted">Preview: <code id="template-preview"></code></p>
+      <button class="btn" type="submit">Save template</button>
+    </form>
+
+    <h2>Watched streamers</h2>
+    <% if (!streamers.length) { %><p class="muted">None yet — add one below.</p><% } %>
+    <table><tr><th></th><th>Streamer</th><th>Platform</th><th>Announcements</th><th>Ping role</th><th>Live channel</th><th></th></tr>
+    <% streamers.forEach(s => { %>
+      <tr>
+        <td><%= s.is_live ? '🔴' : '⚫' %></td>
+        <td><strong><%= s.channel_id_or_name %></strong></td>
+        <td><%= s.platform %></td>
+        <td><%= s.notify_channel_id ? '#' + (channels.find(c => c.id === s.notify_channel_id)?.name || s.notify_channel_id) : '—' %></td>
+        <td><%= s.ping_role_id ? '@' + (roles.find(r => r.id === s.ping_role_id)?.name || s.ping_role_id) : '—' %></td>
+        <td><%= s.live_channel_id ? '#' + (channels.find(c => c.id === s.live_channel_id)?.name || s.live_channel_id) : 'none' %></td>
+        <td>
+          <button class="btn ghost" data-refresh-streamer="<%= s.id %>">Refresh</button>
+          <button class="btn ghost" data-edit-streamer="<%= s.id %>">Edit</button>
+          <button class="btn danger" data-remove-streamer="<%= s.id %>">Remove</button>
+        </td>
+      </tr>
+      <tr id="edit-row-<%= s.id %>" style="display:none"><td colspan="7">
+        <form class="edit-streamer-form" data-streamer-id="<%= s.id %>">
+          <label>Notify channel</label>
+          <select name="notifyChannelId"><% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>" <%= s.notify_channel_id === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }); %></select>
+          <label>Ping role (optional)</label>
+          <select name="pingRoleId"><option value="">— none —</option><% roles.forEach(r => { %><option value="<%= r.id %>" <%= s.ping_role_id === r.id ? 'selected' : '' %>><%= r.name %></option><% }); %></select>
+          <label>Live channel (optional — renames while live)</label>
+          <select name="liveChannelId"><option value="">— none —</option><% channels.filter(c => c.type === 0 || c.type === 2).forEach(c => { %><option value="<%= c.id %>" <%= s.live_channel_id === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }); %></select>
+          <br><br><button class="btn" type="submit">Save changes</button>
+        </form>
+      </td></tr>
+    <% }); %></table>
+
+    <h2>Add a streamer</h2>
+    <form id="add-streamer-form">
+      <label>Platform</label>
+      <select name="platform">
+        <option value="twitch">Twitch</option><option value="youtube">YouTube</option><option value="kick">Kick</option>
+        <option value="facebook">Facebook (manual announcements only)</option><option value="tiktok">TikTok (manual announcements only)</option>
+      </select>
+      <label>Channel name / URL</label>
+      <input type="text" name="channel" placeholder="Twitch login, YouTube channel ID, Kick slug…" required>
+      <label>Notify channel</label>
+      <select name="notifyChannelId"><% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>">#<%= c.name %></option><% }); %></select>
+      <label>Ping role (optional)</label>
+      <select name="pingRoleId"><option value="">— none —</option><% roles.forEach(r => { %><option value="<%= r.id %>"><%= r.name %></option><% }); %></select>
+      <label>Live channel (optional)</label>
+      <select name="liveChannelId"><option value="">— none —</option><% channels.filter(c => c.type === 0 || c.type === 2).forEach(c => { %><option value="<%= c.id %>">#<%= c.name %></option><% }); %></select>
+      <br><br><button class="btn" type="submit">Add streamer</button>
+    </form>
+    <p id="streamer-result" class="muted"></p>
+    <% } %>
+
+    <% if (module === 'music') { %>
+    <h1>Music</h1>
+    <p class="muted">Who can control the music.</p>
+    <form method="post" action="/api/guilds/<%= guild.id %>/settings">
+      <label>DJ role (only this role + admins can use music commands)</label>
+      <select name="djRoleId"><option value="">— none (everyone) —</option>
+        <% roles.forEach(r => { %><option value="<%= r.id %>" <%= settings.djRoleId === r.id ? 'selected' : '' %>><%= r.name %></option><% }); %>
+      </select>
+      <br><br><button class="btn" type="submit">Save music settings</button>
+    </form>
+    <p class="muted">Max queue size is set in config.json (<code>music.maxQueueSize</code>) and applies to all servers.</p>
+    <% } %>
+
+    <% if (module === 'leveling') { %>
+    <h1>Leveling</h1>
+    <p class="muted">XP rewards and level-up role rewards.</p>
+    <form method="post" action="/api/guilds/<%= guild.id %>/settings">
+      <label class="toggle"><input type="checkbox" name="levelUpMessages" value="true" <%= settings.levelUpMessages ? 'checked' : '' %>><span class="track"></span><span>Send level-up messages in-channel</span></label>
+      <label>Level role rewards (JSON: {"5": "roleId", "10": "roleId"})</label>
+      <input type="text" name="levelRoles" value='<%= JSON.stringify(settings.levelRoles || {}) %>'>
+      <br><br><button class="btn" type="submit">Save leveling settings</button>
+    </form>
+    <% } %>
+
+    <% if (module === 'reactionroles') { %>
+    <h1>Reaction Roles</h1>
+    <p class="muted">Reaction roles are managed with <code>/reactionroles-setup</code>, <code>/reactionroles-add</code>, <code>/reactionroles-remove</code> and <code>/reactionroles-list</code> in Discord. Mappings live in the <code>reaction_roles</code> MySQL table.</p>
+    <% } %>
+
+    <% if (module === 'commands') { %>
+    <h1>Commands</h1>
+    <p class="muted">Enable or disable commands in this server. A command disabled globally by staff can't be re-enabled here.</p>
+    <div id="commands-list"><p class="muted">Loading…</p></div>
+    <% } %>
+
+    <% if (module === 'applications') { %>
+    <h1>Applications</h1>
+    <p class="muted">Appy-style application forms. Members apply with /apply; submissions land in the review channel and here, in the review queue.</p>
+    <form method="post" action="/api/guilds/<%= guild.id %>/settings">
+      <label>Application reviewer role (can review besides admins)</label>
+      <select name="applicationReviewerRoleId"><option value="">— admins only —</option>
+        <% roles.forEach(r => { %><option value="<%= r.id %>" <%= settings.applicationReviewerRoleId === r.id ? 'selected' : '' %>><%= r.name %></option><% }); %>
+      </select>
+      <br><br><button class="btn" type="submit">Save reviewer role</button>
+    </form>
+    <h2>Forms</h2>
+    <% if (!applicationForms.length) { %><p class="muted">No forms yet.</p><% } %>
+    <table><tr><th>ID</th><th>Name</th><th>Status</th><th>Pending</th><th>Total</th><th>Review channel</th><th>Role on accept</th><th></th></tr>
+    <% applicationForms.forEach(f => { %>
+      <tr><td>#<%= f.id %></td><td><strong><%= f.name %></strong></td><td><%= f.is_open ? '🟢 open' : '🔴 closed' %></td>
+      <td><%= f.pending_count %></td><td><%= f.total_count %></td>
+      <td>#<%= (channels.find(c => c.id === f.review_channel_id)?.name || f.review_channel_id) %></td>
+      <td><%= f.role_to_grant ? '@' + (roles.find(r => r.id === f.role_to_grant)?.name || f.role_to_grant) : '—' %></td>
+      <td><button class="btn ghost" data-app-form-toggle="<%= f.id %>" data-app-form-open="<%= f.is_open ? 0 : 1 %>"><%= f.is_open ? 'Close' : 'Open' %></button></td></tr>
+    <% }); %></table>
+    <h2>Create a form</h2>
+    <form id="create-app-form">
+      <label>Name</label>
+      <input type="text" name="name" required maxlength="128" placeholder="e.g. Staff Application">
+      <label>Description</label>
+      <input type="text" name="description" placeholder="What is this application for?">
+      <label>Questions (one per line, max 5)</label>
+      <textarea name="questions" rows="5" required placeholder="Why do you want to join?&#10;How much experience do you have?"></textarea>
+      <label>Role granted on accept (optional)</label>
+      <select name="roleToGrant"><option value="">— none —</option><% roles.forEach(r => { %><option value="<%= r.id %>"><%= r.name %></option><% }); %></select>
+      <label>Review channel</label>
+      <select name="reviewChannelId"><% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>">#<%= c.name %></option><% }); %></select>
+      <br><br><button class="btn" type="submit">Create form</button>
+    </form>
+    <p id="app-form-result" class="muted"></p>
+    <h2>Review queue (pending)</h2>
+    <% if (!pendingApplications.length) { %><p class="muted">Nothing pending. 🎉</p><% } %>
+    <% pendingApplications.forEach(a => { %>
+      <div class="card" style="text-align:left;margin-bottom:12px">
+        <strong>#<%= a.id %> — <%= a.form_name %></strong> · <code>&lt;@<%= a.user_id %>&gt;</code><br>
+        <% try { const ans = JSON.parse(a.answers); ans.forEach((x, i) => { %><p><strong>Q<%= i + 1 %>:</strong> <%= x %></p><% }); } catch {} %>
+        <input type="text" placeholder="Review note (optional)" id="note-<%= a.id %>">
+        <br><br>
+        <button class="btn green" data-app-review="<%= a.id %>" data-app-decision="accepted">✅ Accept</button>
+        <button class="btn danger" data-app-review="<%= a.id %>" data-app-decision="denied">❌ Deny</button>
+      </div>
+    <% }); %>
+    <% } %>
+
+    <% if (module === 'invites') { %>
+    <h1>Invites</h1>
+    <p class="muted">Invite tracking: on every join the bot compares its cached invite uses to the live list to find the inviter. Joins from accounts younger than the fake threshold are flagged fake and don't count as valid. Vanity URL joins are counted separately.</p>
+    <form method="post" action="/api/guilds/<%= guild.id %>/settings">
+      <label>Invite log channel (defaults to the welcome channel if unset)</label>
+      <select name="inviteLogChannelId"><option value="">— use welcome channel —</option>
+        <% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>" <%= settings.inviteLogChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }); %>
+      </select>
+      <label>Fake-account age threshold (days) — accounts younger than this are flagged fake</label>
+      <input type="number" name="inviteMinAccountAgeDays" min="0" max="365" value="<%= settings.inviteMinAccountAgeDays ?? 7 %>">
+      <br><br><button class="btn" type="submit">Save invite settings</button>
+    </form>
+    <p class="muted">The bot needs Manage Server permission to fetch the invite list — without it, joins show as "unknown invite".</p>
+    <h2>Leaderboard</h2>
+    <% if (!inviteLeaderboard.length) { %><p class="muted">No invites tracked yet.</p><% } %>
+    <table><tr><th>#</th><th>User</th><th>Valid</th><th>Total</th><th>Leaves</th><th>Fake</th></tr>
+    <% inviteLeaderboard.forEach((r, i) => { %><tr><td><%= i + 1 %></td><td>&lt;@<%= r.user_id %>&gt;</td><td><strong><%= r.valid_invites %></strong></td><td><%= r.total_invites %></td><td><%= r.leaves %></td><td><%= r.fake_invites %></td></tr><% }); %></table>
+    <h2>Per-user stats</h2>
+    <table><tr><th>User</th><th>Valid</th><th>Total</th><th>Leaves</th><th>Fake</th><th>Updated</th></tr>
+    <% inviteStats.forEach(r => { %><tr><td>&lt;@<%= r.user_id %>&gt;</td><td><%= r.valid_invites %></td><td><%= r.total_invites %></td><td><%= r.leaves %></td><td><%= r.fake_invites %></td><td><%= r.updated_at %></td></tr><% }); %></table>
+    <% } %>
+
+    <% if (module === 'gameservers') { %>
+    <h1>Game Servers</h1>
+    <p class="muted">Tracked game servers for this guild.</p>
+    <% if (!gameServers.length) { %><p>None tracked in this server yet — add one with /gameserver-add in Discord.</p><% } %>
+    <ul><% gameServers.forEach(s => { %><li><strong><%= s.name %></strong> — <%= s.provider %> · <%= s.host %><% if (s.port) { %>:<%= s.port %><% } %></li><% }); %></ul>
+    <p class="muted">Config-level examples (Minecraft, Rust, The Isle) live in config.json <code>gameServers.custom</code>. The Isle has no public query protocol — it is manual status only.</p>
+    <% } %>
+  </section>
+</div>
+
+<script>
+// Forms post JSON to the API (the API is the single source of truth).
+document.querySelectorAll('form[action^="/api/"]').forEach(form => {
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = form.querySelector('button[type=submit]');
+    const original = btn ? btn.textContent : '';
+    if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
+    const data = {};
+    new FormData(form).forEach((v, k) => { data[k] = v; });
+    form.querySelectorAll('input[type=checkbox]').forEach(cb => { if (!data[cb.name]) data[cb.name] = false; });
+    if (data.levelRoles) { try { data.levelRoles = JSON.parse(data.levelRoles); } catch { alert('levelRoles must be valid JSON'); if (btn) { btn.textContent = original; btn.disabled = false; } return; } }
+    const res = await fetch(form.action, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    if (res.ok) window.location.href = window.location.pathname + '?saved=1';
+    else { alert('Save failed: ' + (await res.text())); if (btn) { btn.textContent = original; btn.disabled = false; } }
+  });
+});
+</script>
+<script>
+const guildId = '<%= guild.id %>';
+// Live template preview
+const tplInput = document.getElementById('template-input');
+const tplPreview = document.getElementById('template-preview');
+function updatePreview() {
+  const v = tplInput ? tplInput.value : '';
+  tplPreview.textContent = (v || '🔴 LIVE: {name}')
+    .replaceAll('{name}', 'ExampleStreamer').replaceAll('{game}', 'Just Chatting').replaceAll('{title}', 'Chilling with chat');
+}
+if (tplInput) { tplInput.addEventListener('input', updatePreview); updatePreview(); }
+// Streamer add/edit/remove/refresh
+const sResult = document.getElementById('streamer-result');
+const addS = document.getElementById('add-streamer-form');
+if (addS) addS.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fd = new FormData(addS);
+  const res = await fetch(`/api/guilds/${guildId}/streamers`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(fd)) });
+  if (res.ok) window.location.reload();
+  else { const j = await res.json().catch(() => ({})); sResult.textContent = '❌ ' + (j.error || 'Failed to add streamer.'); }
+});
+document.querySelectorAll('[data-remove-streamer]').forEach(btn => btn.addEventListener('click', async () => {
+  if (!confirm('Remove this streamer?')) return;
+  const res = await fetch(`/api/guilds/${guildId}/streamers/${btn.dataset.removeStreamer}`, { method: 'DELETE' });
+  if (res.ok) window.location.reload();
+}));
+document.querySelectorAll('[data-refresh-streamer]').forEach(btn => btn.addEventListener('click', async () => {
+  btn.textContent = 'Checking…';
+  const res = await fetch(`/api/guilds/${guildId}/streamers/${btn.dataset.refreshStreamer}/refresh`, { method: 'POST' });
+  const j = await res.json().catch(() => ({}));
+  if (res.ok) { alert(j.live ? `🔴 LIVE${j.title ? ' — ' + j.title : ''}` : '⚫ Offline right now.'); window.location.reload(); }
+  else { alert('Check failed: ' + (j.error || 'unknown error')); btn.textContent = 'Refresh'; }
+}));
+document.querySelectorAll('[data-edit-streamer]').forEach(btn => btn.addEventListener('click', () => {
+  const row = document.getElementById('edit-row-' + btn.dataset.editStreamer);
+  row.style.display = row.style.display === 'none' ? '' : 'none';
+}));
+document.querySelectorAll('.edit-streamer-form').forEach(form => form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fd = new FormData(form);
+  const res = await fetch(`/api/guilds/${guildId}/streamers/${form.dataset.streamerId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(fd)) });
+  if (res.ok) window.location.reload();
+  else { const j = await res.json().catch(() => ({})); alert('Failed: ' + (j.error || 'unknown error')); }
+}));
+// Applications tab
+const createAppForm = document.getElementById('create-app-form');
+if (createAppForm) createAppForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fd = new FormData(createAppForm);
+  const res = await fetch(`/api/guilds/${guildId}/applications/forms`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: fd.get('name'), description: fd.get('description'), questions: String(fd.get('questions')).split('\n'), roleToGrant: fd.get('roleToGrant') || null, reviewChannelId: fd.get('reviewChannelId') }) });
+  if (res.ok) window.location.reload();
+  else { const j = await res.json().catch(() => ({})); document.getElementById('app-form-result').textContent = '❌ ' + (j.error || 'Failed.'); }
+});
+document.querySelectorAll('[data-app-form-toggle]').forEach(btn => btn.addEventListener('click', async () => {
+  const res = await fetch(`/api/guilds/${guildId}/applications/forms/${btn.dataset.appFormToggle}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ isOpen: btn.dataset.appFormOpen === '1' }) });
+  if (res.ok) window.location.reload();
+}));
+document.querySelectorAll('[data-app-review]').forEach(btn => btn.addEventListener('click', async () => {
+  const note = document.getElementById('note-' + btn.dataset.appReview)?.value || '';
+  const res = await fetch(`/api/guilds/${guildId}/applications/${btn.dataset.appReview}/review`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ decision: btn.dataset.appDecision, note }) });
+  if (res.ok) window.location.reload(); else alert('Failed: ' + (await res.text()));
+}));
+// Commands tab (JS-driven)
+const cmdList = document.getElementById('commands-list');
+if (cmdList) {
+  fetch(`/api/guilds/${guildId}/commands`).then(r => r.json()).then(rows => {
+    let html = '<table><tr><th>Command</th><th>Category</th><th>Enabled in this server</th></tr>';
+    rows.forEach(c => {
+      html += `<tr><td>/${c.name}</td><td>${c.category}</td><td>${c.globallyDisabled ? 'Disabled globally by staff' : `<label class="toggle"><input type="checkbox" data-guild-command="${c.name}" ${c.enabled ? 'checked' : ''}><span class="track"></span></label>`}</td></tr>`;
+    });
+    cmdList.innerHTML = html + '</table>';
+    cmdList.querySelectorAll('[data-guild-command]').forEach(cb => cb.addEventListener('change', async () => {
+      const res = await fetch(`/api/guilds/${guildId}/commands`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ commandName: cb.dataset.guildCommand, enabled: cb.checked }) });
+      if (!res.ok) { alert('Failed to save.'); cb.checked = !cb.checked; }
+    }));
+  });
+}
+</script>
+<%- include('partials/footer') %>
