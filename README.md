@@ -10,7 +10,7 @@ A multi-file JavaScript Discord bot built with **discord.js v14** (CommonJS) —
 | --- | --- |
 | Moderation | `/kick`, `/ban`, `/timeout`, `/warn` (add/list, JSON-backed + DB mirror), `/clear`, `/unban`, `/setup` (per-server settings) |
 | Music | `/play`, `/skip`, `/stop`, `/queue`, `/pause`, `/resume` — `@discordjs/voice` + `play-dl`, DJ-role enforcement |
-| Status / monitoring | `/ping` (shard-aware, lists every shard), `/uptime`, `/serverinfo`, `/userinfo`, `/status`, `/botstats`, `/mystats`, `/shards`, `/topcommands`, `/topusers`, `/guildstats`, `/globalstats` (owner) |
+| Status / monitoring | `/ping` (shard-aware, lists every shard), `/uptime`, `/serverinfo`, `/userinfo`, `/status`, `/botstats`, `/mystats`, `/shards`, `/topcommands`, `/topusers`, `/guildstats`, `/globalstats` (owner), `/hostinfo` (owner — host OS/CPU/memory/disk/runtime specs) |
 | Fun & games | `/8ball`, `/coinflip`, `/dice`, `/rps`, `/trivia` (built-in bank, no external API) |
 | Tickets | `/ticket-setup`, `/ticket-close`, `/ticket-add`, `/ticket-remove`, `/ticket-claim` — panel + modals + HTML transcripts |
 | Server Stats | `/serverstats-setup`, `/serverstats-toggle` — live stat voice channels |
@@ -20,7 +20,8 @@ A multi-file JavaScript Discord bot built with **discord.js v14** (CommonJS) —
 | Giveaways | `/giveaway` (start/end/reroll/list) — button entry, random winners |
 | Reaction Roles | `/reactionroles-setup`, `/reactionroles-add`, `/reactionroles-remove`, `/reactionroles-list` — button toggles |
 | Game Servers | `/serverstatus`, `/gameserver-add`, `/gameserver-remove`, `/gameserver-list` — pluggable providers |
-| Owner | `/restart`, `/reload`, `/shutdown`, `/eval` (owner-only, `ownerId` in config) |
+| Owner | `/restart`, `/reload`, `/shutdown`, `/eval` (owner-only, `ownerId` in config), `/hostinfo` (owner-only — host OS/CPU/memory/disk/runtime specs) |
+| Announcements | `/announce` (admin — post an announcement in a channel: title, description, optional color hex, image URL, footer, role ping, plain-text mode) |
 | Help | `/help` — grouped command list with a category select menu |
 
 ## Project structure
