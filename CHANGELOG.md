@@ -6,6 +6,11 @@ in `package.json` is the source of truth for the current release — every
 version below must match a `package.json` version, and the dashboard
 `/version` page renders from this file.
 
+## [1.15.0] - 2026-11-15
+
+### Changed
+- Consolidated all 266 slash commands into 37 top-level commands (1.15.0, BREAKING CHANGE — every command name users type changes). Discord caps an app at 100 top-level CHAT_INPUT commands per scope, and single-command deploy failed on command #101 with error 30032, so the 266 flat commands are now grouped by folder into subcommands: one parent per folder (e.g. /ban → /mod ban, /play → /music play, /ticket-setup → /ticket setup), utility split into /utility (21) and /tools (25). Children that already define subcommands became subcommand groups (e.g. /mod warn add, /economy job set). serverbackup, giveaway, and mediathreads stay standalone, as do the two message context-menu commands. The 266 command files were not edited — grouping happens in the new loader src/handlers/consolidate.js at the JSON level, and a parent router looks up the original child module. Permissions are preserved: parents with uniform permissions carry them (/custom, /faq, /starboard, /welcome), and mixed parents enforce each child's original permission at runtime. Feature toggles, mod logging, and command logging keep using flat child names. Autocomplete is now routed too (previously nothing handled it, so /economy job autocomplete was dead). A bulk deploy replaces the whole command list, so the old flat names disappear and the new grouped ones appear.
+
 ## [1.14.17] - 2026-11-15
 
 ### Fixed

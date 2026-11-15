@@ -3,6 +3,13 @@
 // testing (guild commands appear instantly; global can take up to ~1 hour).
 // Run: npm run deploy   (after filling in config.json)
 //
+// Since 1.15.0 the 266 flat commands are consolidated into ~37 top-level
+// commands with subcommands (see src/handlers/consolidate.js) so the bot
+// fits Discord's 100-commands-per-scope cap. A bulk deploy REPLACES the
+// whole command list, so running this removes the old flat names (/ban,
+// /play, ...) and registers the new grouped ones (/mod ban, /music play).
+// That is intended.
+//
 // Diagnostics: DEPLOY_LIMIT=N deploys only the first N commands,
 // DEPLOY_OFFSET=N skips the first N (combine to bisect a failing deploy,
 // e.g. DEPLOY_LIMIT=50 npm run deploy). A bulk PUT *replaces* the whole
@@ -16,20 +23,11 @@
 // 100 CHAT_INPUT commands per scope, so it stops at the first failure and
 // names the command that failed.
 const { REST, Routes } = require('discord.js');
-const fs = require('fs');
 const path = require('path');
 const config = require('./utils/config');
+const { buildConsolidated } = require('./handlers/consolidate');
 
-const allCommands = [];
-const commandsPath = path.join(__dirname, 'commands');
-for (const folder of fs.readdirSync(commandsPath)) {
-  const folderPath = path.join(commandsPath, folder);
-  if (!fs.statSync(folderPath).isDirectory()) continue;
-  for (const file of fs.readdirSync(folderPath).filter((f) => f.endsWith('.js'))) {
-    const command = require(path.join(folderPath, file));
-    if (command?.data) allCommands.push(command.data.toJSON());
-  }
-}
+const allCommands = buildConsolidated().topLevel.map((c) => c.data.toJSON());
 
 const offset = Math.max(0, parseInt(process.env.DEPLOY_OFFSET || '0', 10) || 0);
 // Default deploy limit is 100: Discord rejects a bulk request much above
@@ -43,7 +41,7 @@ const skipped = limit > 0 ? allCommands.slice(offset + limit) : [];
 const singleMode = process.env.DEPLOY_MODE === 'single';
 console.log(`[deploy] ${singleMode ? 'Single' : 'Bulk'} mode: sending ${commands.length} of ${allCommands.length} commands (offset ${offset}, limit ${limit || 'none'})${commands.length ? ` — first: ${commands[0].name}, last: ${commands[commands.length - 1].name}` : ''}.`);
 if (skipped.length) console.log(`[deploy] Skipping ${skipped.length} commands over the limit (not registered): ${skipped.map((c) => c.name).join(', ')}`);
-if (skipped.length && !singleMode) console.log('[deploy] WARNING: a bulk deploy REPLACES the whole command list — any commands previously registered one-at-a-time beyond these 100 will be removed. Use DEPLOY_MODE=single to add commands without wiping the rest.');
+if (skipped.length && !singleMode) console.log(`[deploy] WARNING: a bulk deploy REPLACES the whole command list — any commands previously registered beyond these ${limit} will be removed. Use DEPLOY_MODE=single to add commands without wiping the rest.`);
 
 (async () => {
   const rest = new REST({ version: '10' }).setToken(config.token);
