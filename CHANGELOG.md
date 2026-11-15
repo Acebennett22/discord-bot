@@ -6,6 +6,11 @@ in `package.json` is the source of truth for the current release — every
 version below must match a `package.json` version, and the dashboard
 `/version` page renders from this file.
 
+## [1.14.7] - 2026-11-15
+
+### Fixed
+- Setup wizard (1.14.7) — step forms submitted via `fetch` with `FormData` (multipart), but the server only parses URL-encoded/JSON bodies, so `req.body` arrived empty and every step failed with "required" even when the fields were filled. Steps now submit as URL-encoded. Also fixed the misleading "Step saved" toast firing on failed steps — it only shows when the step actually saved.
+
 ## [1.14.6] - 2026-11-15
 
 ### Added

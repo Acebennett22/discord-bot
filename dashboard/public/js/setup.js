@@ -51,10 +51,16 @@
     const original = btn ? btn.textContent : '';
     if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
     try {
-      const res = await fetch(form.action, { method: 'POST', body: new FormData(form) });
+      // Submit as URL-encoded, not multipart: the server only parses
+      // express.urlencoded()/json — a FormData (multipart) POST arrives
+      // with an empty req.body, so every step failed validation with
+      // "required" even when the fields were filled (1.14.7).
+      const res = await fetch(form.action, { method: 'POST', body: new URLSearchParams(new FormData(form)) });
       if (!res.ok) { window.location.href = form.action; return; }
       swapStep(await res.text(), res.url);
-      AceBot.toast('Step saved');
+      // fetch follows the server's error redirect, so a failed step still
+      // returns 200 — only toast success when there is no error param.
+      if (!res.url.includes('error=')) AceBot.toast('Step saved');
     } catch {
       window.location.href = form.action;
     } finally {
