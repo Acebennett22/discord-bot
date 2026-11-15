@@ -6,6 +6,11 @@ in `package.json` is the source of truth for the current release — every
 version below must match a `package.json` version, and the dashboard
 `/version` page renders from this file.
 
+## [1.14.11] - 2026-11-15
+
+### Fixed
+- Startup warning (1.14.11) — silenced the `ready` DeprecationWarning: `index.js` listened for the literal `'ready'` client event, which discord.js renamed to `clientReady` (it stops working entirely in v15). Now listens for `Events.ClientReady`. Note: `shard.on('ready')` in `shardManager.js` is intentionally untouched — that is the shard-process event, not the client event.
+
 ## [1.14.10] - 2026-11-15
 
 ### Fixed

@@ -1,6 +1,6 @@
 // Entry point — Ace's multi-file Discord bot (discord.js v14, CommonJS).
 // Config lives in config.json at the project root (see config.example.json).
-const { Client, Collection, GatewayIntentBits, Partials } = require('discord.js');
+const { Client, Collection, Events, GatewayIntentBits, Partials } = require('discord.js');
 const config = require('./src/utils/config');
 const db = require('./src/utils/database');
 const { loadCommands } = require('./src/handlers/commandHandler');
@@ -35,7 +35,7 @@ loadEvents(client);
 // unconfigured/unreachable — the bot keeps running without logging/stats.
 db.initDatabase();
 
-client.once('ready', () => {
+client.once(Events.ClientReady, () => {
   if (client.shard?.ids?.length) errorLogger.setShardId(client.shard.ids[0]);
 });
 
