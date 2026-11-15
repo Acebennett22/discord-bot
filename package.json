@@ -1,7 +1,7 @@
 {
   "name": "ace-discord-bot",
-  "version": "1.15.3",
-  "description": "Multi-file Discord bot for Ace \u2014 moderation, music, server status/monitoring, and fun/games. Built with discord.js v14 (CommonJS).",
+  "version": "1.15.4",
+  "description": "Multi-file Discord bot for Ace — moderation, music, server status/monitoring, and fun/games. Built with discord.js v14 (CommonJS).",
   "main": "index.js",
   "scripts": {
     "start": "node src/shardManager.js",
@@ -18,16 +18,17 @@
   "license": "MIT",
   "dependencies": {
     "@discordjs/voice": "^0.18.0",
-    "discord.js": "^14.22.1",
-    "play-dl": "^1.9.7",
-    "mysql2": "^3.11.0",
     "axios": "^1.7.0",
     "canvas": "^3.2.3",
+    "discord.js": "^14.22.1",
     "ejs": "^3.1.10",
     "express": "^4.21.0",
+    "express-mysql-session": "^3.0.3",
     "express-rate-limit": "^7.4.0",
     "express-session": "^1.18.0",
     "helmet": "^7.1.0",
-    "node-cron": "^3.0.3"
+    "mysql2": "^3.11.0",
+    "node-cron": "^3.0.3",
+    "play-dl": "^1.9.7"
   }
 }

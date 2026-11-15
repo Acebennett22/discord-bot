@@ -22,6 +22,7 @@ const db = require('./utils/database');
 const { getGuildSettings, setGuildSettings } = require('./utils/guildSettings');
 const staffUtils = require('./utils/staff');
 const { resolveUserLabels } = require('./utils/userLabels');
+const { createSessionStore, SESSION_MAX_AGE_MS } = require('./utils/sessionStore');
 const errorLogger = require('./utils/errorLogger');
 const { runBackup, retentionDays, BACKUP_DIR } = require('../scripts/backup-db');
 const { FEATURES, setToggle } = require('./utils/featureToggles');
@@ -57,7 +58,12 @@ app.use(session({
   secret: (config.dashboard && config.dashboard.sessionSecret) || 'dev-only-change-me',
   resave: false,
   saveUninitialized: false,
-  cookie: { httpOnly: true, secure: 'auto', maxAge: 24 * 60 * 60_000 },
+  // 30-day login cookie, refreshed on activity (rolling). Sessions live in
+  // MySQL via createSessionStore() so they survive dashboard restarts;
+  // falls back to MemoryStore with a warning when MySQL is unavailable.
+  rolling: true,
+  store: createSessionStore(),
+  cookie: { httpOnly: true, secure: 'auto', maxAge: SESSION_MAX_AGE_MS },
 }));
 if ((config.dashboard?.sessionSecret || '').includes('CHANGE_ME')) {
   console.warn('[dashboard] WARNING: dashboard.sessionSecret in config.json is still the default — set a long random string before exposing this publicly.');
@@ -168,12 +174,64 @@ function requireAuth(req, res, next) {
   next();
 }
 
+async function refreshAccessToken(req) {
+  // Discord access tokens last ~7 days. With the `offline` scope from /login
+  // Discord also returns a refresh token — use it to get a fresh access
+  // token without making the user log in again. Refresh tokens rotate: store
+  // the new one whenever Discord returns one.
+  if (!req.session.refreshToken) return false;
+  try {
+    const res = await axios.post('https://discord.com/api/v10/oauth2/token', new URLSearchParams({
+      client_id: config.clientId,
+      client_secret: config.dashboard.clientSecret,
+      grant_type: 'refresh_token',
+      refresh_token: req.session.refreshToken,
+    }), { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+    req.session.accessToken = res.data.access_token;
+    if (res.data.refresh_token) req.session.refreshToken = res.data.refresh_token;
+    if (res.data.expires_in) req.session.tokenExpiresAt = Date.now() + res.data.expires_in * 1000;
+    return true;
+  } catch (err) {
+    console.warn('[dashboard] Discord token refresh failed:', err.response?.data || err.message);
+    return false;
+  }
+}
+
 async function userGuilds(req) {
   // Cached in session for the login; refreshed on each server-picker visit.
-  const res = await discordApi.get('/users/@me/guilds', {
-    headers: { Authorization: `Bearer ${req.session.accessToken}` },
-  });
-  return res.data;
+  // Refresh proactively when we know the token expired.
+  if (req.session.tokenExpiresAt && Date.now() > req.session.tokenExpiresAt && req.session.refreshToken) {
+    await refreshAccessToken(req);
+  }
+  try {
+    const res = await discordApi.get('/users/@me/guilds', {
+      headers: { Authorization: `Bearer ${req.session.accessToken}` },
+    });
+    return res.data;
+  } catch (err) {
+    if (err.response?.status === 401 && req.session.refreshToken) {
+      // Token expired mid-flight — refresh once and retry.
+      if (await refreshAccessToken(req)) {
+        const res = await discordApi.get('/users/@me/guilds', {
+          headers: { Authorization: `Bearer ${req.session.accessToken}` },
+        });
+        return res.data;
+      }
+    }
+    if (err.response?.status === 401) {
+      // Refresh failed (or no refresh token — e.g. a session from before
+      // 1.15.4). Keep the login itself: req.session.user stays, so pages
+      // gated on being logged in keep working — only the Discord connection
+      // is dead, and the caller shows a "log in again" notice.
+      delete req.session.accessToken;
+      delete req.session.refreshToken;
+      delete req.session.tokenExpiresAt;
+      const expired = new Error('Discord connection expired — log in again to refresh it.');
+      expired.authExpired = true;
+      throw expired;
+    }
+    throw err;
+  }
 }
 
 function canManage(guild) {
@@ -198,6 +256,7 @@ async function requireGuildAccess(req, res, next) {
     req.guildMeta = guild;
     next();
   } catch (err) {
+    if (err.authExpired) return res.redirect('/servers');
     console.error('[dashboard] guild access check failed:', err.message);
     res.status(500).send('Could not verify server access — try logging in again.');
   }
@@ -360,7 +419,7 @@ app.get('/docs', (req, res) => {
 });
 
 app.get('/', (req, res) => {
-  if (!req.session.user) return res.render('home', { user: null, guilds: [], inviteUrl: inviteUrl(), isStaff: false });
+  if (!req.session.user) return res.render('home', { user: null, guilds: [], inviteUrl: inviteUrl(), isStaff: false, authExpired: false });
   res.redirect('/servers');
 });
 
@@ -373,7 +432,7 @@ app.get('/login', (req, res) => {
     client_id: config.clientId,
     redirect_uri: REDIRECT_URI,
     response_type: 'code',
-    scope: 'identify guilds',
+    scope: 'identify guilds offline',
   });
   res.redirect(`https://discord.com/oauth2/authorize?${params}`);
 });
@@ -390,6 +449,11 @@ app.get('/callback', async (req, res) => {
       redirect_uri: REDIRECT_URI,
     }), { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
     req.session.accessToken = tokenRes.data.access_token;
+    // `offline` scope: Discord returns a refresh token so the access token
+    // (~7 days) can be renewed without another login. Stored in the session
+    // alongside the user — see refreshAccessToken().
+    if (tokenRes.data.refresh_token) req.session.refreshToken = tokenRes.data.refresh_token;
+    if (tokenRes.data.expires_in) req.session.tokenExpiresAt = Date.now() + tokenRes.data.expires_in * 1000;
     const userRes = await discordApi.get('/users/@me', { headers: { Authorization: `Bearer ${tokenRes.data.access_token}` } });
     req.session.user = userRes.data;
     res.redirect('/servers');
@@ -414,9 +478,14 @@ app.get('/servers', requireAuth, async (req, res) => {
     for (const g of guilds) {
       withBot.push({ ...g, botPresent: await botInGuild(g.id) });
     }
-    res.render('home', { user: req.session.user, guilds: withBot.filter((g) => g.botPresent), inviteUrl: inviteUrl(), isStaff: await staffFlag(req) });
+    res.render('home', { user: req.session.user, guilds: withBot.filter((g) => g.botPresent), inviteUrl: inviteUrl(), isStaff: await staffFlag(req), authExpired: false });
   } catch (err) {
     console.error('[dashboard] /servers failed:', err.message);
+    if (err.authExpired) {
+      // Discord connection is dead but the login isn't: show the picker with
+      // a "log in again" notice instead of forcing a fresh login.
+      return res.render('home', { user: req.session.user, guilds: [], inviteUrl: inviteUrl(), isStaff: await staffFlag(req), authExpired: true });
+    }
     res.redirect('/login');
   }
 });

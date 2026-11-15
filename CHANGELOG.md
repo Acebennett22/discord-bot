@@ -6,6 +6,11 @@ in `package.json` is the source of truth for the current release — every
 version below must match a `package.json` version, and the dashboard
 `/version` page renders from this file.
 
+## [1.15.4] - 2026-11-15
+
+### Changed
+- Persistent dashboard logins (1.15.4) — login sessions are now stored in MySQL (`sessions` table, auto-created by express-mysql-session) instead of in-process MemoryStore, so users stay logged in across dashboard restarts. The login cookie is 30 days (was 24 hours) with `rolling: true`, so active users stay logged in. The new `src/utils/sessionStore.js` lazily picks its backend on first use: MySQL when the database is up, MemoryStore with a console warning when it isn't (the dashboard still boots; sessions just don't persist). The Discord OAuth flow now requests the `offline` scope, so the callback stores a refresh token alongside the access token; the server picker refreshes the access token on 401 (and proactively when it is known-expired) and retries once. If the refresh fails, the user stays logged in — the server picker shows a "Your Discord connection expired — log in again" notice instead of forcing a login, and per-server pages redirect to the picker instead of 500ing. Sessions from before 1.15.4 have no refresh token and take the notice path on their next guilds call. The setup wizard's one-time link is unchanged (the token is still single-use; only the resulting authorized session persists).
+
 ## [1.15.3] - 2026-11-15
 
 ### Changed
