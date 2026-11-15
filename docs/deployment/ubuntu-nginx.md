@@ -24,9 +24,11 @@ fresh Ubuntu 22.04 or 24.04 server you can SSH into.
   has propagated.
 - SSH access to the server as a user with `sudo`.
 
-## 1. Install Node.js 20 and build tools
+## 1. Install Node.js 20 (or 24) and build tools
 
-The bot needs Node.js 18 or newer; Node 20 LTS is the safe pick.
+The bot needs Node.js 18 or newer (`"engines": { "node": ">=18.0.0" }` in
+`package.json`); Node 20 LTS is the safe pick, and Node 24 (e.g. 24.15.0)
+also works — the command loader was verified on Node 24.
 (The welcome-image canvas feature also needs the native libraries in
 the second command.)
 
@@ -37,6 +39,11 @@ sudo apt install -y nodejs
 sudo apt install -y libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev
 node --version   # should print v20.x
 ```
+
+> For Node 24 instead, use `setup_24.x` in the NodeSource line above
+> (`curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -`).
+> The bot has never been run live on any Node version yet, so if
+> anything complains on 24, falling back to 20 is the safe move.
 
 ## 2. Install MySQL and create the bot's database
 
