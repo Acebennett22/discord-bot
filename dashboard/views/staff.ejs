@@ -23,10 +23,10 @@
       <h1>Error logs <button class="btn ghost" type="button" data-refresh-section="#errors-list">🔄 Refresh</button></h1>
       <p class="muted">Every error/warn the bot logs lands in the MySQL <code>error_logs</code> table (and in <code>logs/bot-errors.log</code> on the host). Filter below, click an entry for the full stack trace.</p>
       <div id="errors-list">
-      <form method="get" action="/staff/errors" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
-        <div><label>Level</label><select name="level"><option value="">all</option><option value="error" <%= data.filters.level === 'error' ? 'selected' : '' %>>error</option><option value="warn" <%= data.filters.level === 'warn' ? 'selected' : '' %>>warn</option><option value="info" <%= data.filters.level === 'info' ? 'selected' : '' %>>info</option></select></div>
-        <div><label>Command/event</label><input type="text" name="command" value="<%= data.filters.command %>"></div>
-        <div><label>Shard</label><input type="number" name="shard" value="<%= data.filters.shard %>"></div>
+      <form method="get" action="/staff/errors" class="errors-filters">
+        <div class="f-level"><label>Level</label><select name="level"><option value="">all</option><option value="error" <%= data.filters.level === 'error' ? 'selected' : '' %>>error</option><option value="warn" <%= data.filters.level === 'warn' ? 'selected' : '' %>>warn</option><option value="info" <%= data.filters.level === 'info' ? 'selected' : '' %>>info</option></select></div>
+        <div class="f-command"><label>Command/event</label><input type="text" name="command" value="<%= data.filters.command %>"></div>
+        <div class="f-shard"><label>Shard</label><input type="number" name="shard" value="<%= data.filters.shard %>"></div>
         <div><button class="btn" type="submit">Filter</button></div>
       </form>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:16px">
@@ -35,12 +35,14 @@
         <span id="purge-result" class="muted"></span>
       </div>
       <p class="muted" style="margin-top:6px">Purge selected deletes only the checked rows from the database — <code>logs/bot-errors.log</code> is only cleared by Purge all. Purge all also drops any entries the bot queued while the database was unreachable, so they can't come back.</p>
-      <table style="margin-top:16px"><tr><th><input type="checkbox" id="select-all-errors" title="Select all"></th><th>ID</th><th>Level</th><th>Shard</th><th>Command</th><th>Message</th><th>When</th><th></th></tr>
+      <div class="table-scroll">
+      <table class="errors-table"><colgroup><col class="c-check"><col class="c-id"><col class="c-level"><col class="c-shard"><col class="c-command"><col class="c-message"><col class="c-when"><col class="c-actions"></colgroup><tr><th><input type="checkbox" id="select-all-errors" title="Select all"></th><th>ID</th><th>Level</th><th>Shard</th><th>Command</th><th>Message</th><th>When</th><th></th></tr>
       <% data.errors.forEach(e => { %>
-        <tr><td><input type="checkbox" class="error-select" value="<%= e.id %>"></td><td>#<%= e.id %></td><td><%= e.level %></td><td><%= e.shard_id ?? '—' %></td><td><%= e.command_name || '—' %></td>
-        <td><%= e.message.slice(0, 120) %><%= e.resolved ? ' ✅' : '' %></td><td><%= e.created_at %></td>
+        <tr><td><input type="checkbox" class="error-select" value="<%= e.id %>"></td><td>#<%= e.id %></td><td><span class="badge level-<%= e.level %>"><%= e.level %></span></td><td><%= e.shard_id ?? '—' %></td><td class="cmd"><%= e.command_name || '—' %></td>
+        <td class="msg" title="<%= e.message %>"><span class="msg-text"><%= e.message %></span><% if (e.resolved) { %> <span class="resolved-mark" title="Resolved">✅</span><% } %></td><td class="when" title="<%= e.created_at %>"><%= (e.created_at instanceof Date ? e.created_at : new Date(e.created_at)).toISOString().slice(0, 16).replace('T', ' ') %></td>
         <td><a class="btn ghost" href="/staff/errors/<%= e.id %>">Details</a></td></tr>
       <% }); %></table>
+      </div>
       <% if (!data.errors.length) { %><p class="muted">No errors match. 🎉</p><% } %>
       </div>
     <% } %>

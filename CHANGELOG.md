@@ -6,6 +6,11 @@ in `package.json` is the source of truth for the current release — every
 version below must match a `package.json` version, and the dashboard
 `/version` page renders from this file.
 
+## [1.15.14] - 2026-11-15
+
+### Fixed
+- Staff Errors table layout on the dashboard (1.15.14). The `/staff/errors` table was unreadable at desktop widths: timestamps wrapped onto ~7 lines, messages were hard-cut at 120 chars mid-word, severity was plain grey text, the disabled "Purge selected" button looked identical to the active one, and the table forced a page-level horizontal scrollbar. Fix (CSS/markup only, no behavior change): the table now uses `table-layout: fixed` with a `<colgroup>` (checkbox 34px, ID 52px, Level 78px, Shard 52px, Command 15%, When 132px, Details 86px, Message takes the rest) inside an `overflow-x: auto` wrapper so the table can never push the page wider; timestamps render compact as `YYYY-MM-DD HH:MM` with the full timestamp in a `title` tooltip and never wrap; messages are no longer sliced in the template — the full text is in the cell and ellipsizes with the full text in a `title` tooltip, with the resolved ✅ kept as a separate visible element; rows are compact (6px padding) with all cells middle-aligned; Level is now a badge (red for error, amber for warn, blurple for info, neutral grey fallback); `:disabled` buttons are visibly greyed out (45% opacity, `not-allowed` cursor, no hover lift); and the Shard filter field is narrowed to 110px to match the Level dropdown. Verified by `tmp/verify-1.15.14.js` (25/25: EJS renders with sample rows + empty state, all new classes/attributes present, purge hooks and Details links intact) and a live dashboard boot in wizard mode (GET / → 302, GET /style.css → 200 serving the new rules); `check-deploy.js` reports 37 top-level, 0 problems. No headless browser was available in the sandbox, so this is code-verified, not screenshot-verified — column widths were checked arithmetically against the 758px content width (fixed columns 434px + Command 15% ≈ 114px, leaving ~210px for Message). Dashboard restart only — no deploy, no bot restart, no npm install.
+
 ## [1.15.13] - 2026-11-15
 
 ### Fixed
