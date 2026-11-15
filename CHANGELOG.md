@@ -6,6 +6,11 @@ in `package.json` is the source of truth for the current release — every
 version below must match a `package.json` version, and the dashboard
 `/version` page renders from this file.
 
+## [1.15.12] - 2026-11-15
+
+### Added
+- Error-log purge on the dashboard (1.15.12). The staff Errors page (`/staff/errors`) now has per-row checkboxes with a select-all toggle, a "🧹 Purge selected" button, and a "🗑️ Purge all error logs" button — both behind a `confirm()` step, staff-only (`requireStaff`). Purge selected deletes only the checked rows from the `error_logs` table and reports how many were deleted; the log file is untouched (it is append-only JSON lines with no per-row id to match against, so per-row file removal would be guesswork) and the page says so next to the buttons. Purge all deletes every row and truncates `logs/bot-errors.log`. One route serves both: `POST /api/staff/errors/purge` with `{ ids: [...] }` for selected, `{}` for all (an empty/invalid id list is a 400, never a silent purge-all). The purge logic lives in a shared `purgeErrorLogs()` in `src/utils/errorLogger.js`, so a future slash command can reuse it. Retry-queue trap, handled: the bot and dashboard run as separate processes with separate in-memory retry queues, so a dashboard purge cannot clear the bot's queue directly. Purge-all stamps a marker file (`logs/.error-logs-purged-at`) with the purge instant, and `flushQueue()` now drops any queued entry logged before the marker instead of re-inserting it — a purge can never be undone by a queued backfill, and no bot restart is needed for a complete purge. Entries logged after the purge are unaffected. Verified by `tmp/verify-1.15.12.js` (23/23: purge-all and purge-selected against a fake in-memory `error_logs` table with the real log/marker files, flushQueue drop/keep behavior, invalid-id safety, DB-down purge, EJS renders, dashboard boot with the purge route staff-gated over HTTP, check-deploy 0 problems). Dashboard restart only — no deploy, no bot restart, no npm install.
+
 ## [1.15.11] - 2026-11-15
 
 ### Fixed

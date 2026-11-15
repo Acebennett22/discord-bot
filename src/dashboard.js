@@ -2064,6 +2064,23 @@ app.get('/staff/errors/:id', requireStaff, async (req, res) => {
   res.render('staff', { user: req.session.user, section: 'error-detail', data: { error: row }, isStaff: true, inviteUrl: inviteUrl(), saved: req.query.saved === '1' });
 });
 
+app.post('/api/staff/errors/purge', requireStaff, async (req, res) => {
+  const ids = req.body?.ids;
+  if (ids !== undefined && (!Array.isArray(ids) || !ids.length || !ids.every((v) => Number.isInteger(Number(v)) && Number(v) > 0))) {
+    return res.status(400).json({ error: 'ids must be a non-empty array of error log ids, or omitted to purge all.' });
+  }
+  try {
+    const result = await errorLogger.purgeErrorLogs(ids);
+    await staffUtils.audit(req.session.user.id, 'errors.purge', null,
+      result.mode === 'all'
+        ? `deleted=${result.deleted} fileCleared=${result.fileCleared} dbAvailable=${result.dbAvailable}`
+        : `ids=${ids.join(',')} deleted=${result.deleted}`);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Purge failed.' });
+  }
+});
+
 app.post('/api/staff/errors/:id/resolve', requireStaff, async (req, res) => {
   if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
   await db.query('UPDATE error_logs SET resolved = 1, resolved_by = ? WHERE id = ?', [req.session.user.id, req.params.id]);

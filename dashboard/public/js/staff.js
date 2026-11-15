@@ -111,6 +111,25 @@
   });
 
   // --- Click handlers (delegated) ---
+  // --- Error log selection (staff errors section) -------------------------
+  // Delegated: #errors-list is swapped by refreshSection, so direct binding
+  // would die on refresh. Select-all toggles every row; Purge selected stays
+  // disabled until at least one row is checked.
+  document.addEventListener('change', (e) => {
+    if (e.target.id === 'select-all-errors') {
+      document.querySelectorAll('.error-select').forEach((cb) => { cb.checked = e.target.checked; });
+    }
+    if (e.target.id === 'select-all-errors' || e.target.classList.contains('error-select')) {
+      const btn = document.getElementById('purge-selected-errors');
+      if (btn) btn.disabled = !document.querySelector('.error-select:checked');
+      const all = document.getElementById('select-all-errors');
+      if (all && e.target.classList.contains('error-select')) {
+        const boxes = [...document.querySelectorAll('.error-select')];
+        all.checked = boxes.length > 0 && boxes.every((cb) => cb.checked);
+      }
+    }
+  });
+
   document.addEventListener('click', async (e) => {
     const refreshBtn = e.target.closest('[data-refresh-section]');
     if (refreshBtn) {
@@ -180,6 +199,30 @@
         btn.outerHTML = '<p class="muted">✅ Marked resolved.</p>';
         AceBot.toast('Error marked resolved');
       } catch (err) { AceBot.toast('Failed: ' + err.message, 'error'); }
+      return;
+    }
+    if (e.target.closest('#purge-all-errors')) {
+      if (!AceBot.confirmAction('Purge ALL error logs? This deletes every row from the error_logs table, clears logs/bot-errors.log, and drops any entries the bot queued while the database was unreachable. This cannot be undone.')) return;
+      try {
+        const r = await AceBot.postJSON('/api/staff/errors/purge', {});
+        AceBot.toast(`Purged ${r.deleted} error log${r.deleted === 1 ? '' : 's'}${r.fileCleared ? ' and cleared the log file' : ' (log file not cleared)'}${r.dbAvailable === false ? ' — database was unreachable, rows may remain' : ''}`);
+        await AceBot.refreshSection('#errors-list');
+        const out = document.getElementById('purge-result');
+        if (out) out.textContent = `✅ Purged ${r.deleted} error log${r.deleted === 1 ? '' : 's'}${r.fileCleared ? ' and cleared the log file' : ''}.`;
+      } catch (err) { AceBot.toast('Purge failed: ' + err.message, 'error'); }
+      return;
+    }
+    if (e.target.closest('#purge-selected-errors')) {
+      const ids = [...document.querySelectorAll('.error-select:checked')].map((cb) => parseInt(cb.value, 10)).filter((n) => Number.isInteger(n) && n > 0);
+      if (!ids.length) { AceBot.toast('Nothing selected.', 'error'); return; }
+      if (!AceBot.confirmAction(`Purge ${ids.length} selected error log${ids.length === 1 ? '' : 's'}? This deletes only the checked rows from the database. The log file is not touched. This cannot be undone.`)) return;
+      try {
+        const r = await AceBot.postJSON('/api/staff/errors/purge', { ids });
+        AceBot.toast(`Purged ${r.deleted} error log${r.deleted === 1 ? '' : 's'}`);
+        await AceBot.refreshSection('#errors-list');
+        const out = document.getElementById('purge-result');
+        if (out) out.textContent = `✅ Purged ${r.deleted} selected error log${r.deleted === 1 ? '' : 's'} (log file untouched).`;
+      } catch (err) { AceBot.toast('Purge failed: ' + err.message, 'error'); }
       return;
     }
     if (e.target.closest('#botflags-refresh')) {

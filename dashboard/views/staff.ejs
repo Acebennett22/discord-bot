@@ -29,9 +29,15 @@
         <div><label>Shard</label><input type="number" name="shard" value="<%= data.filters.shard %>"></div>
         <div><button class="btn" type="submit">Filter</button></div>
       </form>
-      <table style="margin-top:16px"><tr><th>ID</th><th>Level</th><th>Shard</th><th>Command</th><th>Message</th><th>When</th><th></th></tr>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:16px">
+        <button class="btn danger" type="button" id="purge-selected-errors" disabled>🧹 Purge selected</button>
+        <button class="btn danger" type="button" id="purge-all-errors">🗑️ Purge all error logs</button>
+        <span id="purge-result" class="muted"></span>
+      </div>
+      <p class="muted" style="margin-top:6px">Purge selected deletes only the checked rows from the database — <code>logs/bot-errors.log</code> is only cleared by Purge all. Purge all also drops any entries the bot queued while the database was unreachable, so they can't come back.</p>
+      <table style="margin-top:16px"><tr><th><input type="checkbox" id="select-all-errors" title="Select all"></th><th>ID</th><th>Level</th><th>Shard</th><th>Command</th><th>Message</th><th>When</th><th></th></tr>
       <% data.errors.forEach(e => { %>
-        <tr><td>#<%= e.id %></td><td><%= e.level %></td><td><%= e.shard_id ?? '—' %></td><td><%= e.command_name || '—' %></td>
+        <tr><td><input type="checkbox" class="error-select" value="<%= e.id %>"></td><td>#<%= e.id %></td><td><%= e.level %></td><td><%= e.shard_id ?? '—' %></td><td><%= e.command_name || '—' %></td>
         <td><%= e.message.slice(0, 120) %><%= e.resolved ? ' ✅' : '' %></td><td><%= e.created_at %></td>
         <td><a class="btn ghost" href="/staff/errors/<%= e.id %>">Details</a></td></tr>
       <% }); %></table>

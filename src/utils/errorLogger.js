@@ -11,6 +11,14 @@ const db = require('./database');
 
 const LOG_DIR = path.join(__dirname, '..', '..', 'logs');
 const LOG_FILE = path.join(LOG_DIR, 'bot-errors.log');
+// Purge marker: when the dashboard purges the error logs, it stamps this
+// file with the purge instant (epoch ms). The bot and the dashboard run as
+// SEPARATE processes with separate in-memory retry queues, so a dashboard
+// purge cannot clear the bot's queue directly — instead flushQueue() drops
+// any queued entry logged before the marker instead of re-inserting it, so
+// a purge-all can never be undone by a queued backfill. Entries logged
+// after the purge are unaffected.
+const PURGE_MARKER_FILE = path.join(LOG_DIR, '.error-logs-purged-at');
 const REDACT_KEYS = /token|password|passwd|secret|api[-_]?key|apikey|auth|credential|private[-_]?key/i;
 const MAX_QUEUE = 500;
 
@@ -48,8 +56,36 @@ async function insertDb(entry) {
   );
 }
 
+function readPurgeMarkerMs() {
+  try {
+    const v = parseInt(fs.readFileSync(PURGE_MARKER_FILE, 'utf8').trim(), 10);
+    return Number.isFinite(v) ? v : 0;
+  } catch { return 0; }
+}
+
+function truncateLogFile() {
+  try {
+    fs.mkdirSync(LOG_DIR, { recursive: true });
+    fs.writeFileSync(LOG_FILE, '');
+    return true;
+  } catch { return false; }
+}
+
 async function flushQueue() {
   if (!db.isEnabled() || !retryQueue.length) return;
+  // Drop entries queued before the last purge-all: the purge already
+  // removed their DB counterparts (or they never landed), so re-inserting
+  // them would resurrect purged logs. Entries logged after the purge are
+  // kept. An unparseable timestamp is kept too (fail-safe: never drop an
+  // entry we cannot date).
+  const purgedAt = readPurgeMarkerMs();
+  if (purgedAt) {
+    for (let i = retryQueue.length - 1; i >= 0; i--) {
+      const t = Date.parse(retryQueue[i]?.created_at || '');
+      if (Number.isFinite(t) && t <= purgedAt) retryQueue.splice(i, 1);
+    }
+    if (!retryQueue.length) return;
+  }
   const pending = retryQueue.splice(0, retryQueue.length);
   for (const entry of pending) {
     try { await insertDb(entry); }
@@ -58,6 +94,51 @@ async function flushQueue() {
 }
 
 setInterval(() => flushQueue().catch(() => {}), 60_000).unref?.();
+
+// Purge error logs. Shared by the dashboard purge route (and reusable by a
+// future slash command) so both processes purge the same way.
+// - ids omitted -> purge ALL: delete every row from error_logs, truncate
+//   logs/bot-errors.log, clear this process's retry queue, and stamp the
+//   purge marker so the OTHER process (bot vs dashboard) drops queued
+//   entries predating the purge instead of re-inserting them.
+// - ids non-empty array -> delete ONLY those rows from error_logs. The log
+//   file is append-only JSON lines with no per-row id to match against, so
+//   per-row file removal would be guesswork: the file is left untouched and
+//   no marker is written (queued entries that later land are new rows, not
+//   rows the user selected).
+// - ids an array with no valid ids -> throws (an empty/invalid list must
+//   never silently become a purge-all).
+// Returns { deleted, fileCleared, dbAvailable, mode }.
+// Throws if the DB is reachable but the DELETE fails — the file is only
+// touched after a successful DELETE, so a failed purge is all-or-nothing.
+async function purgeErrorLogs(ids) {
+  const idsProvided = Array.isArray(ids);
+  const selected = idsProvided
+    ? [...new Set(ids.map((v) => parseInt(v, 10)).filter((n) => Number.isInteger(n) && n > 0))]
+    : [];
+  if (idsProvided && selected.length === 0) throw new Error('No valid error log ids provided.');
+  const purgeAll = !idsProvided;
+  let deleted = 0;
+  const dbAvailable = db.isEnabled();
+  if (dbAvailable) {
+    const res = purgeAll
+      ? await db.query('DELETE FROM error_logs')
+      : await db.query(`DELETE FROM error_logs WHERE id IN (${selected.map(() => '?').join(',')})`, selected);
+    // db.query returns null when the query throws (see src/utils/database.js).
+    if (res === null) throw new Error('Database query failed — error logs were not purged.');
+    deleted = res.affectedRows ?? 0;
+  }
+  let fileCleared = false;
+  if (purgeAll) {
+    fileCleared = truncateLogFile();
+    retryQueue.length = 0;
+    try {
+      fs.mkdirSync(LOG_DIR, { recursive: true });
+      fs.writeFileSync(PURGE_MARKER_FILE, String(Date.now()));
+    } catch {}
+  }
+  return { deleted, fileCleared, dbAvailable, mode: purgeAll ? 'all' : 'selected' };
+}
 
 async function log({ level = 'error', shardId, guildId, commandName, userId, message, stack, context, error } = {}) {
   if (error instanceof Error) {
@@ -95,4 +176,4 @@ function logError(message, context) { return log({ level: 'error', message, cont
 function logWarn(message, context) { return log({ level: 'warn', message, context }); }
 function logInfo(message, context) { return log({ level: 'info', message, context }); }
 
-module.exports = { log, logError, logWarn, logInfo, setShardId, flushQueue, retryQueue };
+module.exports = { log, logError, logWarn, logInfo, setShardId, flushQueue, retryQueue, purgeErrorLogs };
