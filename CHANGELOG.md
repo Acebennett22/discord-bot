@@ -6,6 +6,11 @@ in `package.json` is the source of truth for the current release — every
 version below must match a `package.json` version, and the dashboard
 `/version` page renders from this file.
 
+## [1.15.17] - 2026-11-15
+
+### Changed
+- Header profile picture + Add to Server button (1.15.17). The top-right header now shows the signed-in user's real Discord profile picture (`https://cdn.discordapp.com/avatars/{user_id}/{avatar}.png?size=64`, built from the avatar hash already stored in the session at login — no session/auth changes) in a 28px circle with the same blurple ring as the sidebar server icon; users without a custom avatar get a blurple initial-letter circle instead, and a broken image swaps to the initial-letter fallback via `onerror` so a broken-image icon never shows. The "Add to Server" button is now compact (new `.btn-sm`: 5px 10px, 13px) and sits beside the "Vikings Hall Dashboard" brand at the top left instead of in the right-hand nav. Scope is the shared header partial only, so all pages pick it up — no route, auth, or bot changes. Verified by `tmp/verify-header-avatar.js` (27/27: CDN URL + onerror fallback, no-avatar initial fallback, logged-out state, button placement/size, CSS rules + balance, full home-page render, dashboard boot in wizard mode with GET / → 302 and GET /style.css → 200 serving the new rules) and `check-deploy.js` (38 top-level; the 2 reported count problems are the music agent's uncommitted `/music join` command — 269/267 vs the hardcoded 268/266 — not this change; no bot code was touched here). Code-verified, not screenshot-verified — no headless browser was available in the sandbox. Dashboard restart only — no deploy, no bot restart, no npm install.
+
 ## [1.15.16] - 2026-11-15
 
 ### Changed
