@@ -6,6 +6,11 @@ in `package.json` is the source of truth for the current release — every
 version below must match a `package.json` version, and the dashboard
 `/version` page renders from this file.
 
+## [1.15.13] - 2026-11-15
+
+### Fixed
+- Music deploy crashed on Ace's server with `ERR_REQUIRE_ESM` (1.15.13). Root cause: 1.15.11 migrated YouTube extraction to `@distube/ytdl-core` v5, which is ESM-only, and `src/utils/youtube.js` used a static `require()` of it — Node v20.5.1 (Ace's server) does not allow `require()` of ES modules, so `npm run deploy` (and `npm start`) died at load time. The 1.15.11 verification missed it because the sandbox runs Node 24, where `require(esm)` is enabled by default. Fix: `youtube.js` now loads ytdl-core lazily with a dynamic `import()` on first use and caches the client (a failed load clears the cache so a later call can retry). The file still loads synchronously at require-time — no top-level await, no `require()` of the ESM package — and the exported surface (`search`, `videoInfo`, `stream`) and behavior are unchanged. No new dependency; no Node upgrade needed. Verified by `tmp/verify-1.15.13.js` (ALL CHECKS PASSED under `node --no-experimental-require-module`, which restores Node-20 behavior: plain `require()` of youtube.js succeeds, Seven Nation Army + Get Lucky stream real audio through the lazy import) and `check-deploy.js` under the same flag (37 top-level, 0 problems). Server needs `git pull` + `npm run deploy` + bot restart — no `npm install`, no DB work, no dashboard restart.
+
 ## [1.15.12] - 2026-11-15
 
 ### Added

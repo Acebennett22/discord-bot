@@ -16,10 +16,29 @@
 //     everything else (m4a/aac — @discordjs/voice transcodes via ffmpeg).
 //     ffmpegInputFormat tells the filter path what container to demux the
 //     piped stream as; null means let ffmpeg probe.
-const { Ytdl } = require('@distube/ytdl-core');
+//
+// NOTE (1.15.13): @distube/ytdl-core v5 is ESM-only. A static require() of it
+// throws ERR_REQUIRE_ESM on Node 20 — Ace's server runs Node v20.5.1, where
+// require(esm) is not enabled (1.15.11 only passed locally because the
+// sandbox runs Node 24, where require(esm) is on by default). So the module
+// is loaded lazily with a dynamic import() on first use and cached —
+// import() works from CommonJS on every supported Node version. This file
+// still loads synchronously at require-time (no top-level await, no require
+// of the ESM package); only the first search/videoInfo/stream call goes
+// async, and all callers in musicQueue.js are already async.
 const { StreamType } = require('@discordjs/voice');
 
-const yt = new Ytdl();
+// Lazily loaded, cached @distube/ytdl-core client. A failed load clears the
+// cache so a later call can retry instead of re-throwing the same rejection.
+let ytPromise = null;
+function getYt() {
+  if (!ytPromise) {
+    ytPromise = import('@distube/ytdl-core')
+      .then((mod) => new mod.Ytdl())
+      .catch((err) => { ytPromise = null; throw err; });
+  }
+  return ytPromise;
+}
 
 // Highest-bitrate opus audio-only format first (itag 251 on most videos) so
 // playback is native Opus; otherwise the highest-bitrate audio-only format.
@@ -46,11 +65,13 @@ function ffmpegInputFormat(format) {
 }
 
 async function search(query, { limit = 1 } = {}) {
+  const yt = await getYt();
   const results = await yt.search(query, { limit });
   return results.map((r) => ({ url: r.url, title: r.title, durationInSec: r.lengthSeconds || null, id: r.id }));
 }
 
 async function videoInfo(url) {
+  const yt = await getYt();
   const info = await yt.getInfo(url);
   return {
     title: info.videoDetails.title,
@@ -59,6 +80,7 @@ async function videoInfo(url) {
 }
 
 async function stream(url) {
+  const yt = await getYt();
   const info = await yt.getInfo(url);
   const format = pickAudioFormat(info);
   if (!format) throw new Error('No audio format found for this video.');
