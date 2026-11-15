@@ -6,6 +6,11 @@ in `package.json` is the source of truth for the current release — every
 version below must match a `package.json` version, and the dashboard
 `/version` page renders from this file.
 
+## [1.14.17] - 2026-11-15
+
+### Fixed
+- Deploy single-mode reporting (1.14.17) — a failure in `DEPLOY_MODE=single` used to blame `commands[0]` instead of the command that actually failed; it now names the failing command and how many registered before it. Bulk mode also warns that a bulk deploy replaces the whole list and would remove commands previously registered one-at-a-time.
+
 ## [1.14.16] - 2026-11-15
 
 ### Fixed
