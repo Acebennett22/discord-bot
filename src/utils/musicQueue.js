@@ -18,6 +18,7 @@ const config = require('./config');
 const { isSpotifyUrl, resolveSpotifyUrl } = require('./spotify');
 const { filterArgs } = require('./musicFilters');
 const { StreamType } = require('@discordjs/voice');
+const { PermissionFlagsBits } = require('discord.js');
 
 const queues = new Map();
 
@@ -25,7 +26,22 @@ function getQueue(guildId) {
   return queues.get(guildId);
 }
 
-function createQueue(guildId, voiceChannel, textChannel) {
+// The bot must be able to Connect and Speak in the target voice channel.
+// Checked before any join attempt so a missing permission is a clear error
+// instead of a silent failed join (1.15.17).
+function hasVoicePerms(voiceChannel) {
+  const me = voiceChannel.guild?.members?.me;
+  const perms = voiceChannel.permissionsFor?.(me);
+  return !!perms?.has([PermissionFlagsBits.Connect, PermissionFlagsBits.Speak]);
+}
+
+const JOIN_FAILED_REASON = 'Could not join the voice channel. Check my permissions and try again.';
+const NO_VOICE_PERMS_REASON = 'I need Connect and Speak permission in that voice channel.';
+
+async function createQueue(guildId, voiceChannel, textChannel) {
+  if (!hasVoicePerms(voiceChannel)) {
+    return { ok: false, reason: NO_VOICE_PERMS_REASON };
+  }
   const connection = joinVoiceChannel({
     channelId: voiceChannel.id,
     guildId,
@@ -45,15 +61,39 @@ function createQueue(guildId, voiceChannel, textChannel) {
     playNext(guildId);
   });
   connection.on(VoiceConnectionStatus.Disconnected, () => {
+    // Loud disconnect (1.15.17): don't silently vanish mid-song — tell the
+    // text channel the music stopped. Silent when idle (stop/idle destroy
+    // goes through Destroyed, not Disconnected, so this only fires on real
+    // drops, e.g. being kicked from the channel).
+    const wasPlaying = !!queue.playing;
+    const channel = queue.textChannel;
     destroyQueue(guildId);
+    if (wasPlaying && channel) {
+      channel.send({ embeds: [errorEmbed('Left voice', '⚠️ I was disconnected from the voice channel — the music stopped. Use /music play to start again.')] }).catch(() => {});
+    }
   });
 
-  return queue;
+  // The player can reach Playing even on a dead connection, so the join must
+  // be confirmed here — a queue that never became Ready is a join failure,
+  // not a queue (1.15.17).
+  try {
+    await entersState(connection, VoiceConnectionStatus.Ready, 10_000);
+  } catch {
+    destroyQueue(guildId);
+    return { ok: false, reason: JOIN_FAILED_REASON };
+  }
+  return { ok: true, queue };
 }
 
+const VOICE_NOT_READY = 'VOICE_NOT_READY';
+
+// Returns true when a track started playing, 'voice-failed' when the voice
+// connection was not Ready (join failure), false when nothing started
+// (empty queue, no queue). Callers that need the outcome (addTrack) await
+// it; fire-and-forget callers (Idle handler, player error handler) ignore it.
 async function playNext(guildId) {
   const queue = queues.get(guildId);
-  if (!queue) return;
+  if (!queue) return false;
   const next = queue.queue.shift();
   if (!next) {
     queue.playing = null;
@@ -67,11 +107,17 @@ async function playNext(guildId) {
       if (s?.music247Enabled) return;
       destroyQueue(guildId);
     }, 60_000);
-    return;
+    return false;
   }
   queue.playing = next;
   queue.playingStartedAt = Date.now();
   try {
+    // Gate the announcement on the CONNECTION, not just the player: the
+    // player can reach Playing on a dead connection, which used to post
+    // "Now playing" while the bot was not in the channel (1.15.17).
+    if (queue.connection.state.status !== VoiceConnectionStatus.Ready) {
+      throw new Error(VOICE_NOT_READY);
+    }
     const stream = await youtube.stream(next.url);
     const args = filterArgs(queue.filter);
     let resource;
@@ -96,21 +142,40 @@ async function playNext(guildId) {
     }
     queue.player.play(resource);
     await entersState(queue.player, AudioPlayerStatus.Playing, 10_000);
+    if (queue.connection.state.status !== VoiceConnectionStatus.Ready) {
+      throw new Error(VOICE_NOT_READY);
+    }
     db.incrementSongsPlayed(guildId);
     if (queue.textChannel) {
       queue.textChannel.send({ embeds: [infoEmbed('Now playing', `▶️ **${next.title}**`)] }).catch(() => {});
     }
+    return true;
   } catch (err) {
+    if (err.message === VOICE_NOT_READY) {
+      // Join failure, not a bad track: clear the phantom "playing" entry,
+      // tell the text channel plainly, and destroy the dead queue — do not
+      // post "Now playing", do not count the song, do not try the next track
+      // (it would fail the same way).
+      errorLogger.log({ level: 'error', guildId, commandName: 'play', message: `Voice connection not ready for ${next.url} — join failed` });
+      queue.playing = null;
+      if (queue.textChannel) queue.textChannel.send({ embeds: [errorEmbed('Could not join voice', `⚠️ ${JOIN_FAILED_REASON}`)] }).catch(() => {});
+      destroyQueue(guildId);
+      return 'voice-failed';
+    }
     errorLogger.log({ level: 'error', guildId, commandName: 'play', message: `Failed to play ${next.url}: ${err.message}`, stack: err.stack });
     if (queue.textChannel) queue.textChannel.send({ embeds: [errorEmbed('Playback error', `⚠️ Couldn't play **${next.title}** — skipping it.`)] }).catch(() => {});
-    playNext(guildId);
+    return playNext(guildId);
   }
 }
 
 async function addTrack(guildId, voiceChannel, textChannel, query) {
   const maxQueue = (config.music && config.music.maxQueueSize) || 25;
   let queue = queues.get(guildId);
-  if (!queue) queue = createQueue(guildId, voiceChannel, textChannel);
+  if (!queue) {
+    const created = await createQueue(guildId, voiceChannel, textChannel);
+    if (!created.ok) return { added: false, reason: created.reason };
+    queue = created.queue;
+  }
 
   if (queue.queue.length >= maxQueue) {
     return { added: false, reason: `Queue is full (max ${maxQueue} tracks).` };
@@ -147,8 +212,58 @@ async function addTrack(guildId, voiceChannel, textChannel, query) {
 
   const track = { title, url, durationSec, requestedBy: null };
   queue.queue.push(track);
-  if (!queue.playing) playNext(guildId);
+  if (!queue.playing) {
+    // Await the start so a failed join is reported to the caller instead of
+    // a phantom "Now playing" (1.15.17). Only a voice failure flips the
+    // result to added: false — a normal stream failure still returns
+    // added: true (the track was queued, it just couldn't play, and the
+    // queue moved on to the next track). The queue-gone check covers the
+    // race where the connection dropped mid-resolution and the Disconnected
+    // handler destroyed the queue under us.
+    const started = await playNext(guildId);
+    if (started === 'voice-failed' || !queues.get(guildId)) return { added: false, reason: JOIN_FAILED_REASON };
+  }
   return { added: true, track, position: queue.queue.length, spotifyNote };
+}
+
+// Join (or move to) a voice channel without playing anything, for /music
+// join. Reuses the same fixed join path as addTrack: permission check,
+// await Ready, clear error on failure. Returns
+// { joined: true, already?: boolean, moved?: boolean } or
+// { joined: false, reason }.
+async function joinVoice(guildId, voiceChannel, textChannel) {
+  const existing = queues.get(guildId);
+  if (existing) {
+    const currentChannelId = existing.connection.joinConfig?.channelId;
+    const status = existing.connection.state.status;
+    if (currentChannelId === voiceChannel.id && status === VoiceConnectionStatus.Ready) {
+      existing.textChannel = textChannel;
+      return { joined: true, already: true };
+    }
+    if (status === VoiceConnectionStatus.Destroyed) {
+      destroyQueue(guildId);
+    } else {
+      // Move the existing connection (joinVoiceChannel reuses it and sends
+      // the move payload; the player stays subscribed). Same guards as a
+      // fresh join.
+      if (!hasVoicePerms(voiceChannel)) return { joined: false, reason: NO_VOICE_PERMS_REASON };
+      try {
+        joinVoiceChannel({
+          channelId: voiceChannel.id,
+          guildId,
+          adapterCreator: voiceChannel.guild.voiceAdapterCreator,
+        });
+        await entersState(existing.connection, VoiceConnectionStatus.Ready, 10_000);
+      } catch {
+        return { joined: false, reason: JOIN_FAILED_REASON };
+      }
+      existing.textChannel = textChannel;
+      return { joined: true, moved: true };
+    }
+  }
+  const created = await createQueue(guildId, voiceChannel, textChannel);
+  if (!created.ok) return { joined: false, reason: created.reason };
+  return { joined: true, moved: false };
 }
 
 // Current track + progress for /nowplaying. Returns null when idle.
@@ -228,4 +343,4 @@ function clearQueue(guildId) {
   return cleared;
 }
 
-module.exports = { getQueue, addTrack, skip, stop, pause, resume, destroyQueue, getNowPlaying, applyFilter, setFilterOnly, clearQueue };
+module.exports = { getQueue, addTrack, joinVoice, skip, stop, pause, resume, destroyQueue, getNowPlaying, applyFilter, setFilterOnly, clearQueue };

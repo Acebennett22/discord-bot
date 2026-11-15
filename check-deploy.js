@@ -1,6 +1,6 @@
 // Pre-flight check for `npm run deploy`: validates the exact payload
 // deploy-commands.js sends (the CONSOLIDATED list since 1.15.0) against
-// Discord's documented limits, and verifies every one of the 268 flat
+// Discord's documented limits, and verifies every one of the 269 flat
 // commands is reachable through exactly one (parent, group?, subcommand)
 // path.
 const { buildConsolidated } = require('./src/handlers/consolidate');
@@ -61,9 +61,9 @@ for (const { file, json: j } of all) {
   checkOpts(j.options, '');
 }
 
-if (leafCount !== 266) problems.push(`LEAF COUNT ${leafCount} != 266 chat-input children (some flat commands unreachable or duplicated)`);
+if (leafCount !== 267) problems.push(`LEAF COUNT ${leafCount} != 267 chat-input children (some flat commands unreachable or duplicated)`);
 if (contextCount !== 2) problems.push(`CONTEXT MENU COUNT ${contextCount} != 2`);
-if (flatCount !== 268) problems.push(`FLAT COUNT ${flatCount} != 268`);
+if (flatCount !== 269) problems.push(`FLAT COUNT ${flatCount} != 269`);
 
 console.log(`top-level commands: ${all.length} (${parentCount} parents, ${all.length - parentCount} standalone/context)`);
 console.log(`grouped subcommands: ${childCount} (flat chat children reachable: ${leafCount})`);

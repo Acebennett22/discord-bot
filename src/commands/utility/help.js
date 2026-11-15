@@ -1,7 +1,7 @@
 const { SlashCommandBuilder, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { infoEmbed } = require('../../utils/embeds');
 
-// Since 1.15.0 the bot's 268 commands are consolidated into 33 parent
+// Since 1.15.0 the bot's 269 commands are consolidated into 33 parent
 // commands with subcommands (client.commands holds parents, not flat names),
 // so groups are defined by PARENT here — every parent must appear in exactly
 // one group, or it is unreachable from /help. Discord caps a select menu at
@@ -105,7 +105,7 @@ function groupEmbed(client, key, page = 0) {
 }
 
 // Real command total: one per grouped child + one per standalone top-level
-// command + one per context-menu command (268 — computed, not hardcoded).
+// command + one per context-menu command (269 — computed, not hardcoded).
 function countCommands(client) {
   let total = 0;
   for (const cmd of client.commands.values()) {
