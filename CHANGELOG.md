@@ -6,6 +6,11 @@ in `package.json` is the source of truth for the current release — every
 version below must match a `package.json` version, and the dashboard
 `/version` page renders from this file.
 
+## [1.14.13] - 2026-11-15
+
+### Fixed
+- Deploy still failing with the same `0[BASE_TYPE_MAX_LENGTH]: Must be 130 or fewer in length` after 1.14.12 — the two option-ordering fixes did not change the error, and a full local validation of the payload (every description ≤97 chars, names, options ≤25, choices ≤25, no duplicates, no ordering issues) finds nothing over any documented limit, so the cause is not a command field. The deploy script now prints the raw Discord error and the exact command at index 0 of the sent array, and supports `DEPLOY_LIMIT`/`DEPLOY_OFFSET` to bisect (e.g. `DEPLOY_LIMIT=50 npm run deploy`): if a 50-command slice deploys cleanly, the payload fields are fine and the wall is the request size/count (266 commands vs Discord's 100 global CHAT_INPUT cap); if the slice still fails, the printed index-0 command names the culprit.
+
 ## [1.14.12] - 2026-11-15
 
 ### Fixed
