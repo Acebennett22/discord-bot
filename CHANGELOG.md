@@ -6,6 +6,11 @@ in `package.json` is the source of truth for the current release — every
 version below must match a `package.json` version, and the dashboard
 `/version` page renders from this file.
 
+## [1.14.9] - 2026-11-15
+
+### Fixed
+- Setup wizard (1.14.9) — step 8 "Review & finish" rendered an empty page with no finish button. The template only shows the review table and "Save config & finish" button on GET /setup/finish, but the wizard sent users to /setup/8, which has no matching template branch. Step 8 now redirects to /setup/finish.
+
 ## [1.14.8] - 2026-11-15
 
 ### Fixed

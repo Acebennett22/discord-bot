@@ -217,6 +217,10 @@ app.get('/setup', requireSetupAccess, (req, res) => res.redirect('/setup/1'));
 app.get('/setup/:step', requireSetupAccess, (req, res) => {
   const n = parseInt(req.params.step, 10);
   if (Number.isNaN(n) || n < 1 || n > SETUP_STEPS.length) return res.redirect('/setup/1');
+  // Step 8 is "Review & finish", but the template only renders the review
+  // table + Save button when `finish` is true (GET /setup/finish). Without
+  // this redirect, /setup/8 rendered an empty page with no finish button.
+  if (n === 8) return res.redirect('/setup/finish');
   const step = SETUP_STEPS[n - 1];
   res.render('setup', {
     user: req.session.user || null, isStaff: false, inviteUrl: inviteUrl(),
