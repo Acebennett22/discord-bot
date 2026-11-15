@@ -482,7 +482,7 @@
     <h2>Top users by XP</h2>
     <% if (!analyticsData?.topXp?.length) { %><p class="muted">No XP yet.</p><% } else { %>
       <table><tr><th>User</th><th>XP</th><th>Level</th></tr>
-      <% analyticsData.topXp.forEach(u => { %><tr><td>&lt;@<%= u.user_id %>&gt;</td><td><%= u.xp %></td><td><%= u.level %></td></tr><% }); %></table>
+      <% analyticsData.topXp.forEach(u => { %><tr><td><%= u.user_label || u.user_id %></td><td><%= u.xp %></td><td><%= u.level %></td></tr><% }); %></table>
     <% } %>
     <h2>Top channels by commands used (30 days)</h2>
     <% if (!analyticsData?.topChannels?.length) { %><p class="muted">No commands logged yet.</p><% } else { %>
@@ -492,7 +492,7 @@
     <h2>Top users by commands used</h2>
     <% if (!analyticsData?.topCommandUsers?.length) { %><p class="muted">No commands logged yet.</p><% } else { %>
       <table><tr><th>User</th><th>Commands</th></tr>
-      <% analyticsData.topCommandUsers.forEach(u => { %><tr><td>&lt;@<%= u.user_id %>&gt;</td><td><%= u.commands_used %></td></tr><% }); %></table>
+      <% analyticsData.topCommandUsers.forEach(u => { %><tr><td><%= u.user_label || u.user_id %></td><td><%= u.commands_used %></td></tr><% }); %></table>
     <% } %>
     <h2>👋 Inactive members (re-engagement)</h2>
     <p class="muted">Members with no messages, voice time, or slash-command use in the last <%= settings.reengageDays || 30 %> days — the same list /reengage-preview shows. The daily job (10:00) DMs them once per 30 days unless they opted out. Set it up with /reengage-setup in Discord.</p>

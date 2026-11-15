@@ -528,6 +528,18 @@ app.get('/guilds/:id/:module', requireAuth, requireGuildAccess, async (req, res)
         topCommandUsers: await analytics.getTopUsersByCommands(id, 10),
         activeBoost: await getActiveBoost(id).catch(() => null),
       };
+      // Show names next to IDs in the two user leaderboards (same
+      // "Name (id)" labels as the staff list). One resolve call covers
+      // both lists; IDs are de-duplicated inside resolveUserLabels, and
+      // unresolvable IDs fall back to the raw ID with an "unknown user"
+      // note — never crash the page.
+      const labels = await resolveUserLabels([
+        ...analyticsData.topXp.map((u) => u.user_id),
+        ...analyticsData.topCommandUsers.map((u) => u.user_id),
+      ]);
+      for (const u of [...analyticsData.topXp, ...analyticsData.topCommandUsers]) {
+        u.user_label = labels.get(String(u.user_id));
+      }
     }
     if (module === 'giveaways') {
       giveaways = await db.query("SELECT * FROM giveaways WHERE guild_id = ? ORDER BY ends_at DESC LIMIT 20", [id]) || [];

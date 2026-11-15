@@ -6,6 +6,11 @@ in `package.json` is the source of truth for the current release — every
 version below must match a `package.json` version, and the dashboard
 `/version` page renders from this file.
 
+## [1.15.3] - 2026-11-15
+
+### Changed
+- Analytics leaderboards (1.15.3) — the "Top users by XP" and "Top users by commands used" tables on the dashboard analytics page now show "Name (ID)" instead of literal `<@user_id>` mention text, which the browser rendered as plain text, not a mention. Both lists are resolved with a single `resolveUserLabels` call (same helper as the staff list in 1.15.1; de-duplicated, unresolvable IDs fall back to "ID (unknown user)"). Top channels and daily stats are untouched.
+
 ## [1.15.2] - 2026-11-15
 
 ### Fixed
