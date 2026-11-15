@@ -69,6 +69,14 @@ if ((config.dashboard?.sessionSecret || '').includes('CHANGE_ME')) {
   console.warn('[dashboard] WARNING: dashboard.sessionSecret in config.json is still the default — set a long random string before exposing this publicly.');
 }
 
+// Template safety net (1.15.9): home.ejs shows an "expired connection"
+// notice when authExpired is true. Default it to false for EVERY request so
+// a render that forgets to pass it can never throw "authExpired is not
+// defined" — the same class of bug as the 1.15.2 translate crash (a template
+// referencing a variable a route doesn't provide). Explicit render locals
+// still override this default.
+app.use((req, res, next) => { res.locals.authExpired = false; next(); });
+
 // --- Discord API helpers -------------------------------------------------------
 const discordApi = axios.create({ baseURL: 'https://discord.com/api/v10', timeout: 10_000 });
 const botHeaders = () => ({ Authorization: `Bot ${config.token}` });
@@ -419,7 +427,7 @@ app.get('/docs', (req, res) => {
 });
 
 app.get('/', (req, res) => {
-  if (!req.session.user) return res.render('home', { user: null, guilds: [], inviteUrl: inviteUrl(), isStaff: false, authExpired: false });
+  if (!req.session.user) return res.render('home', { user: null, guilds: [], inviteUrl: inviteUrl(), isStaff: false });
   res.redirect('/servers');
 });
 
@@ -478,7 +486,7 @@ app.get('/servers', requireAuth, async (req, res) => {
     for (const g of guilds) {
       withBot.push({ ...g, botPresent: await botInGuild(g.id) });
     }
-    res.render('home', { user: req.session.user, guilds: withBot.filter((g) => g.botPresent), inviteUrl: inviteUrl(), isStaff: await staffFlag(req), authExpired: false });
+    res.render('home', { user: req.session.user, guilds: withBot.filter((g) => g.botPresent), inviteUrl: inviteUrl(), isStaff: await staffFlag(req) });
   } catch (err) {
     console.error('[dashboard] /servers failed:', err.message);
     if (err.authExpired) {
@@ -693,6 +701,21 @@ app.get('/guilds/:id/:module', requireAuth, requireGuildAccess, async (req, res)
     if (module === 'roles') {
       roleMenus = await db.query('SELECT m.*, (SELECT COUNT(*) FROM role_menu_items i WHERE i.menu_id = m.id) AS item_count FROM role_menus m WHERE m.guild_id = ? ORDER BY m.id DESC', [id]) || [];
     }
+    // 1.15.9: these four were declared above and referenced by settings.ejs
+    // but never fetched or passed to the render — opening the Threads,
+    // Confessions, or Roles tab threw "X is not defined".
+    if (module === 'threads') {
+      threadOverrides = await db.query('SELECT channel_id, archive_minutes FROM thread_archive_settings WHERE guild_id = ?', [id]) || [];
+    }
+    if (module === 'confessions') {
+      pendingConfessions = await db.query("SELECT * FROM confessions WHERE guild_id = ? AND status = 'pending' ORDER BY created_at", [id]) || [];
+    }
+    if (module === 'roles') {
+      const { getActiveTempRoles } = require('./utils/tempRoles');
+      tempRoles = await getActiveTempRoles(id).catch(() => []) || [];
+      const { getShopItems } = require('./utils/xpShop');
+      xpShopItems = await getShopItems(id).catch(() => []) || [];
+    }
     if (module === 'general') {
       const milestones = require('./utils/milestones');
       const translate = require('./utils/translate');
@@ -762,6 +785,7 @@ app.get('/guilds/:id/:module', requireAuth, requireGuildAccess, async (req, res)
     saved: req.query.saved === '1', isStaff: await staffFlag(req),
     commandCatalog: COMMAND_CATALOG,
     scheduledEventsList, wordleLeaderboard, wordleToday, slowmodeSchedules, statusRoleRules, builtEmbeds, pastPolls, ticketRatingStats, inviteRewardList, inactiveMembers,
+    threadOverrides, pendingConfessions, tempRoles, xpShopItems,
     commandToggles: db.isEnabled() ? (await db.query('SELECT command_name, enabled FROM command_toggles WHERE guild_id = ?', [id]) || []) : [],
   });
 });

@@ -13,7 +13,7 @@
 <% } else { %>
   <h1>Your servers</h1>
   <p class="muted">Pick a server to manage its settings.</p>
-  <% if (authExpired) { %>
+  <% if (typeof authExpired !== 'undefined' && authExpired) { %>
     <p>Your Discord connection expired — <a href="/login">log in again</a> to refresh your server list. You're still logged in.</p>
   <% } %>
   <% if (!guilds.length) { %>

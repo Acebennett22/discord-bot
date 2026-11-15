@@ -6,6 +6,13 @@ in `package.json` is the source of truth for the current release — every
 version below must match a `package.json` version, and the dashboard
 `/version` page renders from this file.
 
+## [1.15.9] - 2026-11-15
+
+### Fixed
+- Dashboard `/servers` crash — `authExpired is not defined` (1.15.9). Root cause: the 1.15.4 template references `authExpired`, but a dashboard process started before 1.15.4 renders the new `home.ejs` from disk without passing it (EJS reads templates fresh per render). Fixed in depth: `home.ejs` now guards the reference (`typeof authExpired !== 'undefined' && authExpired`, the same defensive pattern the header partial already uses), so the template can never throw for a missing variable no matter which code renders it; and a middleware defaults `res.locals.authExpired = false` for every request (the explicit `authExpired: true` on the expired-connection branch is unchanged, so the 1.15.4 notice still shows). The two redundant `authExpired: false` passes were removed — the default covers them.
+- Same audit found four more pages of the same class, all live: the Threads, Confessions, and Roles settings tabs threw "`threadOverrides` / `pendingConfessions` / `tempRoles` / `xpShopItems` is not defined" because the settings route declared those variables but never fetched them or passed them to the render. They are now fetched per module (thread-archive overrides, pending confessions, active temp roles via `getActiveTempRoles`, XP shop items via `getShopItems`) and passed to the render, so those tabs load with real data.
+- Latent instance of the same pattern: `setup.ejs` referenced bare `botUsername`, which the GET `/setup/finish` render never passes (only reachable when `saved` is true, so it never fired). Now guarded with the same `typeof` check. A new audit script (`tmp/audit-template-locals.js`) now checks every dashboard view's bare references against every render of that view, `res.locals` defaults, and `typeof` guards — it reports clean. Verified by `tmp/verify-1.15.9.js` (21/21: home renders with `authExpired` absent, notice shown when true, empty/logged-out states; setup renders with `botUsername` absent; settings renders for the threads/confessions/roles modules; middleware present before all routes). Dashboard boots and serves in wizard mode; bot load unchanged (266 commands, 37 top-level, 0 problems). Dashboard restart only — no deploy, no bot restart, no npm install.
+
 ## [1.15.8] - 2026-11-15
 
 ### Changed

@@ -15,7 +15,7 @@
 
     <% if (saved) { %>
       <h1>✅ Setup complete!</h1>
-      <p>Your config is saved<% if (botUsername) { %> and the bot connected as <strong><%= botUsername %></strong><% } %>. The wizard is now disabled (config.json has <code>setupComplete: true</code>).</p>
+      <p>Your config is saved<% if (typeof botUsername !== 'undefined' && botUsername) { %> and the bot connected as <strong><%= botUsername %></strong><% } %>. The wizard is now disabled (config.json has <code>setupComplete: true</code>).</p>
       <h2>Start the bot</h2>
       <p>Run these in the project folder:</p>
       <p><code>npm run deploy</code> — register the slash commands<br>
