@@ -16,7 +16,7 @@ const client = { commands: new Collection() };
 for (const cmd of topLevel) client.commands.set(cmd.data.name, cmd);
 
 // 1. Total count.
-check(help.countCommands(client) === 266, `total count is 266 (got ${help.countCommands(client)})`);
+check(help.countCommands(client) === 268, `total count is 268 (got ${help.countCommands(client)})`);
 
 // 2. Select menu stays within Discord's 25-option limit.
 const groupKeys = Object.keys(help.GROUPS);
@@ -137,7 +137,7 @@ class FakeCollector {
   // 8a. Opening view: categories only.
   const opening = captured.embeds[0];
   check(opening.data.title === '🤖 Vikings Hall — Help', `opening title is the help title (got: ${opening.data.title})`);
-  check(opening.data.description.includes('**266 commands**'), 'opening embed says 266 commands');
+  check(opening.data.description.includes('**268 commands**'), 'opening embed says 268 commands');
   check(groupKeys.every((k) => opening.data.description.includes(help.GROUPS[k].label)), 'opening embed lists all 25 group labels');
   check(!opening.data.description.includes('**/mod ban**') && !opening.data.description.includes('**/music play**'), 'opening embed lists NO commands (not one giant list)');
   const openingFooterLen = (opening.data.footer?.text || '').length;

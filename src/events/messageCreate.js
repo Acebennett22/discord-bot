@@ -4,6 +4,7 @@ const { Events } = require('discord.js');
 const { awardXp } = require('../utils/leveling');
 const automod = require('../utils/automod');
 const autoresponders = require('../utils/autoresponders');
+const sticky = require('../utils/sticky');
 const { recordMessage } = require('../utils/analytics');
 const { getGuildSettings } = require('../utils/guildSettings');
 const { askAI, isAiConfigured } = require('../utils/ai');
@@ -24,6 +25,9 @@ module.exports = {
     // Auto-translate (1.10.6): watched channels get non-target-language
     // messages translated in a reply. Never fatal, never blocks XP.
     await handleTranslateMessage(message).catch(() => {});
+    // Sticky messages (1.15.15): re-post the channel's sticky at the bottom
+    // when a new message pushed it up. Never fatal, never blocks XP.
+    await sticky.handleMessage(message).catch(() => {});
     // AI chat channel (1.4.1): plain messages here are questions for the AI.
     const settings = await getGuildSettings(message.guildId).catch(() => null);
     if (settings?.aiEnabled && settings.aiChannelId === message.channelId && isAiConfigured() && !message.content.startsWith('!')) {

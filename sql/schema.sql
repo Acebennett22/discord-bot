@@ -1513,3 +1513,17 @@ CREATE TABLE IF NOT EXISTS content_filter_rules (
   UNIQUE KEY uq_content_filter_rule (guild_id, type, value),
   INDEX idx_content_filter_guild (guild_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- v1.15.15 (2026-11-15): sticky messages — one pinned text per channel, re-posted at the bottom.
+CREATE TABLE IF NOT EXISTS sticky_messages (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  guild_id VARCHAR(32) NOT NULL,
+  channel_id VARCHAR(32) NOT NULL,
+  message_id VARCHAR(32) NULL,
+  content VARCHAR(2000) NOT NULL,
+  created_by VARCHAR(32) NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_sticky_channel (guild_id, channel_id),
+  INDEX idx_sticky_guild (guild_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

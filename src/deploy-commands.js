@@ -3,7 +3,7 @@
 // testing (guild commands appear instantly; global can take up to ~1 hour).
 // Run: npm run deploy   (after filling in config.json)
 //
-// Since 1.15.0 the 266 flat commands are consolidated into ~37 top-level
+// Since 1.15.0 the 268 flat commands are consolidated into ~38 top-level
 // commands with subcommands (see src/handlers/consolidate.js) so the bot
 // fits Discord's 100-commands-per-scope cap. A bulk deploy REPLACES the
 // whole command list, so running this removes the old flat names (/ban,

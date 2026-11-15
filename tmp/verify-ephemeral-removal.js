@@ -2,11 +2,11 @@
 // Verification for 1.15.7 (remove ephemeral) — run with
 // ALLOW_PLACEHOLDER_CONFIG=1 node tmp/verify-ephemeral-removal.js
 // Asserts:
-//  1. Full bot load via the real loader: 266 flat commands, 37 top-level, 0 failures.
+//  1. Full bot load via the real loader: 268 flat commands, 38 top-level, 0 failures.
 //  2. Remaining `ephemeral: true` sites == the codemod KEEP list (74), nothing else.
 //  3. /help and /trivia replies are public AND their collectors are invoker-only.
 //  4. No empty reply/followUp/deferReply/update option objects left behind.
-//  5. The 1.15.5 /help group checks still pass (groupEmbed + count 266).
+//  5. The 1.15.5 /help group checks still pass (groupEmbed + count 268).
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
@@ -29,14 +29,14 @@ try {
   check('bot load (no require failures)', false, e.message);
 }
 if (loaded) {
-  check('bot load: 37 top-level commands', loaded.size === 37, `got ${loaded.size}`);
+  check('bot load: 38 top-level commands', loaded.size === 38, `got ${loaded.size}`);
   const { buildConsolidated } = require('../src/handlers/consolidate');
   const { flatCount, childCount } = buildConsolidated();
-  check('bot load: 266 flat commands', flatCount === 266, `got ${flatCount}`);
-  // 261 grouped children + 3 standalones (giveaway, serverbackup,
-  // mediathreads) = 264 flat chat children reachable; the 2 context menus
-  // make up the remaining 2 of the 266 files.
-  check('bot load: 261 grouped chat children', childCount === 261, `got ${childCount}`);
+  check('bot load: 268 flat commands', flatCount === 268, `got ${flatCount}`);
+  // 263 grouped children + 3 standalones (giveaway, serverbackup,
+  // mediathreads) = 266 flat chat children reachable; the 2 context menus
+  // make up the remaining 2 of the 268 files.
+  check('bot load: 263 grouped chat children', childCount === 263, `got ${childCount}`);
 }
 
 // --- 2. Remaining ephemeral sites == KEEP list ---
@@ -69,7 +69,10 @@ for (const [file, kind] of [
   check(`${file}: no ephemeral left`, !src.includes('ephemeral'));
   check(`${file}: collector has invoker-only filter`,
     src.includes('filter: (sel) => sel.user.id === interaction.user.id')
-    || src.includes('filter: (btn) => btn.user.id === interaction.user.id'));
+    || src.includes('filter: (btn) => btn.user.id === interaction.user.id')
+    // 1.15.8 unified the help collector to one (i) filter covering both the
+    // select menu and the buttons (no componentType filter).
+    || src.includes('filter: (i) => i.user.id === interaction.user.id'));
 }
 
 // --- 4. No empty option objects left behind ---

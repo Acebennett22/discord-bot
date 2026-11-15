@@ -81,6 +81,22 @@ const AUTORESPONDERS_CREATE = `CREATE TABLE IF NOT EXISTS autoresponders (
   INDEX idx_autoresponders_guild (guild_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`;
 
+// The sticky_messages table (1.15.15) — same self-heal as autoresponders:
+// CREATE TABLE IF NOT EXISTS in sql/schema.sql only runs on fresh installs
+// (the wizard), so existing installs get the table here on startup.
+const STICKY_MESSAGES_CREATE = `CREATE TABLE IF NOT EXISTS sticky_messages (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  guild_id VARCHAR(32) NOT NULL,
+  channel_id VARCHAR(32) NOT NULL,
+  message_id VARCHAR(32) NULL,
+  content VARCHAR(2000) NOT NULL,
+  created_by VARCHAR(32) NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_sticky_channel (guild_id, channel_id),
+  INDEX idx_sticky_guild (guild_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`;
+
 async function runMigrations(dbName) {
   if (!pool) return;
   for (const [table, column, definition] of MISSING_COLUMNS) {
@@ -102,6 +118,11 @@ async function runMigrations(dbName) {
     await pool.execute(AUTORESPONDERS_CREATE);
   } catch (err) {
     console.warn('[db] Migration: could not ensure autoresponders table:', err.message);
+  }
+  try {
+    await pool.execute(STICKY_MESSAGES_CREATE);
+  } catch (err) {
+    console.warn('[db] Migration: could not ensure sticky_messages table:', err.message);
   }
 }
 

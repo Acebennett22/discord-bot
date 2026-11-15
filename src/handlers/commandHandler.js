@@ -1,5 +1,5 @@
 // Auto-loads every command file under src/commands/** into client.commands.
-// Since 1.15.0 the 266 flat commands are consolidated into ~37 top-level
+// Since 1.15.0 the 268 flat commands are consolidated into ~38 top-level
 // commands (see src/handlers/consolidate.js) so the bot fits Discord's
 // 100-commands-per-scope cap. client.commands holds the PARENT commands
 // keyed by parent name, plus standalone commands and context menus.

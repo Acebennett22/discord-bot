@@ -1,7 +1,7 @@
 const { SlashCommandBuilder, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { infoEmbed } = require('../../utils/embeds');
 
-// Since 1.15.0 the bot's 266 commands are consolidated into 32 parent
+// Since 1.15.0 the bot's 268 commands are consolidated into 33 parent
 // commands with subcommands (client.commands holds parents, not flat names),
 // so groups are defined by PARENT here — every parent must appear in exactly
 // one group, or it is unreachable from /help. Discord caps a select menu at
@@ -13,7 +13,7 @@ const { infoEmbed } = require('../../utils/embeds');
 // picking a group shows its commands 10 per page with ◀ / ▶ navigation.
 const PAGE_SIZE = 10;
 const GROUPS = {
-  moderation: { label: '🛡️ Moderation', blurb: 'Bans, timeouts, warnings & automod', parents: ['mod', 'automod'] },
+  moderation: { label: '🛡️ Moderation', blurb: 'Bans, timeouts, warnings, sticky & automod', parents: ['mod', 'automod', 'sticky'] },
   music: { label: '🎵 Music', blurb: 'Play music in voice channels', parents: ['music'] },
   utility: { label: '🔧 Utility', blurb: 'Everyday server utilities', parents: ['utility'] },
   tools: { label: '🧰 Tools', blurb: 'Server tools & emoji management', parents: ['tools', 'emoji'] },
@@ -105,7 +105,7 @@ function groupEmbed(client, key, page = 0) {
 }
 
 // Real command total: one per grouped child + one per standalone top-level
-// command + one per context-menu command (266 — computed, not hardcoded).
+// command + one per context-menu command (268 — computed, not hardcoded).
 function countCommands(client) {
   let total = 0;
   for (const cmd of client.commands.values()) {

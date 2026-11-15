@@ -1,6 +1,6 @@
 // Consolidation (1.15.0, breaking change): Discord caps an app at 100 top-level
-// CHAT_INPUT commands per scope, and this bot has 266 flat slash commands.
-// The 266 command files are NOT edited — grouping happens here, at the JSON
+// CHAT_INPUT commands per scope, and this bot has 268 flat slash commands.
+// The 268 command files are NOT edited — grouping happens here, at the JSON
 // level, and routing happens through a parent execute() that looks up the
 // original child module. /ban becomes /mod ban, /play becomes /music play.
 //
@@ -48,6 +48,7 @@ const PARENT_MAP = {
   staff: 'staff',
   starboard: 'starboard',
   steam: 'steam',
+  sticky: 'sticky',
   streams: 'stream',
   suggestions: 'suggest',
   tempvc: 'tempvc',
@@ -97,6 +98,7 @@ const PARENT_DESCRIPTIONS = {
   staff: 'Staff tools — bot flags, errors, and antinuke.',
   starboard: 'Starboard setup and configuration.',
   steam: 'Steam account linking and info.',
+  sticky: 'Sticky messages that stay at the bottom of a channel.',
   stream: 'Stream announcements and live checks.',
   suggest: 'Suggestions and suggestion settings.',
   tempvc: 'Temporary voice channels.',
