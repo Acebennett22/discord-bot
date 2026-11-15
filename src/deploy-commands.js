@@ -32,10 +32,17 @@ for (const folder of fs.readdirSync(commandsPath)) {
 }
 
 const offset = Math.max(0, parseInt(process.env.DEPLOY_OFFSET || '0', 10) || 0);
-const limit = parseInt(process.env.DEPLOY_LIMIT || '0', 10) || 0;
+// Default deploy limit is 100: Discord rejects a bulk request much above
+// that ("Must be 130 or fewer in length"), and 100 is the per-scope
+// command cap. Set DEPLOY_LIMIT=0 for no limit, or another number to test.
+const limit = process.env.DEPLOY_LIMIT !== undefined
+  ? (parseInt(process.env.DEPLOY_LIMIT, 10) || 0)
+  : 100;
 const commands = limit > 0 ? allCommands.slice(offset, offset + limit) : allCommands.slice(offset);
+const skipped = limit > 0 ? allCommands.slice(offset + limit) : [];
 const singleMode = process.env.DEPLOY_MODE === 'single';
-console.log(`[deploy] ${singleMode ? 'Single' : 'Bulk'} mode: sending ${commands.length} of ${allCommands.length} commands (offset ${offset})${commands.length ? ` — first: ${commands[0].name}, last: ${commands[commands.length - 1].name}` : ''}.`);
+console.log(`[deploy] ${singleMode ? 'Single' : 'Bulk'} mode: sending ${commands.length} of ${allCommands.length} commands (offset ${offset}, limit ${limit || 'none'})${commands.length ? ` — first: ${commands[0].name}, last: ${commands[commands.length - 1].name}` : ''}.`);
+if (skipped.length) console.log(`[deploy] Skipping ${skipped.length} commands over the limit (not registered): ${skipped.map((c) => c.name).join(', ')}`);
 
 (async () => {
   const rest = new REST({ version: '10' }).setToken(config.token);

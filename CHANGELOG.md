@@ -6,6 +6,11 @@ in `package.json` is the source of truth for the current release — every
 version below must match a `package.json` version, and the dashboard
 `/version` page renders from this file.
 
+## [1.14.15] - 2026-11-15
+
+### Changed
+- Deploy limit (1.14.15) — `npm run deploy` now caps at 100 commands by default (Discord rejects a bulk request much above that, and 100 is the per-scope command cap). The script logs every skipped command by name so it is clear what is not registered. Override with `DEPLOY_LIMIT=0` (no limit) or another number, e.g. `DEPLOY_LIMIT=129 npm run deploy`.
+
 ## [1.14.14] - 2026-11-15
 
 ### Fixed
