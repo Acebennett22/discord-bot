@@ -12,7 +12,7 @@
 </section>
 
 <div id="docs-content">
-<section class="card" style="text-align:left;margin-bottom:16px" data-searchable>
+<section class="card card-block" data-searchable>
   <h2 style="margin-top:0"><%= content.gettingStarted.title %></h2>
   <p><%= content.gettingStarted.intro %></p>
   <ol>
@@ -26,7 +26,7 @@
   <h2>⌨️ Command reference</h2>
   <p class="muted">Who can use it: <strong>Everyone</strong> (any member) · <strong>Moderator</strong> (needs a moderation permission) · <strong>Admin</strong> (needs Manage Server or Administrator) · <strong>Staff</strong> (bot owner + approved staff) · <strong>Owner</strong> (bot owner only). All command replies are ephemeral — only you see them — except the public posts a command is meant to make.</p>
   <% groups.forEach(g => { %>
-    <div class="card" style="text-align:left;margin-bottom:16px" data-searchable data-category="<%= g.category %>">
+    <div class="card card-block" data-searchable data-category="<%= g.category %>">
       <h3 style="margin-top:0"><%= g.category %></h3>
       <table>
         <tr><th>Command</th><th>What it does</th><th>Who</th></tr>
@@ -45,7 +45,7 @@
 <section style="margin-bottom:16px" data-searchable>
   <h2>📚 Feature guides</h2>
   <% content.guides.forEach(g => { %>
-    <div class="card" style="text-align:left;margin-bottom:16px" data-searchable data-guide="<%= g.id %>">
+    <div class="card card-block" data-searchable data-guide="<%= g.id %>">
       <h3 style="margin-top:0"><%= g.title %></h3>
       <ol>
         <% g.steps.forEach(s => { %><li style="margin-bottom:6px"><%= s %></li><% }); %>

@@ -54,8 +54,8 @@
       <p><strong>When:</strong> <%= data.error.created_at %> · <strong>Resolved:</strong> <%= data.error.resolved ? 'yes (by ' + (data.error.resolved_by || '?') + ')' : 'no' %></p>
       <h2>Message</h2>
       <p><%= data.error.message %></p>
-      <% if (data.error.stack) { %><h2>Stack trace</h2><pre style="background:#111214;border:1px solid var(--border);border-radius:10px;padding:14px;overflow:auto;font-size:12px"><%= data.error.stack %></pre><% } %>
-      <% if (data.error.context) { %><h2>Context</h2><pre style="background:#111214;border:1px solid var(--border);border-radius:10px;padding:14px;overflow:auto;font-size:12px"><%= data.error.context %></pre><% } %>
+      <% if (data.error.stack) { %><h2>Stack trace</h2><pre class="code-block"><%= data.error.stack %></pre><% } %>
+      <% if (data.error.context) { %><h2>Context</h2><pre class="code-block"><%= data.error.context %></pre><% } %>
       <% if (!data.error.resolved) { %><button class="btn green" id="resolve-error" data-resolve-url="/api/staff/errors/<%= data.error.id %>/resolve">✅ Mark resolved</button><% } %>
       <a class="btn ghost" href="/staff/errors">← Back to errors</a>
     <% } %>
@@ -198,7 +198,7 @@
         <label class="toggle"><input type="checkbox" name="confirm" value="true" required><span class="track"></span><span>I confirm — send this announcement</span></label>
         <br><button class="btn danger" type="submit">Send broadcast</button>
       </form>
-      <div id="broadcast-preview" class="card" style="text-align:left;margin-top:14px;display:none">
+      <div id="broadcast-preview" class="card card-block" style="margin-top:14px;display:none">
         <p class="muted" style="margin-top:0">Live preview (updates as you type)</p>
         <h3 data-preview-title style="margin:0 0 6px"></h3>
         <p data-preview-body style="margin:0;white-space:pre-wrap"></p>

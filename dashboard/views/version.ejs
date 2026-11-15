@@ -12,7 +12,7 @@
   <p class="muted">No changelog entries found — <code>CHANGELOG.md</code> is missing or empty.</p>
 <% } %>
 <% entries.forEach(e => { %>
-  <div class="card" style="text-align:left;margin-bottom:16px">
+  <div class="card card-block">
     <h2 style="margin-top:0">v<%= e.version %> <span class="muted" style="font-size:14px">— <%= e.date %><%= e.version === version ? ' · current version' : '' %></span></h2>
     <% if (!e.sections.length) { %><p class="muted">No changes listed for this version.</p><% } %>
     <% e.sections.forEach(s => { %>

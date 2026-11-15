@@ -10,8 +10,8 @@
     <p class="muted" style="margin-top:14px">Setup writes <code>config.json</code> only. Nothing is uploaded anywhere.</p>
   </aside>
   <section class="settings-content">
-    <% if (typeof isHttp !== 'undefined' && isHttp) { %><div class="toast" style="background:rgba(250,166,26,.12);border-color:rgba(250,166,26,.5);color:#faa61a">⚠️ You are setting up over plain HTTP — your bot token and passwords will travel unencrypted. Serve the dashboard over HTTPS in production (see README → Nginx deployment).</div><% } %>
-    <% if (error) { %><div class="toast" style="background:rgba(237,66,69,.12);border-color:rgba(237,66,69,.45);color:#ff6b6e">❌ <%= error %></div><% } %>
+    <% if (typeof isHttp !== 'undefined' && isHttp) { %><div class="toast warn">⚠️ You are setting up over plain HTTP — your bot token and passwords will travel unencrypted. Serve the dashboard over HTTPS in production (see README → Nginx deployment).</div><% } %>
+    <% if (error) { %><div class="toast error">❌ <%= error %></div><% } %>
 
     <% if (saved) { %>
       <h1>✅ Setup complete!</h1>

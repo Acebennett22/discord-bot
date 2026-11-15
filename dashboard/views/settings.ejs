@@ -110,7 +110,7 @@
     <h2>Pending queue</h2>
     <% if (!pendingConfessions.length) { %><p class="muted">Nothing awaiting review.</p><% } else { %>
       <% pendingConfessions.forEach(c => { %>
-        <div class="card" style="text-align:left;margin-bottom:12px">
+        <div class="card card-block" style="margin-bottom:12px">
           <strong>#<%= c.id %></strong> · by &lt;@<%= c.user_id %>&gt; (staff only) · <%= c.created_at %>
           <p><%= c.content %></p>
           <button class="btn green" data-confess-review="<%= c.id %>" data-confess-decision="approved">✅ Approve</button>
@@ -532,7 +532,7 @@
     <% if (reactionRoleMappings.length) { %>
       <div>
       <% reactionRoleMappings.forEach(m => { %>
-        <div class="card" style="text-align:left;margin-bottom:8px">
+        <div class="card card-block" style="margin-bottom:8px">
           <%= m.emoji %> → <code>&lt;@&amp;<%= m.role_id %>&gt;</code> · message <code><%= m.message_id %></code><br>
           <span class="muted">Requirements: <%= m.required_role_id ? `needs <@&${m.required_role_id}> · ` : '' %><%= (m.min_days_in_server !== null && m.min_days_in_server !== undefined) ? `${m.min_days_in_server}d+ in server · ` : '' %><%= (m.min_level !== null && m.min_level !== undefined) ? `level ${m.min_level}+` : '' %><%= (!m.required_role_id && m.min_days_in_server === null && m.min_level === null) ? 'none' : '' %></span>
         </div>
@@ -625,7 +625,7 @@
     <h2>Upcoming birthdays</h2>
     <% if (!birthdays.length) { %><p class="muted">No birthdays saved yet.</p><% } %>
     <% birthdays.forEach(b => { %>
-      <div class="card" style="text-align:left;margin-bottom:8px"><code>&lt;@<%= b.user_id %>&gt;</code> — <%= b.month %>/<%= b.day %><%= b.year ? `, ${b.year}` : '' %></div>
+      <div class="card card-block" style="margin-bottom:8px"><code>&lt;@<%= b.user_id %>&gt;</code> — <%= b.month %>/<%= b.day %><%= b.year ? `, ${b.year}` : '' %></div>
     <% }); %>
     <% } %>
 
@@ -676,7 +676,7 @@
     <div id="app-queue-list">
     <% if (!pendingApplications.length) { %><p class="muted">Nothing pending. 🎉</p><% } %>
     <% pendingApplications.forEach(a => { %>
-      <div class="card" style="text-align:left;margin-bottom:12px">
+      <div class="card card-block" style="margin-bottom:12px">
         <strong>#<%= a.id %> — <%= a.form_name %></strong> · <code>&lt;@<%= a.user_id %>&gt;</code><br>
         <% try { const ans = JSON.parse(a.answers); ans.forEach((x, i) => { %><p><strong>Q<%= i + 1 %>:</strong> <%= x %></p><% }); } catch {} %>
         <input type="text" placeholder="Review note (optional)" id="note-<%= a.id %>">
@@ -1179,7 +1179,7 @@
     <div id="suggestions-list">
     <% if (!suggestions.length) { %><p class="muted">No suggestions yet.</p><% } %>
     <% suggestions.forEach(s => { %>
-      <div class="card" style="text-align:left;margin-bottom:12px">
+      <div class="card card-block" style="margin-bottom:12px">
         <strong>#<%= s.id %> — <%= s.title %></strong> · <code>&lt;@<%= s.user_id %>&gt;</code> · <%= s.status %> · 👍 <%= s.votes_up %> · 👎 <%= s.votes_down %><br>
         <p><%= s.text %></p>
         <% if (s.status === 'pending') { %>
@@ -1240,7 +1240,7 @@
     <p class="muted">Embeds made with /embed create in Discord — edit them in place here (title, description, color) or delete them. Only embeds the bot itself posted can be edited.</p>
     <% if (!builtEmbeds.length) { %><p class="muted">No built embeds yet.</p><% } else { %>
       <% builtEmbeds.forEach(b => { const d = (() => { try { return JSON.parse(b.embed_json); } catch { return {}; } })(); %>
-      <div class="card" style="text-align:left;margin-bottom:12px">
+      <div class="card card-block" style="margin-bottom:12px">
         <strong><%= (d.title || '(no title)').slice(0, 120) %></strong> · #<%= (channels.find(c => c.id === b.channel_id) || {}).name || b.channel_id %> · <a href="https://discord.com/channels/<%= guild.id %>/<%= b.channel_id %>/<%= b.message_id %>" target="_blank" rel="noopener">jump</a>
         <form class="edit-embed-form" data-message-id="<%= b.message_id %>">
           <label>Title</label>
@@ -1262,7 +1262,7 @@
     <p class="muted">Past polls with their results. When a poll ends, the bot posts a bar-chart image (canvas) with each option's votes and percentage, and stores the final tallies so results survive restarts. Same as /poll and /poll-results in Discord.</p>
     <% if (!pastPolls.length) { %><p class="muted">No polls yet.</p><% } else { %>
       <% pastPolls.forEach(p => { const counts = p.finalCounts || (() => { const c = new Array((p.options || []).length).fill(0); Object.values(p.votes || {}).forEach((v) => { if (typeof v === 'number' && c[v] !== undefined) c[v]++; }); return c; })(); const total = counts.reduce((a, b) => a + b, 0); const max = Math.max(...counts, 1); %>
-      <div class="card" style="text-align:left;margin-bottom:12px">
+      <div class="card card-block" style="margin-bottom:12px">
         <strong><%= p.question %></strong> · <%= p.ended ? 'ended' : 'live' %> · <%= p.created_at %>
         <% (p.options || []).forEach((opt, i) => { const pct = total ? Math.round((counts[i] || 0) / total * 100) : 0; %>
           <div style="display:flex;align-items:center;gap:8px;margin:3px 0">
