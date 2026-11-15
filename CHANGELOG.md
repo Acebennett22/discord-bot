@@ -6,6 +6,11 @@ in `package.json` is the source of truth for the current release — every
 version below must match a `package.json` version, and the dashboard
 `/version` page renders from this file.
 
+## [1.15.8] - 2026-11-15
+
+### Changed
+- Paginated /help (1.15.8) — the opening view now lists the 25 categories only (one line each: group name, short description, command count), instead of one giant list of all 266 commands. Picking a group shows its commands 10 per page, each line keeping its real path and description, with a "Page X/Y" indicator in the embed title. Group pages have ◀ Previous / Next ▶ buttons (disabled at the first/last page) and a "Back to categories" button, and the group select menu stays on group pages so users can switch groups without going back first. The invoker-only collector filter from 1.15.7 covers the menu and all new buttons; the reply stays public. No command content, names, or groupings changed. Verified by `tmp/verify-help.js` (full load: 266 commands, 37 top-level, 0 failures; check-deploy: 0 problems; navigation flow driven end-to-end with mock interactions).
+
 ## [1.15.7] - 2026-11-15
 
 ### Changed

@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, ActionRowBuilder, StringSelectMenuBuilder, ComponentType } = require('discord.js');
+const { SlashCommandBuilder, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { infoEmbed } = require('../../utils/embeds');
 
 // Since 1.15.0 the bot's 266 commands are consolidated into 32 parent
@@ -8,32 +8,36 @@ const { infoEmbed } = require('../../utils/embeds');
 // 25 options, so related parents share a group where it makes sense.
 // Standalone top-level commands (giveaway, serverbackup, mediathreads) and
 // the two message context-menu commands live in "other".
+//
+// Since 1.15.8 the opening view lists CATEGORIES only (one line per group);
+// picking a group shows its commands 10 per page with ◀ / ▶ navigation.
+const PAGE_SIZE = 10;
 const GROUPS = {
-  moderation: { label: '🛡️ Moderation', parents: ['mod', 'automod'] },
-  music: { label: '🎵 Music', parents: ['music'] },
-  utility: { label: '🔧 Utility', parents: ['utility'] },
-  tools: { label: '🧰 Tools', parents: ['tools', 'emoji'] },
-  fun: { label: '🎲 Fun & Games', parents: ['fun', 'counting', 'birthday'] },
-  tickets: { label: '🎫 Tickets', parents: ['ticket', 'modmail'] },
-  streams: { label: '📺 Streams', parents: ['stream'] },
-  leveling: { label: '🏆 Leveling', parents: ['level'] },
-  steam: { label: '🎮 Steam', parents: ['steam'] },
-  giveaways: { label: '🎉 Giveaways', standalones: ['giveaway'] },
-  reactionroles: { label: '🎭 Reaction Roles', parents: ['reactionroles'] },
-  gameservers: { label: '🖥️ Game Servers', parents: ['gameserver'] },
-  owner: { label: '👑 Owner', parents: ['owner', 'staff'] },
-  ai: { label: '🤖 AI Chat', parents: ['ai'] },
-  application: { label: '📝 Applications', parents: ['application'] },
-  economy: { label: '🪙 Economy', parents: ['economy', 'casino'] },
-  faq: { label: '💬 FAQ & Custom', parents: ['faq', 'custom'] },
-  invite: { label: '📨 Invites', parents: ['invite'] },
-  role: { label: '👥 Roles', parents: ['role'] },
-  starboard: { label: '⭐ Starboard', parents: ['starboard'] },
-  suggest: { label: '💡 Suggestions', parents: ['suggest'] },
-  verify: { label: '✅ Welcome & Verification', parents: ['verify', 'welcome'] },
-  weather: { label: '🌤️ Weather', parents: ['weather'] },
-  tempvc: { label: '🔊 Temp VC', parents: ['tempvc'] },
-  other: { label: '📦 Other', standalones: ['serverbackup', 'mediathreads'], context: ['Bookmark message', 'Translate message'] },
+  moderation: { label: '🛡️ Moderation', blurb: 'Bans, timeouts, warnings & automod', parents: ['mod', 'automod'] },
+  music: { label: '🎵 Music', blurb: 'Play music in voice channels', parents: ['music'] },
+  utility: { label: '🔧 Utility', blurb: 'Everyday server utilities', parents: ['utility'] },
+  tools: { label: '🧰 Tools', blurb: 'Server tools & emoji management', parents: ['tools', 'emoji'] },
+  fun: { label: '🎲 Fun & Games', blurb: 'Games, counting & birthdays', parents: ['fun', 'counting', 'birthday'] },
+  tickets: { label: '🎫 Tickets', blurb: 'Support tickets & modmail', parents: ['ticket', 'modmail'] },
+  streams: { label: '📺 Streams', blurb: 'Twitch & YouTube announcements', parents: ['stream'] },
+  leveling: { label: '🏆 Leveling', blurb: 'XP, ranks & rewards', parents: ['level'] },
+  steam: { label: '🎮 Steam', blurb: 'Steam profiles & game stats', parents: ['steam'] },
+  giveaways: { label: '🎉 Giveaways', blurb: 'Run & enter giveaways', standalones: ['giveaway'] },
+  reactionroles: { label: '🎭 Reaction Roles', blurb: 'Self-assignable roles', parents: ['reactionroles'] },
+  gameservers: { label: '🖥️ Game Servers', blurb: 'Rust, The Isle & more', parents: ['gameserver'] },
+  owner: { label: '👑 Owner', blurb: 'Bot owner & staff only', parents: ['owner', 'staff'] },
+  ai: { label: '🤖 AI Chat', blurb: 'Chat with the AI', parents: ['ai'] },
+  application: { label: '📝 Applications', blurb: 'Staff applications', parents: ['application'] },
+  economy: { label: '🪙 Economy', blurb: 'Coins, jobs & casino', parents: ['economy', 'casino'] },
+  faq: { label: '💬 FAQ & Custom', blurb: 'FAQs & custom commands', parents: ['faq', 'custom'] },
+  invite: { label: '📨 Invites', blurb: 'Invite tracking & rewards', parents: ['invite'] },
+  role: { label: '👥 Roles', blurb: 'Role management', parents: ['role'] },
+  starboard: { label: '⭐ Starboard', blurb: 'Starred message highlights', parents: ['starboard'] },
+  suggest: { label: '💡 Suggestions', blurb: 'Server suggestions', parents: ['suggest'] },
+  verify: { label: '✅ Welcome & Verification', blurb: 'Verification & welcome setup', parents: ['verify', 'welcome'] },
+  weather: { label: '🌤️ Weather', blurb: 'Weather forecasts', parents: ['weather'] },
+  tempvc: { label: '🔊 Temp VC', blurb: 'Temporary voice channels', parents: ['tempvc'] },
+  other: { label: '📦 Other', blurb: 'Backups, media threads & more', standalones: ['serverbackup', 'mediathreads'], context: ['Bookmark message', 'Translate message'] },
 };
 
 // One line per invocable path: plain subcommands as `/mod ban`, grouped
@@ -69,11 +73,35 @@ function linesForGroup(client, key) {
   return lines;
 }
 
-function groupEmbed(client, key) {
+function pageCount(client, key) {
+  return Math.max(1, Math.ceil(linesForGroup(client, key).length / PAGE_SIZE));
+}
+
+// Opening view: categories only — one line per group, never the full list.
+function homeEmbed(client) {
+  const lines = Object.entries(GROUPS).map(([key, g]) => {
+    const n = linesForGroup(client, key).length;
+    return `**${g.label}** — ${g.blurb} (${n} command${n === 1 ? '' : 's'})`;
+  });
+  return infoEmbed(
+    '🤖 Vikings Hall — Help',
+    `Pick a category below to see its commands.\n\n**${countCommands(client)} commands** loaded.\n\n${lines.join('\n')}`,
+  );
+}
+
+// One page of one group: at most PAGE_SIZE command lines, with the page
+// indicator in the title (the shared footer is fixed by infoEmbed).
+function groupEmbed(client, key, page = 0) {
   const group = GROUPS[key];
   if (!group) return infoEmbed('Help', 'Unknown category.');
   const lines = linesForGroup(client, key);
-  return infoEmbed(group.label, lines.length ? lines.join('\n') : 'No commands in this group.');
+  const total = pageCount(client, key);
+  const pageClamped = Math.min(Math.max(0, page), total - 1);
+  const slice = lines.slice(pageClamped * PAGE_SIZE, (pageClamped + 1) * PAGE_SIZE);
+  return infoEmbed(
+    `${group.label} — Page ${pageClamped + 1}/${total}`,
+    slice.length ? slice.join('\n') : 'No commands in this group.',
+  );
 }
 
 // Real command total: one per grouped child + one per standalone top-level
@@ -89,26 +117,79 @@ function countCommands(client) {
   return total;
 }
 
+function menuRow(currentKey) {
+  const current = currentKey ? GROUPS[currentKey] : null;
+  return new ActionRowBuilder().addComponents(
+    new StringSelectMenuBuilder()
+      .setCustomId('help_category')
+      .setPlaceholder(current ? current.label : 'Pick a category…')
+      .addOptions(Object.entries(GROUPS).map(([key, g]) => ({ label: g.label, value: key }))),
+  );
+}
+
+function navRow(client, key, page) {
+  const total = pageCount(client, key);
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId('help_prev')
+      .setLabel('◀ Previous')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(page <= 0),
+    new ButtonBuilder()
+      .setCustomId('help_home')
+      .setLabel('Back to categories')
+      .setEmoji('🏠')
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId('help_next')
+      .setLabel('Next ▶')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(page >= total - 1),
+  );
+}
+
+// Home view: menu only. Group view: menu + navigation buttons, so users can
+// switch groups without going back first.
+function componentsFor(client, view) {
+  if (view.type === 'group') return [menuRow(view.key), navRow(client, view.key, view.page)];
+  return [menuRow(null)];
+}
+
+function embedFor(client, view) {
+  return view.type === 'group'
+    ? groupEmbed(client, view.key, view.page)
+    : homeEmbed(client);
+}
+
 module.exports = {
   data: new SlashCommandBuilder().setName('help').setDescription('List all commands, grouped by category.'),
   async execute(interaction) {
-    const menu = new ActionRowBuilder().addComponents(
-      new StringSelectMenuBuilder()
-        .setCustomId('help_category')
-        .setPlaceholder('Pick a category…')
-        .addOptions(Object.entries(GROUPS).map(([key, g]) => ({ label: g.label, value: key }))),
-    );
+    // View state lives in this closure; the collector below mutates it.
+    let view = { type: 'home' };
     const response = await interaction.reply({
-      embeds: [infoEmbed('🤖 Vikings Hall — Help', `Pick a category below to see its commands.\n\n**${countCommands(interaction.client)} commands** loaded.`)],
-      components: [menu],
+      embeds: [homeEmbed(interaction.client)],
+      components: componentsFor(interaction.client, view),
       withResponse: true,
     });
     const reply = response.resource.message;
-    // Public since 1.15.7 — only the invoker may use the menu (others get
-    // "This interaction failed" from Discord instead of hijacking the list).
-    const collector = reply.createMessageComponentCollector({ componentType: ComponentType.StringSelect, time: 120_000, filter: (sel) => sel.user.id === interaction.user.id });
-    collector.on('collect', async (sel) => {
-      await sel.update({ embeds: [groupEmbed(interaction.client, sel.values[0])], components: [menu] });
+    // Public since 1.15.7 — only the invoker may use the menu or the
+    // navigation buttons (others get "This interaction failed" from Discord
+    // instead of hijacking the list). No componentType filter: the collector
+    // must accept both the select menu and the buttons.
+    const collector = reply.createMessageComponentCollector({ time: 120_000, filter: (i) => i.user.id === interaction.user.id });
+    collector.on('collect', async (i) => {
+      if (i.customId === 'help_category') {
+        view = { type: 'group', key: i.values[0], page: 0 };
+      } else if (i.customId === 'help_prev' && view.type === 'group') {
+        view = { ...view, page: Math.max(0, view.page - 1) };
+      } else if (i.customId === 'help_next' && view.type === 'group') {
+        view = { ...view, page: Math.min(pageCount(interaction.client, view.key) - 1, view.page + 1) };
+      } else if (i.customId === 'help_home') {
+        view = { type: 'home' };
+      } else {
+        return;
+      }
+      await i.update({ embeds: [embedFor(interaction.client, view)], components: componentsFor(interaction.client, view) });
     });
     collector.on('end', async () => {
       await interaction.editReply({ components: [] }).catch(() => {});
@@ -116,7 +197,12 @@ module.exports = {
   },
   // Exported for tests (tmp/verify-help.js).
   GROUPS,
+  PAGE_SIZE,
   linesForGroup,
   groupEmbed,
+  homeEmbed,
+  pageCount,
   countCommands,
+  componentsFor,
+  embedFor,
 };
