@@ -4,8 +4,9 @@ const { infoEmbed } = require('../../utils/embeds');
 module.exports = {
   data: new SlashCommandBuilder().setName('ping').setDescription('Check the bot\'s latency — shard-aware, lists every shard.'),
   async execute(interaction) {
-    const sent = await interaction.reply({ ephemeral: true, embeds: [infoEmbed('Ping', 'Measuring…')], fetchReply: true });
-    const roundTrip = sent.createdTimestamp - interaction.createdTimestamp;
+    const response = await interaction.reply({ ephemeral: true, embeds: [infoEmbed('Ping', 'Measuring…')], withResponse: true });
+    const sent = response.resource?.message;
+    const roundTrip = sent ? sent.createdTimestamp - interaction.createdTimestamp : 0;
     const client = interaction.client;
     const shard = client.shard;
 

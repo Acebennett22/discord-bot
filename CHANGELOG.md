@@ -6,6 +6,12 @@ in `package.json` is the source of truth for the current release — every
 version below must match a `package.json` version, and the dashboard
 `/version` page renders from this file.
 
+## [1.15.2] - 2026-11-15
+
+### Fixed
+- Auto-translate crash (1.15.2) — `settings.channels.includes is not a function` on every message when translate was enabled. The `channels_json` column is MySQL JSON, so mysql2 already returns a parsed value, but the reader ran `JSON.parse` on it anyway: a correct array coerced to `"123,456"`, threw, and silently fell back to `[]` (auto-translate never matched), while a bare stored value came back as a number and `.includes` threw. `getTranslateSettings` now normalizes every shape to an array of string channel IDs (parsed array, JSON string, bare number/string, object, null/invalid → `[]`); bare numeric strings are never JSON-parsed, so snowflake IDs past 2^53 keep full precision. `saveTranslateSettings` normalizes before writing, so a bad shape can never be stored again. No schema change.
+- Deprecation warnings (1.15.2) — replaced `fetchReply: true` with `withResponse: true` in the only three call sites (`/ping`, `/help`, `/trivia`), reading the sent message from `response.resource.message`. No behavior change. The `ephemeral` deprecation (1,171 sites) is a separate sweep and is untouched.
+
 ## [1.15.1] - 2026-11-15
 
 ### Changed

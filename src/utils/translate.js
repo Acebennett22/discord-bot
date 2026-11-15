@@ -71,14 +71,46 @@ async function translateText(text, targetLang) {
   return { translated, detected };
 }
 
+// Normalize channels_json to an array of string channel IDs. The column is
+// MySQL JSON, so mysql2 already parses it — a correct row arrives as a JS
+// array, and the old `JSON.parse(r.channels_json)` coerced that array to
+// "123,456", threw, and silently fell back to [] (auto-translate never
+// matched). A bare stored value (single ID as a JSON number/string) came
+// back as a number, so `settings.channels.includes` threw at runtime.
+// Tolerate every shape: parsed array, JSON string, bare number/string,
+// object, null/invalid.
+function normalizeChannels(value) {
+  let list = value;
+  if (typeof list === 'string') {
+    const trimmed = list.trim();
+    if (!trimmed) return [];
+    // Only JSON-parse array/object/quoted-string shapes. A bare numeric
+    // string must NOT be parsed — JSON.parse would turn it into a number
+    // and lose precision past 2^53, corrupting the channel ID.
+    const first = trimmed[0];
+    if (first === '[' || first === '{' || first === '"') {
+      try {
+        list = JSON.parse(trimmed);
+      } catch {
+        // Not JSON — treat it as a comma-separated list of IDs.
+        return trimmed.split(',').map((s) => s.trim()).filter(Boolean);
+      }
+    } else {
+      return trimmed.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+  }
+  if (Array.isArray(list)) return list.map((v) => String(v)).filter(Boolean);
+  if (list && typeof list === 'object') return Object.values(list).map((v) => String(v)).filter(Boolean);
+  if (list === null || list === undefined) return [];
+  return [String(list)];
+}
+
 async function getTranslateSettings(guildId) {
   if (!db.isEnabled()) return null;
   const rows = await db.query('SELECT * FROM translate_settings WHERE guild_id = ?', [guildId]);
   if (!rows?.length) return { enabled: false, channels: [], target_lang: 'en' };
   const r = rows[0];
-  let channels = [];
-  try { channels = JSON.parse(r.channels_json || '[]'); } catch {}
-  return { enabled: r.enabled === 1, channels, target_lang: r.target_lang || 'en' };
+  return { enabled: r.enabled === 1, channels: normalizeChannels(r.channels_json), target_lang: r.target_lang || 'en' };
 }
 
 async function saveTranslateSettings(guildId, patch) {
@@ -86,7 +118,7 @@ async function saveTranslateSettings(guildId, patch) {
   const cur = await getTranslateSettings(guildId);
   const next = {
     enabled: patch.enabled !== undefined ? (patch.enabled ? 1 : 0) : (cur.enabled ? 1 : 0),
-    channels: patch.channels !== undefined ? patch.channels : cur.channels,
+    channels: patch.channels !== undefined ? normalizeChannels(patch.channels) : normalizeChannels(cur.channels),
     target_lang: patch.targetLang || cur.target_lang || 'en',
   };
   await db.query(
@@ -121,4 +153,4 @@ async function handleTranslateMessage(message) {
   }
 }
 
-module.exports = { SUPPORTED, FLAG, detectLanguage, translateText, getTranslateSettings, saveTranslateSettings, handleTranslateMessage };
+module.exports = { SUPPORTED, FLAG, detectLanguage, translateText, normalizeChannels, getTranslateSettings, saveTranslateSettings, handleTranslateMessage };

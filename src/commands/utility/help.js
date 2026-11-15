@@ -34,11 +34,12 @@ module.exports = {
         .setPlaceholder('Pick a category…')
         .addOptions(Object.entries(GROUPS).map(([key, g]) => ({ label: g.label, value: key }))),
     );
-    const reply = await interaction.reply({ ephemeral: true,
+    const response = await interaction.reply({ ephemeral: true,
       embeds: [infoEmbed('🤖 Ace Bot — Help', `Pick a category below to see its commands.\n\n**${interaction.client.commands.size} commands** loaded.`)],
       components: [menu],
-      fetchReply: true,
+      withResponse: true,
     });
+    const reply = response.resource.message;
     const collector = reply.createMessageComponentCollector({ componentType: ComponentType.StringSelect, time: 120_000 });
     collector.on('collect', async (sel) => {
       await sel.update({ embeds: [groupEmbed(interaction.client, sel.values[0])], components: [menu] });

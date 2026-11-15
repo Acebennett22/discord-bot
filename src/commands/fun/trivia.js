@@ -18,11 +18,12 @@ module.exports = {
         .setLabel(opt)
         .setStyle(ButtonStyle.Primary)),
     );
-    const reply = await interaction.reply({ ephemeral: true,
+    const response = await interaction.reply({ ephemeral: true,
       embeds: [infoEmbed('🧠 Trivia', `**${q.question}**\n\n${options.map((o, i) => `${String.fromCharCode(65 + i)}. ${o}`).join('\n')}`)],
       components: [row],
-      fetchReply: true,
+      withResponse: true,
     });
+    const reply = response.resource.message;
     const collector = reply.createMessageComponentCollector({ componentType: ComponentType.Button, time: 30_000 });
     collector.on('collect', async (btn) => {
       const picked = options[Number(btn.customId.split('_')[1])];
