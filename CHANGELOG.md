@@ -6,6 +6,11 @@ in `package.json` is the source of truth for the current release — every
 version below must match a `package.json` version, and the dashboard
 `/version` page renders from this file.
 
+## [1.15.11] - 2026-11-15
+
+### Fixed
+- Music playback was broken on every YouTube video (1.15.11). Root cause: play-dl 1.9.7 is unmaintained and its extraction no longer works against current YouTube — `video_info()` returns 22 formats but every one has `url`/`codec`/`container` undefined (only the itag is populated), so `stream_from_info()` feeds `undefined` to `new URL()` and throws `TypeError [ERR_INVALID_URL]: Invalid URL` (the exact stack trace Ace pasted from the live bot, at `musicQueue.js:74`). `video_info()` also intermittently fails with "socket hang up". Reproduced locally on Seven Nation Army + 2 controls; the failure is the extractor, not a voice-connection or ffmpeg problem. Fix: migrated YouTube search + streaming from play-dl to `@distube/ytdl-core` v5 (new dep, play-dl removed) behind a new `src/utils/youtube.js` adapter with the same small surface musicQueue.js used (`search`, `videoInfo`, `stream`), so the command interface, queue behavior, and error messages are unchanged. The adapter picks the highest-bitrate opus audio-only format (itag 251) for native WebmOpus playback, falling back to the highest-bitrate audio-only format (transcoded via ffmpeg) when no opus format exists, and tells the filter path the container to demux (`matroska` for webm). Verified by `tmp/verify-1.15.11.js` (3/3: Seven Nation Army, Never Gonna Give You Up, Get Lucky — search, videoInfo, and real audio bytes flowing through the adapter) and the full load (266 commands, 37 top-level, 0 problems). Server needs `git pull` + `npm install` (new dependency) + `npm run deploy` + bot restart.
+
 ## [1.15.10] - 2026-11-15
 
 ### Fixed

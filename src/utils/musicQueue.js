@@ -1,7 +1,8 @@
-// Per-guild music queue manager built on @discordjs/voice + play-dl.
+// Per-guild music queue manager built on @discordjs/voice + @distube/ytdl-core.
 const errorLogger = require('./errorLogger');
 // One queue per guild: { connection, player, queue: [], textChannel, playing }.
-// play-dl handles search + streaming; no API keys are needed for it.
+// src/utils/youtube.js wraps ytdl-core for search + streaming; no API keys
+// are needed for it. (play-dl was dropped in 1.15.11 — its extraction broke.)
 const {
   joinVoiceChannel,
   createAudioPlayer,
@@ -10,7 +11,7 @@ const {
   VoiceConnectionStatus,
   entersState,
 } = require('@discordjs/voice');
-const playdl = require('play-dl');
+const youtube = require('./youtube');
 const db = require('./database');
 const { infoEmbed, errorEmbed } = require('./embeds');
 const config = require('./config');
@@ -71,7 +72,7 @@ async function playNext(guildId) {
   queue.playing = next;
   queue.playingStartedAt = Date.now();
   try {
-    const stream = await playdl.stream(next.url);
+    const stream = await youtube.stream(next.url);
     const args = filterArgs(queue.filter);
     let resource;
     if (args) {
@@ -81,7 +82,7 @@ async function playNext(guildId) {
       try {
         const { FFmpeg } = require('prism-media');
         const ffmpegArgs = ['-analyzeduration', '0', '-loglevel', '0'];
-        if (stream.type === 'opus') ffmpegArgs.push('-f', 'opus');
+        if (stream.ffmpegInputFormat) ffmpegArgs.push('-f', stream.ffmpegInputFormat);
         ffmpegArgs.push('-i', '-', '-af', args, '-f', 's16le', '-ar', '48000', '-ac', '2');
         const transcoder = new FFmpeg({ args: ffmpegArgs });
         stream.stream.pipe(transcoder);
@@ -116,7 +117,7 @@ async function addTrack(guildId, voiceChannel, textChannel, query) {
   }
 
   // Resolve the query: direct URL, Spotify link (looked up on YouTube —
-  // Spotify audio itself is never streamed), or a YouTube search via play-dl.
+  // Spotify audio itself is never streamed), or a YouTube search via youtube.js.
   let url = query;
   let title = query;
   let durationSec = null;
@@ -124,7 +125,7 @@ async function addTrack(guildId, voiceChannel, textChannel, query) {
   if (isSpotifyUrl(query)) {
     const resolved = await resolveSpotifyUrl(query);
     if (!resolved?.query) return { added: false, reason: 'Could not read that Spotify link. Try a Spotify track URL, or search by name instead.' };
-    const results = await playdl.search(resolved.query, { limit: 1 });
+    const results = await youtube.search(resolved.query, { limit: 1 });
     if (!results.length) return { added: false, reason: `Could not find "${resolved.title}" on YouTube.` };
     url = results[0].url;
     title = results[0].title || resolved.title;
@@ -133,15 +134,15 @@ async function addTrack(guildId, voiceChannel, textChannel, query) {
       ? `Spotify track "${resolved.title}" — matched on YouTube (Spotify audio is not streamed directly).`
       : `Spotify ${resolved.kind} "${resolved.title}" — matched its top YouTube result (playlists/albums can't be expanded without a Spotify API key).`;
   } else if (!/^https?:\/\//i.test(query)) {
-    const results = await playdl.search(query, { limit: 1 });
+    const results = await youtube.search(query, { limit: 1 });
     if (!results.length) return { added: false, reason: `No results found for "${query}".` };
     url = results[0].url;
     title = results[0].title || query;
     durationSec = results[0].durationInSec || null;
   } else {
-    const info = await playdl.video_info(url).catch(() => null);
-    if (info?.video_details?.title) title = info.video_details.title;
-    if (info?.video_details?.durationInSec) durationSec = info.video_details.durationInSec;
+    const info = await youtube.videoInfo(url).catch(() => null);
+    if (info?.title) title = info.title;
+    if (info?.durationInSec) durationSec = info.durationInSec;
   }
 
   const track = { title, url, durationSec, requestedBy: null };

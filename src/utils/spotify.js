@@ -1,7 +1,7 @@
 // Spotify link resolution — lookup only, NOT Spotify audio streaming.
 // There is no public Spotify audio API, so a Spotify track URL is resolved
 // to its title + artist via Spotify's public oEmbed endpoint (no key),
-// then the same track is found on YouTube with play-dl search. A playlist
+// then the same track is found on YouTube with youtube.js search. A playlist
 // URL only gives the playlist name, so it resolves to the top YouTube
 // result for that name — stated honestly in the README.
 async function resolveSpotifyUrl(url) {
