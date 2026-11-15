@@ -6,6 +6,11 @@ in `package.json` is the source of truth for the current release — every
 version below must match a `package.json` version, and the dashboard
 `/version` page renders from this file.
 
+## [1.14.10] - 2026-11-15
+
+### Fixed
+- Setup wizard (1.14.10) — the finish page was unreachable: the `/setup/:step` routes were registered before `/setup/finish`, so Express matched "finish" as a step name, failed to parse it as a number, and bounced the user back to step 1. The finish routes now register first, so step 8 actually reaches the review page and its Save button.
+
 ## [1.14.9] - 2026-11-15
 
 ### Fixed

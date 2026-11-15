@@ -214,6 +214,45 @@ async function guildChannelsRoles(guildId) {
 // --- First-run setup wizard routes -------------------------------------------
 app.get('/setup', requireSetupAccess, (req, res) => res.redirect('/setup/1'));
 
+app.get('/setup/finish', requireSetupAccess, (req, res) => {
+  res.render('setup', {
+    user: req.session.user || null, isStaff: false, inviteUrl: inviteUrl(),
+    step: { n: 8, id: 'review', title: 'Review & finish' }, steps: SETUP_STEPS,
+    data: setupData(req), error: null, links: config._whereToGetKeys || {}, saved: false, finish: true,
+    isHttp: req.protocol === 'http' && !isLocalRequest(req), publicUrl: (config.dashboard?.publicUrl || '').replace(/\/$/, ''),
+  });
+});
+
+app.post('/setup/finish', requireSetupAccess, async (req, res) => {
+  const d = setupData(req);
+  if (isPlaceholder(d.token) || isPlaceholder(d.clientId)) return res.redirect('/setup/2?error=' + encodeURIComponent('Bot token and client ID are required — go back to step 2.'));
+  const configPath = path.join(__dirname, '..', 'config.json');
+  const current = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  const next = { ...current };
+  next.token = (d.token || '').trim();
+  next.clientId = (d.clientId || '').trim();
+  next.ownerId = (d.ownerId || '').trim();
+  const publicBase = (current.dashboard?.publicUrl || '').replace(/\/$/, '');
+  next.dashboard = { ...(current.dashboard || {}), clientSecret: (d.clientSecret || '').trim(), sessionSecret: d.sessionSecret || crypto.randomBytes(32).toString('hex'), port: parseInt(d.port, 10) || 3010, redirectUri: d.redirectUri || (publicBase ? `${publicBase}/callback` : `http://localhost:${parseInt(d.port, 10) || 3010}/callback`) };
+  next.database = { ...(current.database || {}), host: d.dbHost || 'localhost', port: parseInt(d.dbPort, 10) || 3306, user: d.dbUser || 'discord_bot', password: d.dbPassword || '', database: d.dbName || 'discord_bot' };
+  next.streams = { ...(current.streams || {}), twitch: { ...(current.streams?.twitch || {}), clientId: d.twitchClientId || '', clientSecret: d.twitchClientSecret || '' }, youtube: { ...(current.streams?.youtube || {}), apiKey: d.youtubeApiKey || '' } };
+  next.steam = { ...(current.steam || {}), apiKey: d.steamApiKey || '' };
+  next.backups = { ...(current.backups || {}), time: d.backupTime || '03:00', retentionDays: parseInt(d.retentionDays, 10) || 30 };
+  if (d.embedColor) next.embedColor = d.embedColor;
+  if (d.maxQueueSize) next.music = { ...(current.music || {}), maxQueueSize: parseInt(d.maxQueueSize, 10) || 25 };
+  if (d.shardingMode) next.sharding = { ...(current.sharding || {}), mode: d.shardingMode };
+  next.setupComplete = true;
+  fs.writeFileSync(configPath, JSON.stringify(next, null, 2) + '\n', { mode: 0o600 });
+  Object.assign(config, next); // update the live in-memory config
+  req.session.setupData = null;
+  res.render('setup', {
+    user: req.session.user || null, isStaff: false, inviteUrl: inviteUrl(),
+    step: { n: 8, id: 'review', title: 'Review & finish' }, steps: SETUP_STEPS,
+    data: {}, error: null, links: config._whereToGetKeys || {}, saved: true, finish: true,
+    botUsername: d.botUsername || null, isHttp: false, publicUrl: (config.dashboard?.publicUrl || '').replace(/\/$/, ''),
+  });
+});
+
 app.get('/setup/:step', requireSetupAccess, (req, res) => {
   const n = parseInt(req.params.step, 10);
   if (Number.isNaN(n) || n < 1 || n > SETUP_STEPS.length) return res.redirect('/setup/1');
@@ -275,45 +314,6 @@ app.post('/setup/:step', requireSetupAccess, async (req, res) => {
   }
   if (n === 8) return res.redirect('/setup/finish');
   return res.redirect(`/setup/${Math.min(n + 1, SETUP_STEPS.length)}`);
-});
-
-app.get('/setup/finish', requireSetupAccess, (req, res) => {
-  res.render('setup', {
-    user: req.session.user || null, isStaff: false, inviteUrl: inviteUrl(),
-    step: { n: 8, id: 'review', title: 'Review & finish' }, steps: SETUP_STEPS,
-    data: setupData(req), error: null, links: config._whereToGetKeys || {}, saved: false, finish: true,
-    isHttp: req.protocol === 'http' && !isLocalRequest(req), publicUrl: (config.dashboard?.publicUrl || '').replace(/\/$/, ''),
-  });
-});
-
-app.post('/setup/finish', requireSetupAccess, async (req, res) => {
-  const d = setupData(req);
-  if (isPlaceholder(d.token) || isPlaceholder(d.clientId)) return res.redirect('/setup/2?error=' + encodeURIComponent('Bot token and client ID are required — go back to step 2.'));
-  const configPath = path.join(__dirname, '..', 'config.json');
-  const current = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-  const next = { ...current };
-  next.token = (d.token || '').trim();
-  next.clientId = (d.clientId || '').trim();
-  next.ownerId = (d.ownerId || '').trim();
-  const publicBase = (current.dashboard?.publicUrl || '').replace(/\/$/, '');
-  next.dashboard = { ...(current.dashboard || {}), clientSecret: (d.clientSecret || '').trim(), sessionSecret: d.sessionSecret || crypto.randomBytes(32).toString('hex'), port: parseInt(d.port, 10) || 3010, redirectUri: d.redirectUri || (publicBase ? `${publicBase}/callback` : `http://localhost:${parseInt(d.port, 10) || 3010}/callback`) };
-  next.database = { ...(current.database || {}), host: d.dbHost || 'localhost', port: parseInt(d.dbPort, 10) || 3306, user: d.dbUser || 'discord_bot', password: d.dbPassword || '', database: d.dbName || 'discord_bot' };
-  next.streams = { ...(current.streams || {}), twitch: { ...(current.streams?.twitch || {}), clientId: d.twitchClientId || '', clientSecret: d.twitchClientSecret || '' }, youtube: { ...(current.streams?.youtube || {}), apiKey: d.youtubeApiKey || '' } };
-  next.steam = { ...(current.steam || {}), apiKey: d.steamApiKey || '' };
-  next.backups = { ...(current.backups || {}), time: d.backupTime || '03:00', retentionDays: parseInt(d.retentionDays, 10) || 30 };
-  if (d.embedColor) next.embedColor = d.embedColor;
-  if (d.maxQueueSize) next.music = { ...(current.music || {}), maxQueueSize: parseInt(d.maxQueueSize, 10) || 25 };
-  if (d.shardingMode) next.sharding = { ...(current.sharding || {}), mode: d.shardingMode };
-  next.setupComplete = true;
-  fs.writeFileSync(configPath, JSON.stringify(next, null, 2) + '\n', { mode: 0o600 });
-  Object.assign(config, next); // update the live in-memory config
-  req.session.setupData = null;
-  res.render('setup', {
-    user: req.session.user || null, isStaff: false, inviteUrl: inviteUrl(),
-    step: { n: 8, id: 'review', title: 'Review & finish' }, steps: SETUP_STEPS,
-    data: {}, error: null, links: config._whereToGetKeys || {}, saved: true, finish: true,
-    botUsername: d.botUsername || null, isHttp: false, publicUrl: (config.dashboard?.publicUrl || '').replace(/\/$/, ''),
-  });
 });
 
 // Test-connection endpoints used by the wizard (local-only, never log secrets).

@@ -1,6 +1,6 @@
 {
   "name": "ace-discord-bot",
-  "version": "1.14.9",
+  "version": "1.14.10",
   "description": "Multi-file Discord bot for Ace \u2014 moderation, music, server status/monitoring, and fun/games. Built with discord.js v14 (CommonJS).",
   "main": "index.js",
   "scripts": {
