@@ -5,6 +5,7 @@ const { sendWelcome } = require('../utils/welcome');
 const { sendWelcomeDm } = require('../utils/welcomeDm');
 const { onMemberJoin } = require('../utils/verification');
 const { checkMilestones } = require('../utils/milestones');
+const { logEvent } = require('../utils/memberLog');
 
 module.exports = {
   name: Events.GuildMemberAdd,
@@ -20,6 +21,9 @@ module.exports = {
     // a coin bonus for the member who triggers one.
     const previousCount = Math.max(0, member.guild.memberCount - 1);
     await checkMilestones(member, previousCount, member.guild.memberCount).catch(() => {});
+    // Member logging (1.14.2): join line, if logging is set up.
+    await logEvent(member.guild, 'joins', '👋 Member joined',
+      `**User:** ${member.user.tag} (<@${member.id}>)\n**Account created:** <t:${Math.floor(member.user.createdTimestamp / 1000)}:R>\n**Members now:** ${member.guild.memberCount}`).catch(() => {});
     await db.incrementMembersJoined(member.guild.id);
     scheduleUpdate(member.guild);
   },

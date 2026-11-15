@@ -6,6 +6,41 @@ in `package.json` is the source of truth for the current release — every
 version below must match a `package.json` version, and the dashboard
 `/version` page renders from this file.
 
+## [1.14.6] - 2026-11-15
+
+### Added
+- Safety status (1.14.6) — admin-only `/safety-status` shows the server's whole protection state in one read-only embed: Automod + antispam state, content-filter rule counts, member-logging setup, autoresponder count, reaction-role mappings, stream watchers, and Automod actions in the last 24h broken down by action.
+
+## [1.14.5] - 2026-11-15
+
+### Added
+- Content filter (1.14.5) — admin-only `/content-filter add|remove|list` blocks words (word-boundary match) and harmful-link domains (hostname + subdomains), each rule with its own action (`delete`/`warn`/`timeout`/`delete_warn`/`delete_timeout`) and severity (`low`/`medium`/`high`) in the new `content_filter_rules` table. Enforced in Automod after the spam detectors, before the legacy banned-words list. No built-in word list ships with the bot — each server defines its own entries. This merges the harmful-content filtering and keyword-protection asks into one system instead of two overlapping lists.
+
+## [1.14.4] - 2026-11-15
+
+### Added
+- Antispam detectors (1.14.4) — admin-only `/antispam` adds duplicate-message (same text 3× in 60s, default), ALL-CAPS (70%+ uppercase over 10+ letters, defaults), mention-spam (max 5 mentions, default), and link-count (max links per message, off by default) detection on top of Automod's rate limit. Each detector has its own toggle and thresholds, sharing one `antispam_action` (new columns on `automod_settings`); running `/antispam` with no options shows the current settings. Detectors are pure functions (`detectDuplicate` / `detectCaps` / `countMentions` / `countLinks`) exported from `src/utils/automod.js`.
+
+## [1.14.3] - 2026-11-15
+
+### Added
+- Autoresponder (1.14.3) — admin-only `/autoresponder add <trigger> <response> [match] | remove | toggle | list` (`autoresponders` table). Fires when a phrase appears anywhere in a message (`contains`, default) or only when the whole message is the trigger (`exact`) — different from `/custom-add`, which only fires on a single trigger word at the start. Replies run after Automod in `messageCreate` and respect the shared "handled" marker, so a message gets at most one auto reply.
+
+## [1.14.2] - 2026-11-15
+
+### Added
+- Member + moderation logging (1.14.2) — admin-only `/logging setup <channel> [joins] [leaves] [bans] [kicks] [timeouts] [roles]` and `/logging status` (`logging_settings` table). Logs joins, leaves, bans/unbans, kicks (told apart from leaves via the audit log — needs View Audit Log), timeouts, and role changes to one log channel. Message deletes/edits stay on the modlog and Automod actions on the Automod log channel.
+
+## [1.14.1] - 2026-11-15
+
+### Added
+- Reaction-role pause/resume (1.14.1) — admin-only `/reactionroles-toggle <message_id> <enabled>` pauses or resumes all buttons on one reaction-role message (`reaction_roles.enabled` column). While paused the buttons render disabled and stale clicks get an ephemeral refusal; mappings and requirements are untouched.
+
+## [1.14.0] - 2026-11-15
+
+### Added
+- Stream check (1.14.0) — admin-only `/stream-check <platform> <channel>` forces an immediate live check for a watched streamer instead of waiting for the next poll interval. A fresh offline → live transition posts the announcement to the notify channel (embed + latest clip/video, same as the poller); an already-live streamer reports its status without a duplicate post. TikTok/Facebook return the manual-only note — there is no public live API for them, and the bot does not fake one with scraping.
+
 ## [1.13.15] - 2026-11-13
 
 ### Added

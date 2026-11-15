@@ -27,15 +27,28 @@ async function getMappings(messageId) {
   return (await db.query('SELECT * FROM reaction_roles WHERE message_id = ?', [messageId])) || [];
 }
 
+// True when the reaction-role message is enabled (1.14.1). A message with
+// no mappings at all counts as disabled — there is nothing to grant.
+async function isMessageEnabled(messageId) {
+  const mappings = await getMappings(messageId);
+  if (!mappings.length) return false;
+  return mappings.every((m) => m.enabled !== 0);
+}
+
 async function buildRows(messageId) {
   const mappings = await getMappings(messageId);
+  const enabled = mappings.length > 0 && mappings.every((m) => m.enabled !== 0);
   const rows = [];
   for (let i = 0; i < mappings.length; i += 5) {
     rows.push(new ActionRowBuilder().addComponents(
-      ...mappings.slice(i, i + 5).map((m) => emojiButton(m.emoji, m.role_id)),
+      ...mappings.slice(i, i + 5).map((m) => {
+        const btn = emojiButton(m.emoji, m.role_id);
+        if (!enabled) btn.setDisabled(true);
+        return btn;
+      }),
     ));
   }
   return rows;
 }
 
-module.exports = { emojiLabel, emojiButton, getMappings, buildRows };
+module.exports = { emojiLabel, emojiButton, getMappings, isMessageEnabled, buildRows };

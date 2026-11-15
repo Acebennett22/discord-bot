@@ -234,7 +234,8 @@
     "An admin runs /stream-add (Twitch or YouTube) and picks the announcement channel, or adds streamers on the dashboard Streams tab.",
     "When a streamer goes live, the bot posts an announcement embed. /stream-announce posts one manually (handy for Facebook/TikTok).",
     "To rename a channel while someone is live: /stream-template set with a template containing {name} (also {game} and {title}), max 100 characters \u2014 or set it on the Streams tab with the live preview.",
-    "The channel is renamed only on live/offline transitions, and restores its exact original name when the stream ends. Discord allows about 2 renames per 10 minutes per channel, so the bot queues retries instead of failing."
+    "The channel is renamed only on live/offline transitions, and restores its exact original name when the stream ends. Discord allows about 2 renames per 10 minutes per channel, so the bot queues retries instead of failing.",
+    "To check one streamer right now instead of waiting for the next poll: /stream-check <platform> <channel>. If they just went live, the announcement posts to their notify channel. TikTok/Facebook stay manual-only \u2014 there is no public live API for them."
    ],
    "title": "Streams + live channel name"
   },
@@ -254,7 +255,9 @@
     "An admin runs /automod-setup: spam limits (messages per window), what happens on spam (delete / warn / timeout), link and invite blocking, and the log channel.",
     "Add banned words with /automod-words add, remove with /automod-words remove, list with /automod-words list.",
     "Exempt roles or channels with /automod-exempt so staff and announcement channels are never filtered.",
-    "View current settings anytime with /automod. Everything is also on the dashboard Automod tab."
+    "View current settings anytime with /automod. Everything is also on the dashboard Automod tab.",
+    "Extra spam detectors: /antispam turns on duplicate-message, ALL-CAPS, mention-spam, and link-count detection, each with its own thresholds and action.",
+    "Finer filtering: /content-filter add blocks a word or a link domain with its own action and severity (low/medium/high) \u2014 no built-in word list ships with the bot; each server defines its own entries."
    ],
    "title": "Automod"
   },
@@ -343,7 +346,8 @@
    "steps": [
     "Create a panel with /reactionroles-setup, then add pairs with /reactionroles-add \u2014 optionally with a required role, a minimum days-in-server, and/or a minimum leveling level.",
     "Members who miss a requirement get an ephemeral message naming exactly what they missed; members who meet them get the role as usual.",
-    "See every mapping and its requirements with /reactionroles-list, or on the dashboard Reaction Roles tab."
+    "See every mapping and its requirements with /reactionroles-list, or on the dashboard Reaction Roles tab.",
+    "Pause or resume a whole reaction-role message with /reactionroles-toggle <message_id> <enabled> \u2014 while paused the buttons render disabled and clicks are refused, without deleting any mappings."
    ],
    "title": "Reaction roles with requirements"
   },
@@ -766,6 +770,55 @@
     "Same rules as /emoji-add: PNG/JPG/GIF under 256KB, name 2\u201332 letters/numbers/underscores, and the server must have a free emoji slot."
    ],
    "title": "Stealing an emoji"
+  },
+  {
+   "id": "logging",
+   "title": "Member + moderation logging",
+   "steps": [
+    "An admin runs /logging setup <channel> and picks which events to log: joins, leaves, bans, kicks, timeouts, role changes (all on by default).",
+    "Kicks are told apart from plain leaves using the audit log (needs View Audit Log); without that permission every removal logs as a leave.",
+    "Message deletes/edits stay on the modlog (/modlog-setup) and Automod actions on the Automod log channel \u2014 point all three at the same channel for one audit feed, or keep them separate.",
+    "Check the current setup anytime with /logging status."
+   ]
+  },
+  {
+   "id": "autoresponder",
+   "title": "Autoresponder",
+   "steps": [
+    "An admin adds a reply with /autoresponder add <trigger> <response> \u2014 when the phrase appears anywhere in a message, the bot replies with it.",
+    "Use match 'exact' when the whole message must be the trigger; the default 'contains' fires anywhere in the message.",
+    "This is different from /custom-add, which only fires when a message is (or starts with) a single trigger word.",
+    "Pause one reply without deleting it with /autoresponder toggle, remove it with /autoresponder remove, and see them all with /autoresponder list."
+   ]
+  },
+  {
+   "id": "antispam",
+   "title": "Antispam detectors",
+   "steps": [
+    "An admin runs /antispam to turn on extra detectors on top of Automod's rate limit: duplicate messages (same text repeated), ALL-CAPS shouting, mention spam, and too many links in one message.",
+    "Each detector has its own thresholds \u2014 e.g. duplicate_max (default 3 in 60s), caps percent (default 70%) and minimum letters (default 10), mention_max (default 5).",
+    "All detectors share one antispam action (delete / warn / timeout / delete + warn / delete + timeout), separate from the main Automod action.",
+    "Run /antispam with no options to see the current settings. Admins and exempt roles/channels bypass every check."
+   ]
+  },
+  {
+   "id": "content-filter",
+   "title": "Content filter",
+   "steps": [
+    "An admin adds a rule with /content-filter add <type> <value> \u2014 type 'word' blocks a word or phrase (word-boundary match), type 'domain' blocks links to a site and its subdomains.",
+    "Each rule has its own action (delete / warn / timeout / delete + warn / delete + timeout) and severity (low / medium / high), so a slur can be delete + timeout while a mild word is delete-only.",
+    "No built-in word list ships with the bot \u2014 every server defines its own entries.",
+    "List all rules with /content-filter list, remove one with /content-filter remove."
+   ]
+  },
+  {
+   "id": "safety-status",
+   "title": "Safety status",
+   "steps": [
+    "An admin runs /safety-status for one overview of the server's protection: Automod, antispam detectors, content-filter counts, member logging, autoresponders, reaction roles, and stream watchers.",
+    "It also shows how many Automod actions fired in the last 24 hours, broken down by action.",
+    "The command is read-only \u2014 it changes nothing."
+   ]
   }
  ]
 }

@@ -235,6 +235,7 @@ CREATE TABLE IF NOT EXISTS reaction_roles (
   required_role_id VARCHAR(32) NULL,
   min_days_in_server INT NULL,
   min_level INT NULL,
+  enabled TINYINT(1) NOT NULL DEFAULT 1,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   UNIQUE KEY uq_reaction_role (guild_id, message_id, emoji)
@@ -430,6 +431,15 @@ CREATE TABLE IF NOT EXISTS automod_settings (
   exempt_roles JSON NULL,
   exempt_channels JSON NULL,
   log_channel_id VARCHAR(32) NULL,
+  dup_enabled TINYINT(1) NOT NULL DEFAULT 0,
+  dup_max INT UNSIGNED NOT NULL DEFAULT 3,
+  caps_enabled TINYINT(1) NOT NULL DEFAULT 0,
+  caps_min_length INT UNSIGNED NOT NULL DEFAULT 10,
+  caps_percent INT UNSIGNED NOT NULL DEFAULT 70,
+  mention_enabled TINYINT(1) NOT NULL DEFAULT 0,
+  mention_max INT UNSIGNED NOT NULL DEFAULT 5,
+  link_max INT UNSIGNED NOT NULL DEFAULT 0,
+  antispam_action ENUM('delete','warn','timeout','delete_warn','delete_timeout') NOT NULL DEFAULT 'delete_warn',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (guild_id)
@@ -1438,3 +1448,63 @@ CREATE TABLE IF NOT EXISTS user_weather (
 -- v1.8.1 / v1.8.9 migration note for existing installs:
 --   ALTER TABLE polls ADD COLUMN final_counts JSON NULL;
 --   ALTER TABLE user_levels ADD COLUMN messages INT UNSIGNED NOT NULL DEFAULT 0;
+
+-- v1.14.1 (2026-11-15): reaction-role pause/resume.
+--   ALTER TABLE reaction_roles ADD COLUMN enabled TINYINT(1) NOT NULL DEFAULT 1;
+-- v1.14.2 (2026-11-15): member + moderation event logging.
+CREATE TABLE IF NOT EXISTS logging_settings (
+  guild_id VARCHAR(32) NOT NULL,
+  log_channel_id VARCHAR(32) NULL,
+  log_joins TINYINT(1) NOT NULL DEFAULT 1,
+  log_leaves TINYINT(1) NOT NULL DEFAULT 1,
+  log_bans TINYINT(1) NOT NULL DEFAULT 1,
+  log_kicks TINYINT(1) NOT NULL DEFAULT 1,
+  log_timeouts TINYINT(1) NOT NULL DEFAULT 1,
+  log_role_changes TINYINT(1) NOT NULL DEFAULT 1,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (guild_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- v1.14.3 (2026-11-15): automated responses (phrase triggers).
+CREATE TABLE IF NOT EXISTS autoresponders (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  guild_id VARCHAR(32) NOT NULL,
+  trigger VARCHAR(128) NOT NULL,
+  response VARCHAR(2000) NOT NULL,
+  match_type ENUM('contains','exact') NOT NULL DEFAULT 'contains',
+  enabled TINYINT(1) NOT NULL DEFAULT 1,
+  use_count INT UNSIGNED NOT NULL DEFAULT 0,
+  created_by VARCHAR(32) NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_autoresponder (guild_id, trigger),
+  INDEX idx_autoresponders_guild (guild_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- v1.14.4 (2026-11-15): antispam detectors (new columns on automod_settings).
+--   ALTER TABLE automod_settings
+--     ADD COLUMN dup_enabled TINYINT(1) NOT NULL DEFAULT 0,
+--     ADD COLUMN dup_max INT UNSIGNED NOT NULL DEFAULT 3,
+--     ADD COLUMN caps_enabled TINYINT(1) NOT NULL DEFAULT 0,
+--     ADD COLUMN caps_min_length INT UNSIGNED NOT NULL DEFAULT 10,
+--     ADD COLUMN caps_percent INT UNSIGNED NOT NULL DEFAULT 70,
+--     ADD COLUMN mention_enabled TINYINT(1) NOT NULL DEFAULT 0,
+--     ADD COLUMN mention_max INT UNSIGNED NOT NULL DEFAULT 5,
+--     ADD COLUMN link_max INT UNSIGNED NOT NULL DEFAULT 0,
+--     ADD COLUMN antispam_action ENUM('delete','warn','timeout','delete_warn','delete_timeout') NOT NULL DEFAULT 'delete_warn';
+
+-- v1.14.5 (2026-11-15): content filter — blocked words + harmful-link domains.
+CREATE TABLE IF NOT EXISTS content_filter_rules (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  guild_id VARCHAR(32) NOT NULL,
+  type ENUM('word','domain') NOT NULL,
+  value VARCHAR(128) NOT NULL,
+  action ENUM('delete','warn','timeout','delete_warn','delete_timeout') NOT NULL DEFAULT 'delete_warn',
+  severity ENUM('low','medium','high') NOT NULL DEFAULT 'medium',
+  created_by VARCHAR(32) NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_content_filter_rule (guild_id, type, value),
+  INDEX idx_content_filter_guild (guild_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

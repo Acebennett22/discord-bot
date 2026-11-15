@@ -3,6 +3,7 @@
 const { Events } = require('discord.js');
 const { awardXp } = require('../utils/leveling');
 const automod = require('../utils/automod');
+const autoresponders = require('../utils/autoresponders');
 const { recordMessage } = require('../utils/analytics');
 const { getGuildSettings } = require('../utils/guildSettings');
 const { askAI, isAiConfigured } = require('../utils/ai');
@@ -16,6 +17,10 @@ module.exports = {
     recordMessage(message.guildId);
     const actioned = await automod.handleMessage(message).catch(() => null);
     if (actioned?.deleted) return;
+    // Autoresponder (1.14.3): phrase triggers reply after Automod, so a
+    // deleted message never gets a reply. Marks the message handled so the
+    // FAQ responder won't double-reply.
+    await autoresponders.handleMessage(message).catch(() => {});
     // Auto-translate (1.10.6): watched channels get non-target-language
     // messages translated in a reply. Never fatal, never blocks XP.
     await handleTranslateMessage(message).catch(() => {});

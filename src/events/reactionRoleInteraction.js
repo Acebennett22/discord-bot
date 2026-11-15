@@ -4,7 +4,7 @@
 // embed naming exactly what they missed. Removing a role never checks
 // requirements.
 const { Events } = require('discord.js');
-const { getMappings } = require('../utils/reactionRoles');
+const { getMappings, isMessageEnabled } = require('../utils/reactionRoles');
 const { successEmbed, errorEmbed } = require('../utils/embeds');
 const { getRank } = require('../utils/leveling');
 
@@ -43,6 +43,11 @@ module.exports = {
   async execute(interaction) {
     if (!interaction.isButton() || !interaction.customId.startsWith('rr:')) return;
     const roleId = interaction.customId.split(':')[1];
+    // Paused reaction-role message (1.14.1): buttons are disabled when off,
+    // but a stale click can still arrive — refuse it instead of granting.
+    if (!(await isMessageEnabled(interaction.message.id))) {
+      return interaction.reply({ embeds: [errorEmbed('Paused', 'Reaction roles are paused on this message right now.')], ephemeral: true });
+    }
     const mappings = await getMappings(interaction.message.id);
     const mapping = mappings.find((m) => m.role_id === roleId);
     if (!mapping) return interaction.reply({ embeds: [errorEmbed('Unavailable', 'That role is no longer available on this message.')], ephemeral: true });

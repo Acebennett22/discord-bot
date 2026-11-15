@@ -20,11 +20,11 @@ User-facing docs live on the dashboard at **`/docs`** (also linked from the head
 | Fun & games | `/8ball`, `/coinflip`, `/dice`, `/rps`, `/trivia` (built-in bank, no external API), `/trivia-daily`, `/trivia-leaderboard` — daily server-wide trivia, first correct answer wins 50 coins (v1.10.2); `/ship`, `/hug`, `/kiss`, `/slap` — social actions (v1.13.8) |
 | Tickets | `/ticket-setup`, `/ticket-close`, `/ticket-add`, `/ticket-remove`, `/ticket-claim` — panel + modals + HTML transcripts |
 | Server Stats | `/serverstats-setup`, `/serverstats-toggle` — live stat voice channels |
-| Streams | `/stream-add`, `/stream-remove`, `/stream-list`, `/stream-announce` — Twitch/YouTube/Kick live alerts |
+| Streams | `/stream-add`, `/stream-remove`, `/stream-list`, `/stream-announce`, `/stream-check` — Twitch/YouTube/Kick live alerts, TikTok/Facebook manual (v1.14.0) |
 | Leveling | `/rank`, `/leaderboard`, `/setlevel` — XP per message, role rewards |
 | Steam | `/steam`, `/linksteam` |
 | Giveaways | `/giveaway` (start/end/reroll/list) — button entry, random winners |
-| Reaction Roles | `/reactionroles-setup`, `/reactionroles-add`, `/reactionroles-remove`, `/reactionroles-list` — button toggles, with optional requirements (required role, min days in server, min leveling level) |
+| Reaction Roles | `/reactionroles-setup`, `/reactionroles-add`, `/reactionroles-remove`, `/reactionroles-list`, `/reactionroles-toggle` — button toggles, with optional requirements (required role, min days in server, min leveling level), pause/resume (v1.14.1) |
 | Verification | `/verify-setup`, `/verify-toggle` — button or math-question captcha gate (v1.2.1); `/verify` — verify from anywhere (v1.13.3) |
 | Counting & bumps | `/counting-setup`, `/counting-reset`, `/counting-leaderboard` — counting game + 2-hour bump reminders (v1.2.2, leaderboard v1.13.6) |
 | Temp voice | `/tempvc` (limit/lock/unlock/rename/kick/claim), `/tempvc-setup` — personal voice channels (v1.2.3, setup command v1.13.14) |
@@ -34,7 +34,7 @@ User-facing docs live on the dashboard at **`/docs`** (also linked from the head
 | Owner | `/restart`, `/reload`, `/shutdown`, `/eval` (owner-only, `ownerId` in config), `/hostinfo` (owner-only — host OS/CPU/memory/disk/runtime specs) |
 | Announcements | `/announce` (admin — post an announcement in a channel: title, description, optional color hex, image URL, footer, role ping, plain-text mode) |
 | Welcome | `/welcome-setup`, `/welcome-toggle`, `/goodbye-setup`, `/goodbye-toggle`, `/welcome-test` — templated join/leave embeds (`{user}` `{username}` `{server}` `{membercount}`), `/welcome-dm set\|toggle` — private welcome DM (v1.9.3) |
-| Automod | `/automod`, `/automod-setup`, `/automod-words add\|remove\|list`, `/automod-exempt add-role\|remove-role\|add-channel\|remove-channel\|list` — spam, banned words, link/invite blocking |
+| Automod | `/automod`, `/automod-setup`, `/automod-words add\|remove\|list`, `/automod-exempt add-role\|remove-role\|add-channel\|remove-channel\|list`, `/antispam`, `/content-filter` — spam, banned words, link/invite blocking, duplicate/caps/mention/link-spam detectors, per-rule content filter (v1.14.4, v1.14.5) |
 | Suggestions | `/suggest` (modal), `/suggestions-setup`, `/suggest-status` — 👍/👎 voting, staff Approve/Deny/Implement |
 | Economy | `/balance`, `/daily`, `/work`, `/pay`, `/eco-leaderboard`, `/shop`, `/shop-add`, `/deposit`, `/withdraw`, `/quest`, `/roleshop` — wallet + bank, shop roles, `/lottery buy\|status\|winners` — weekly draw (v1.9.4, quests v1.13.9, role shop v1.13.10) |
 | Casino | `/slots`, `/blackjack`, `/roulette`, `/gamble-coinflip`, `/gamble-dice`, `/heist` — group heist, 40% + 10%/extra crew member (cap 90%), bet back x2 on success (v1.10.3) — same wallet balance, min bet 10 / max 10,000 |
@@ -46,6 +46,9 @@ User-facing docs live on the dashboard at **`/docs`** (also linked from the head
 | Starboard | `/starboard-setup` — starred messages posted to a starboard channel |
 | Custom Commands | `/custom-add`, `/custom-remove`, `/custom-list` — trigger words with stored replies |
 | Message Logging | `/modlog-setup` — deleted/edited messages logged to a modlog channel |
+| Member Logging | `/logging setup\|status` — joins, leaves, bans, kicks, timeouts, role changes (v1.14.2) |
+| Safety | `/safety-status` — one-command protection overview (v1.14.6) |
+| Autoresponder | `/autoresponder add\|remove\|toggle\|list` — automatic phrase replies (v1.14.3) |
 | Moderation | `/report` (submit/list) — user reports to the modlog (v1.13.2); `/lockdown` (lock/release/status) — lock a channel to mods (v1.13.4) |
 | Emojis | `/emoji-add`, `/emoji-remove`, `/emoji-list` (v1.11.2); `/steal-emoji` — copy an emoji from another server (v1.13.15) |
 | Confessions | `/confess` (modal, anonymous, approval queue) (v1.6.4); `/confess-setup` — configure channel + approval (v1.13.7) |
@@ -103,6 +106,8 @@ discord-bot/
 3. **Open the wizard:** on first run the dashboard prints a one-time setup link to the console and writes the token to `setup-token.txt` — open `http://localhost:3010/setup?token=<token>` (or `https://your-domain/setup?token=<token>` behind a reverse proxy). The token is single-use: presenting it starts your setup session and invalidates it.
 4. **Follow the 8 steps:** Welcome → Discord (token/client ID/secret/owner ID, with a **Test connection** button — an invalid token can't be saved) → Database (MySQL connection test + optional auto-run of `sql/schema.sql`) → Dashboard (port, session secret with a generate button, redirect URI auto-filled) → Streaming APIs (optional) → Steam API (optional) → Backups & misc (backup time, 30-day retention, embed color, queue size, sharding) → Review & finish (secrets masked) → **Save** writes `config.json` (mode 0600, preserving fields the wizard didn't ask about) and sets `setupComplete: true`, disabling the wizard. Then run `npm run deploy`, `npm start`, `npm run dashboard` as shown on the finish screen.
 5. **Re-running setup:** after first setup the wizard only opens for the bot owner (logged-in owner session). To re-run from scratch, set `setupComplete: false` in `config.json` and restart the dashboard for a fresh one-time token.
+
+**Running on an Ubuntu server (not your PC)?** See the full deployment guide — [`docs/deployment/ubuntu-nginx.md`](docs/deployment/ubuntu-nginx.md) — Node.js + MySQL install, cloning, the wizard through your domain, `npm run deploy` / `npm start`, systemd services so the bot and dashboard survive reboots, Nginx, and free HTTPS via Certbot.
 
 **Security:** the wizard is protected by the one-time token (rate-limited to 10 attempts per 15 min per IP), never echoes secrets back in full, never logs them, and shows a warning banner when reached over plain HTTP — serve it over HTTPS in production (see Nginx deployment below). `setup-token.txt` is gitignored and never uploaded to Drive.
 
@@ -256,6 +261,17 @@ Members set their birthday with `/birthday set <month> <day> [year]` — real da
 - **Temp VC setup (v1.13.14):** admin-only `/tempvc-setup` sets the create channel, optional category, and on/off in Discord instead of only on the dashboard.
 - **Emoji steal (v1.13.15):** `/steal-emoji <emoji> [name]` (Manage Emojis) copies a custom emoji from another server — or an image URL — into this server, with the same validation as `/emoji-add` and logging to `emoji_logs`.
 
+## Stream checks, reaction-role pause, member logging, autoresponder, antispam, content filter, safety status (v1.14.x)
+
+- **Stream check (v1.14.0):** admin-only `/stream-check <platform> <channel>` forces an immediate live check for a watched streamer. A fresh offline → live transition posts the announcement (embed + latest clip/video, same as the poller); an already-live streamer reports its status without a duplicate post. TikTok/Facebook return the manual-only note — there is no public live API for them, and the bot does not fake one with scraping. Uses the dashboard Refresh helper (`checkOneStreamer`).
+- **Reaction-role pause (v1.14.1):** admin-only `/reactionroles-toggle <message_id> <enabled>` pauses or resumes all buttons on one reaction-role message (`reaction_roles.enabled`). While paused the buttons render disabled and stale clicks get an ephemeral refusal; mappings and requirements are untouched.
+- **Member + moderation logging (v1.14.2):** admin-only `/logging setup <channel> [joins] [leaves] [bans] [kicks] [timeouts] [roles]` and `/logging status` (`logging_settings` table). Logs joins (with account age + member count), leaves, bans/unbans (with reason), kicks (told apart from leaves via the audit log — needs View Audit Log, otherwise every removal logs as a leave), timeouts (with end time), and role changes (added/removed names). Message deletes/edits stay on the modlog; Automod actions stay on the Automod log channel.
+- **Autoresponder (v1.14.3):** admin-only `/autoresponder add <trigger> <response> [match] | remove | toggle | list` (`autoresponders` table). Fires when a phrase appears anywhere in a message (`contains`, default) or only when the whole message is the trigger (`exact`). Different from `/custom-add`, which only fires on a single trigger word at the start. Replies go through the shared "handled" marker, so a message gets at most one auto reply (custom command, FAQ, or autoresponder), and Automod-deleted messages never get one.
+- **Antispam detectors (v1.14.4):** see Automod section — `/antispam` adds duplicate, caps, mention, and link-count detection on top of the rate limit, with per-detector toggles/thresholds and a shared action (new columns on `automod_settings`).
+- **Content filter (v1.14.5):** see Automod section — `/content-filter add|remove|list` for blocked words and harmful-link domains, each with its own action and severity (`content_filter_rules` table). Merges the harmful-content and keyword-protection asks into one system instead of two overlapping lists.
+- **Safety status (v1.14.6):** admin-only `/safety-status` — one read-only overview: Automod + antispam state, content-filter counts, member-logging setup, autoresponder count, reaction-role mappings, stream watchers, and Automod actions in the last 24h by action.
+- **Ubuntu server deployment (no version change):** full guide at [`docs/deployment/ubuntu-nginx.md`](docs/deployment/ubuntu-nginx.md) — Node.js 20 + MySQL install, cloning, the setup wizard through your domain, `npm run deploy` / `npm start`, systemd services for the bot and dashboard, Nginx (config already in `deploy/nginx/ace-bot.conf`), and free HTTPS via Certbot.
+
 ## Wordle, event scheduler, slowmode presets, AFK voice, image starboard, status roles, snipe, embed builder (v1.7.x)
 
 - **Wordle / daily games (v1.7.1):** `/wordle` — one game per user per day, same word for everyone in the server (seeded from date + guild id, like daily trivia). Guess via modal (5 letters, 6 guesses), green/yellow/grey-square feedback, win/lose embed, streak tracked (consecutive winning days; a loss or missed day resets to 0). `/wordle-leaderboard` shows top streaks/wins. The word list is `src/data/words.json`: 1,200 common answers + 14,855 allowed guesses, from the open tabatkins/wordle-list and first20hours/google-10000-english lists — not hand-written. Games in `wordle_games`. Dashboard Games tab shows today's word (staff only) and the leaderboard.
@@ -303,6 +319,7 @@ Members set their birthday with `/birthday set <month> <day> [year]` — real da
 - **Kick:** public API (`kick.com/api/v2/channels/<name>`) — no key needed. Note the endpoint may change; check Kick's docs if it breaks.
 - **Facebook Live / TikTok:** honestly, **no simple public live-status API exists** (TikTok's LIVE API is partner-only). They are stored but never auto-checked — use `/stream-announce` (platform + URL + optional title) to announce them manually.
 - Missing credentials = that platform is skipped with a startup warning; the others keep checking.
+- **Check now (v1.14.0):** `/stream-check <platform> <channel>` forces an immediate live check for a watched streamer instead of waiting for the next poll. A fresh offline → live transition posts the announcement to the notify channel; TikTok/Facebook return the manual-only note.
 - **Dashboard:** the Streams tab manages watchers in the GUI — list (live dot, platform, notify channel, ping role, live channel), add form, edit notify/ping/live channel per streamer, and a **Refresh** button that re-checks that streamer now. Same `streamers` table as Discord, so both stay in sync.
 - **Live channel name:** `/stream-add` (and the dashboard) take an optional `live_channel` — a voice or text channel whose **name** updates on transitions. Live: renamed to the template (default `🔴 LIVE: {name}`); offline: restored to its original name (stored in `streamers.live_channel_original_name` when first renamed — never guessed). Only one streamer per live channel (both Discord and dashboard refuse a clash). Renames happen only on state changes, never every check; Discord allows ~2 renames per 10 min per channel, so a failed rename is logged and retried on the next check instead of crashing.
 - **Per-server template:** the template is stored in the **database** (`guild_settings.live_channel_name_template`) — set it on the dashboard Streams tab (with live preview) or with `/stream-template view|set|reset` (admin). Placeholders: `{name}` (required), `{game}`, `{title}`; max 100 chars, one line. `config.json` `streams.liveChannelNameTemplate` is only the global fallback for servers that never set their own. Migration for existing installs: `ALTER TABLE guild_settings ADD COLUMN live_channel_name_template VARCHAR(100) NULL; ALTER TABLE streamers ADD COLUMN live_channel_id VARCHAR(32) NULL, ADD COLUMN live_channel_original_name VARCHAR(100) NULL;`
@@ -322,6 +339,7 @@ Members earn **15–25 XP per message** with a **60s cooldown** (configurable un
 ## Reaction Roles
 
 `/reactionroles-setup` (admin) posts a message with emoji **buttons** mapped to roles; clicking toggles the role. `/reactionroles-add` / `-remove` / `-list` manage pairs on an existing message. Mappings live in MySQL `reaction_roles`. Button-based only (no classic reactions) — reliable and needs no extra intent.
+- **Pause/resume (v1.14.1):** `/reactionroles-toggle <message_id> <enabled>` pauses a whole reaction-role message — buttons render disabled and stale clicks are refused — without deleting any mappings (`reaction_roles.enabled`).
 
 ## Game Server Status (pluggable providers)
 
@@ -357,7 +375,7 @@ The invite URL is `https://discord.com/oauth2/authorize?client_id=<clientId>&per
 
 ## Nginx deployment (reverse proxy)
 
-Serve the dashboard on a public domain over HTTPS with Nginx — this is also how the setup wizard is reached through a domain. Full walkthrough + config live in `deploy/nginx/` (`ace-bot.conf` + `README.md`).
+Serve the dashboard on a public domain over HTTPS with Nginx — this is also how the setup wizard is reached through a domain. Full walkthrough + config live in `deploy/nginx/` (`ace-bot.conf` + `README.md`). For the whole server setup (Node.js, MySQL, cloning, systemd, Nginx, HTTPS), see [`docs/deployment/ubuntu-nginx.md`](docs/deployment/ubuntu-nginx.md).
 - **Config:** copy `deploy/nginx/ace-bot.conf` to `/etc/nginx/sites-available/ace-bot`, symlink it into `sites-enabled`, replace `bot.example.com` with your domain, `sudo nginx -t && sudo systemctl reload nginx`. The server block listens on 80 (redirects to HTTPS) and 443 with `ssl_certificate` placeholders, proxies `/` to `http://127.0.0.1:3010` with `Host`, `X-Real-IP`, `X-Forwarded-For`, `X-Forwarded-Proto` headers, `proxy_http_version 1.1` + WebSocket Upgrade headers, and `client_max_body_size 10m`.
 - **Free cert:** `sudo apt install certbot python3-certbot-nginx && sudo certbot --nginx -d bot.example.com` (fills in the cert paths and auto-renews).
 - **Dashboard side:** set `dashboard.publicUrl` to `https://bot.example.com` (and `dashboard.setupViaDomain: true`) in `config.json`, and add `https://bot.example.com/callback` as an OAuth2 redirect in the Developer Portal. Express `trust proxy` is set (`app.set('trust proxy', 1)`), so secure session cookies work when `X-Forwarded-Proto` is `https`, and rate limiting (including the `/setup` limit) keys off the real client IP from `X-Forwarded-For`. OAuth redirect URI, invite links, and setup links use `dashboard.publicUrl` when set, falling back to `http://localhost:<port>`.
@@ -426,8 +444,11 @@ Spam detection, banned-words filter, and link / Discord-invite blocking, all per
 - **Banned words:** word-boundary match (so "class" doesn't trip on "ass"), configurable list.
 - **Links:** deletes messages containing `http(s)` links when `block_links` is on. **Invites:** deletes `discord.gg` / `discord.com/invite` links when `block_invites` is on (default on; checked before generic links so the reason is exact).
 - **Action:** the configured `spam_action` applies to every Automod hit — `delete`, `warn`, `timeout`, `delete_warn` (default), `delete_timeout` (timeout length in minutes, default 10). Warns go through the shared warns store (`src/utils/warns.js`).
-- **Exemptions:** admins are always exempt; exempt roles and exempt channels (via `/automod-exempt` or the dashboard) bypass every check. A message tripping several rules is actioned once (first match wins: spam → banned word → invite → link).
-- Commands (all admin, all replies ephemeral): `/automod` (view settings), `/automod-setup` (spam limits, action, timeout length, link/invite toggles, log channel), `/automod-words add|remove|list`, `/automod-exempt add-role|remove-role|add-channel|remove-channel|list`. Dashboard Automod tab: the same controls plus a recent-actions table.
+- **Antispam detectors (v1.14.4):** `/antispam` adds duplicate-message (same text 3× in 60s, default), ALL-CAPS (70%+ uppercase, 10+ letters, defaults), mention-spam (max 5, default), and link-count (max links per message, off by default) detection — each toggleable with its own thresholds, sharing one `antispam_action` (new columns on `automod_settings`).
+- **Content filter (v1.14.5):** `/content-filter add|remove|list` — blocked words (word-boundary match) and harmful-link domains (hostname + subdomains), each with its own action and severity (`low`/`medium`/`high`) in `content_filter_rules`. Checked after the spam detectors, before the legacy banned-words list. No built-in word list ships with the bot — each server defines its own entries.
+- **First match wins:** rate spam → antispam detectors → content filter → banned word → invite → link. One action per message.
+- **Exemptions:** admins are always exempt; exempt roles and exempt channels (via `/automod-exempt` or the dashboard) bypass every check.
+- Commands (all admin, all replies ephemeral): `/automod` (view settings), `/automod-setup` (spam limits, action, timeout length, link/invite toggles, log channel), `/automod-words add|remove|list`, `/automod-exempt add-role|remove-role|add-channel|remove-channel|list`, `/antispam` (detectors + thresholds + action; no options = show current settings), `/content-filter add|remove|list`. Dashboard Automod tab: the same controls plus a recent-actions table.
 - Pure detectors (`detectSpam`, `containsBannedWord`, `containsLink`, `containsInvite` in `src/utils/automod.js`) are exported for testing without a live Discord login.
 
 ## Suggestions
