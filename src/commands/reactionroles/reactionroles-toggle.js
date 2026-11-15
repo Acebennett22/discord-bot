@@ -15,11 +15,11 @@ module.exports = {
     .addBooleanOption((o) => o.setName('enabled').setDescription('true = buttons work, false = paused').setRequired(true))
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
   async execute(interaction) {
-    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'Reaction roles only work in a server.')], ephemeral: true });
+    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'Reaction roles only work in a server.')] });
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
-      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Administrator permission.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Administrator permission.')] });
     }
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Reaction roles need MySQL.')], ephemeral: true });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Reaction roles need MySQL.')] });
     const messageId = interaction.options.getString('message_id').trim();
     const enabled = interaction.options.getBoolean('enabled');
     const rows = await db.query(
@@ -27,7 +27,7 @@ module.exports = {
       [interaction.guildId, messageId],
     );
     if (!rows?.length) {
-      return interaction.reply({ embeds: [errorEmbed('Not a reaction-role message', `No reaction-role mappings found for message **${messageId}** in this server. Use the message ID from /reactionroles-setup or /reactionroles-list.`)], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Not a reaction-role message', `No reaction-role mappings found for message **${messageId}** in this server. Use the message ID from /reactionroles-setup or /reactionroles-list.`)] });
     }
     await db.query(
       'UPDATE reaction_roles SET enabled = ? WHERE guild_id = ? AND message_id = ?',
@@ -44,6 +44,6 @@ module.exports = {
     return interaction.reply({ embeds: [successEmbed(
       enabled ? 'Reaction roles resumed' : 'Reaction roles paused',
       `${rows.length} mapping(s) on message **${messageId}** are now ${enabled ? '✅ live — buttons work again' : '⏸️ paused — buttons are disabled'}.\n${pairs}${message ? '' : '\n\n⚠️ Could not find the message to re-render its buttons — it may have been deleted. The setting still applies if it comes back.'}`,
-    )], ephemeral: true });
+    )] });
   },
 };

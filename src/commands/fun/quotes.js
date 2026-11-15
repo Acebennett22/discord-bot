@@ -12,12 +12,12 @@ module.exports = {
     .setDescription('List recent quotes (or one user\'s quotes).')
     .addUserOption((o) => o.setName('user').setDescription('Show only this user\'s quotes').setRequired(false)),
   async execute(interaction) {
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Quotes need MySQL.')], ephemeral: true });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Quotes need MySQL.')] });
     const user = interaction.options.getUser('user');
     const rows = user
       ? await db.query('SELECT * FROM quotes WHERE guild_id = ? AND author_id = ? ORDER BY created_at DESC LIMIT 10', [interaction.guildId, user.id])
       : await db.query('SELECT * FROM quotes WHERE guild_id = ? ORDER BY created_at DESC LIMIT 10', [interaction.guildId]);
-    if (!rows?.length) return interaction.reply({ embeds: [infoEmbed('Quotes', user ? `${user.username} has no saved quotes yet.` : 'No quotes saved in this server yet. Use /quote to save one.')], ephemeral: true });
-    return interaction.reply({ embeds: [infoEmbed(user ? `Quotes by ${user.username}` : 'Recent quotes', rows.map(quoteLine).join('\n'))], ephemeral: true });
+    if (!rows?.length) return interaction.reply({ embeds: [infoEmbed('Quotes', user ? `${user.username} has no saved quotes yet.` : 'No quotes saved in this server yet. Use /quote to save one.')] });
+    return interaction.reply({ embeds: [infoEmbed(user ? `Quotes by ${user.username}` : 'Recent quotes', rows.map(quoteLine).join('\n'))] });
   },
 };

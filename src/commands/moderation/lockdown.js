@@ -14,20 +14,20 @@ module.exports = {
     .addSubcommand((s) => s.setName('status').setDescription('List channels currently locked by /lockdown.'))
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels),
   async execute(interaction) {
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Lockdowns need MySQL.')], ephemeral: true });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Lockdowns need MySQL.')] });
     const sub = interaction.options.getSubcommand();
     const everyoneId = interaction.guild.roles.everyone.id;
 
     if (sub === 'status') {
       const rows = await db.query('SELECT channel_id, locked_by, locked_at FROM lockdowns WHERE guild_id = ?', [interaction.guildId]) || [];
-      if (!rows.length) return interaction.reply({ embeds: [infoEmbed('🔒 Lockdown status', 'No channels are currently locked.')], ephemeral: true });
+      if (!rows.length) return interaction.reply({ embeds: [infoEmbed('🔒 Lockdown status', 'No channels are currently locked.')] });
       const lines = rows.map((r) => `<#${r.channel_id}> — locked by <@${r.locked_by}>${r.locked_at ? ` on ${new Date(r.locked_at).toLocaleString()}` : ''}`);
-      return interaction.reply({ embeds: [infoEmbed('🔒 Locked channels', lines.join('\n'))], ephemeral: true });
+      return interaction.reply({ embeds: [infoEmbed('🔒 Locked channels', lines.join('\n'))] });
     }
 
     const channel = interaction.options.getChannel('channel') || interaction.channel;
     if (!channel?.isTextBased() || channel.isThread?.()) {
-      return interaction.reply({ embeds: [errorEmbed('Not a text channel', 'Pick a text channel to lock or unlock.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Not a text channel', 'Pick a text channel to lock or unlock.')] });
     }
 
     if (sub === 'lock') {
@@ -37,7 +37,7 @@ module.exports = {
         [interaction.guildId, channel.id, everyoneId],
       );
       if (existing?.length) {
-        return interaction.reply({ embeds: [errorEmbed('Already locked', `<#${channel.id}> is already locked. Use /lockdown release to unlock it.`)], ephemeral: true });
+        return interaction.reply({ embeds: [errorEmbed('Already locked', `<#${channel.id}> is already locked. Use /lockdown release to unlock it.`)] });
       }
       // Remember the @everyone overwrite exactly so release can restore it.
       const prev = channel.permissionOverwrites.cache.get(everyoneId);
@@ -51,10 +51,10 @@ module.exports = {
         await channel.permissionOverwrites.edit(everyoneId, { SendMessages: false });
       } catch {
         await db.query('DELETE FROM lockdowns WHERE guild_id = ? AND channel_id = ? AND target_id = ?', [interaction.guildId, channel.id, everyoneId]).catch(() => {});
-        return interaction.reply({ embeds: [errorEmbed('Could not lock', `I don't have permission to change overwrites in <#${channel.id}>. Check my role and channel permissions.`)], ephemeral: true });
+        return interaction.reply({ embeds: [errorEmbed('Could not lock', `I don't have permission to change overwrites in <#${channel.id}>. Check my role and channel permissions.`)] });
       }
       await channel.send({ embeds: [infoEmbed('🔒 Channel locked', `This channel has been locked by ${interaction.user}.${reason ? `\n**Reason:** ${reason}` : ''}\n@everyone can no longer send messages here.`)] }).catch(() => {});
-      return interaction.reply({ embeds: [successEmbed('Channel locked', `<#${channel.id}> is now locked — @everyone can no longer send messages.${reason ? `\n**Reason:** ${reason}` : ''}`)], ephemeral: true });
+      return interaction.reply({ embeds: [successEmbed('Channel locked', `<#${channel.id}> is now locked — @everyone can no longer send messages.${reason ? `\n**Reason:** ${reason}` : ''}`)] });
     }
 
     // release
@@ -63,7 +63,7 @@ module.exports = {
       [interaction.guildId, channel.id, everyoneId],
     );
     if (!rows?.length) {
-      return interaction.reply({ embeds: [errorEmbed('Not locked', `<#${channel.id}> is not locked by /lockdown.`)], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Not locked', `<#${channel.id}> is not locked by /lockdown.`)] });
     }
     const { allow, deny } = rows[0];
     try {
@@ -77,10 +77,10 @@ module.exports = {
         });
       }
     } catch {
-      return interaction.reply({ embeds: [errorEmbed('Could not unlock', `I don't have permission to change overwrites in <#${channel.id}>. The lockdown record was kept — try again once my permissions are fixed.`)], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Could not unlock', `I don't have permission to change overwrites in <#${channel.id}>. The lockdown record was kept — try again once my permissions are fixed.`)] });
     }
     await db.query('DELETE FROM lockdowns WHERE guild_id = ? AND channel_id = ? AND target_id = ?', [interaction.guildId, channel.id, everyoneId]);
     await channel.send({ embeds: [successEmbed('🔓 Channel unlocked', `This channel has been unlocked by ${interaction.user}. @everyone can send messages again.`)] }).catch(() => {});
-    return interaction.reply({ embeds: [successEmbed('Channel unlocked', `<#${channel.id}> is unlocked and its previous @everyone permissions were restored.`)], ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed('Channel unlocked', `<#${channel.id}> is unlocked and its previous @everyone permissions were restored.`)] });
   },
 };

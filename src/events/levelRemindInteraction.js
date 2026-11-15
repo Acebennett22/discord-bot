@@ -11,7 +11,7 @@ module.exports = {
     const [, levelStr, roleId] = interaction.customId.split(':');
     const targetLevel = parseInt(levelStr, 10);
     if (!db.isEnabled() || Number.isNaN(targetLevel) || !roleId) {
-      return interaction.reply({ embeds: [errorEmbed('Could not set reminder', 'Something went wrong — try again.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Could not set reminder', 'Something went wrong — try again.')] });
     }
     const existing = await db.query(
       'SELECT id FROM level_reminders WHERE guild_id = ? AND user_id = ? AND target_level = ? AND reminded_at IS NULL',
@@ -26,7 +26,6 @@ module.exports = {
     const role = interaction.guild.roles.cache.get(roleId);
     return interaction.reply({
       embeds: [successEmbed('Reminder set!', `🔔 I'll DM you when you hit **level ${targetLevel}** — that's when you earn the **${role ? role.name : 'reward'}** role.`)],
-      ephemeral: true,
     });
   },
 };

@@ -14,13 +14,13 @@ module.exports = {
     const sub = interaction.options.getSubcommand();
     if (sub === 'remove') {
       await setGuildSettings(interaction.guildId, { birthdayRoleId: '' });
-      return interaction.reply({ embeds: [successEmbed('Birthday role removed', '🎂 Birthday announcements will continue as before; no role will be granted.')], ephemeral: true });
+      return interaction.reply({ embeds: [successEmbed('Birthday role removed', '🎂 Birthday announcements will continue as before; no role will be granted.')] });
     }
     const role = interaction.options.getRole('role');
     if (role.position >= interaction.guild.members.me.roles.highest.position) {
-      return interaction.reply({ embeds: [errorEmbed('Role too high', `**${role.name}** is above the bot's highest role — move the bot's role higher, or pick a lower role.`)], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Role too high', `**${role.name}** is above the bot's highest role — move the bot's role higher, or pick a lower role.`)] });
     }
     await setGuildSettings(interaction.guildId, { birthdayRoleId: role.id });
-    return interaction.reply({ embeds: [successEmbed('Birthday role set', `🎂 Members will get the **${role.name}** role on their birthday (removed the next day).`)], ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed('Birthday role set', `🎂 Members will get the **${role.name}** role on their birthday (removed the next day).`)] });
   },
 };

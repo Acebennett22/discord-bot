@@ -8,8 +8,8 @@ module.exports = {
     .setDescription('Mark yourself AFK — people who mention you will be told why.')
     .addStringOption((o) => o.setName('reason').setDescription('Why you\'re away').setMaxLength(256)),
   async execute(interaction) {
-    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'AFK only works in a server.')], ephemeral: true });
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database offline', 'The database is not connected, so AFK can\'t be set right now.')], ephemeral: true });
+    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'AFK only works in a server.')] });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database offline', 'The database is not connected, so AFK can\'t be set right now.')] });
     const reason = interaction.options.getString('reason') || 'No reason given';
     await db.query(
       'INSERT INTO afk_users (guild_id, user_id, reason) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE reason = VALUES(reason), since = NOW()',
@@ -23,6 +23,6 @@ module.exports = {
         if (!current.startsWith('[AFK] ')) await interaction.member.setNickname(`[AFK] ${current}`.slice(0, 32));
       }
     } catch {}
-    return interaction.reply({ embeds: [successEmbed('You\'re AFK', `I'll tell anyone who mentions you that you're away: **${reason}**\nSend any message to come back.`)], ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed('You\'re AFK', `I'll tell anyone who mentions you that you're away: **${reason}**\nSend any message to come back.`)] });
   },
 };

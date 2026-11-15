@@ -5,3 +5,6 @@ src/data/warns.json
 backups/
 logs/
 setup-token.txt
+
+__pycache__/
+*.pyc

@@ -18,13 +18,15 @@ module.exports = {
         .setLabel(opt)
         .setStyle(ButtonStyle.Primary)),
     );
-    const response = await interaction.reply({ ephemeral: true,
+    const response = await interaction.reply({
       embeds: [infoEmbed('🧠 Trivia', `**${q.question}**\n\n${options.map((o, i) => `${String.fromCharCode(65 + i)}. ${o}`).join('\n')}`)],
       components: [row],
       withResponse: true,
     });
     const reply = response.resource.message;
-    const collector = reply.createMessageComponentCollector({ componentType: ComponentType.Button, time: 30_000 });
+    // Public since 1.15.7 — only the invoker may answer (others get
+    // "This interaction failed" from Discord instead of stealing the turn).
+    const collector = reply.createMessageComponentCollector({ componentType: ComponentType.Button, time: 30_000, filter: (btn) => btn.user.id === interaction.user.id });
     collector.on('collect', async (btn) => {
       const picked = options[Number(btn.customId.split('_')[1])];
       const correct = picked === q.answer;

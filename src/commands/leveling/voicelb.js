@@ -14,13 +14,13 @@ module.exports = {
     .setName('voicelb')
     .setDescription('Top 10 users by total voice time in this server.'),
   async execute(interaction) {
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Voice stats need MySQL.')], ephemeral: true });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Voice stats need MySQL.')] });
     const rows = await getVoiceLeaderboard(interaction.guildId, 10);
-    if (!rows.length) return interaction.reply({ embeds: [infoEmbed('Voice leaderboard', 'Nobody has logged voice time yet.')], ephemeral: true });
+    if (!rows.length) return interaction.reply({ embeds: [infoEmbed('Voice leaderboard', 'Nobody has logged voice time yet.')] });
     const lines = await Promise.all(rows.map(async (r, i) => {
       const member = await interaction.guild.members.fetch(r.user_id).catch(() => null);
       return `**${i + 1}.** ${member ? member.user.tag : `<@${r.user_id}>`} — ${fmtMinutes(r.total_minutes)} in voice (${r.sessions} sessions)`;
     }));
-    return interaction.reply({ embeds: [infoEmbed('🎙️ Voice Time Leaderboard', lines.join('\n'))], ephemeral: true });
+    return interaction.reply({ embeds: [infoEmbed('🎙️ Voice Time Leaderboard', lines.join('\n'))] });
   },
 };

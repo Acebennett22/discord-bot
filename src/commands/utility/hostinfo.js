@@ -103,10 +103,9 @@ module.exports = {
         { name: '💾 Disk', value: diskLine, inline: false },
         { name: '🚀 Runtime', value: runtimeLine, inline: false },
       ])],
-      ephemeral: true,
     }).catch(async (err) => {
       await logWarn('hostinfo: failed to send reply', { commandName: 'hostinfo', error: err.message });
-      return interaction.reply({ embeds: [errorEmbed('Host info failed', 'Could not send the host specs right now.')], ephemeral: true }).catch(() => {});
+      return interaction.reply({ embeds: [errorEmbed('Host info failed', 'Could not send the host specs right now.')] }).catch(() => {});
     });
   },
 };

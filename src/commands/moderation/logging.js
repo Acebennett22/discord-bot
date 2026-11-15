@@ -39,15 +39,15 @@ module.exports = {
     .addSubcommand((s) => s.setName('status').setDescription('Show the current logging settings'))
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
   async execute(interaction) {
-    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'Logging only works in a server.')], ephemeral: true });
+    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'Logging only works in a server.')] });
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission.')] });
     }
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database offline', 'Logging settings are stored in MySQL — connect the database first.')], ephemeral: true });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database offline', 'Logging settings are stored in MySQL — connect the database first.')] });
     const sub = interaction.options.getSubcommand();
     if (sub === 'status') {
       const settings = await memberLog.getSettings(interaction.guildId);
-      return interaction.reply({ embeds: [statsEmbed('📋 Member logging', summary(settings))], ephemeral: true });
+      return interaction.reply({ embeds: [statsEmbed('📋 Member logging', summary(settings))] });
     }
     const patch = { logChannelId: interaction.options.getChannel('channel').id };
     for (const [opt, prop] of TOGGLES) {
@@ -55,7 +55,7 @@ module.exports = {
       if (v !== null) patch[prop] = v;
     }
     const { saved, settings } = await memberLog.setSettings(interaction.guildId, patch);
-    if (!saved) return interaction.reply({ embeds: [errorEmbed('Not saved', 'MySQL is not connected — settings were kept in memory only.')], ephemeral: true });
-    return interaction.reply({ embeds: [successEmbed('Logging updated', summary(settings))] , ephemeral: true });
+    if (!saved) return interaction.reply({ embeds: [errorEmbed('Not saved', 'MySQL is not connected — settings were kept in memory only.')] });
+    return interaction.reply({ embeds: [successEmbed('Logging updated', summary(settings))]  });
   },
 };

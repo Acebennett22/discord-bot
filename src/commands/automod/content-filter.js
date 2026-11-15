@@ -38,23 +38,23 @@ module.exports = {
     .addSubcommand((s) => s.setName('list').setDescription('List all content-filter rules'))
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
   async execute(interaction) {
-    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'The content filter only works in a server.')], ephemeral: true });
+    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'The content filter only works in a server.')] });
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission.')] });
     }
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database offline', 'Content-filter rules are stored in MySQL — connect the database first.')], ephemeral: true });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database offline', 'Content-filter rules are stored in MySQL — connect the database first.')] });
     const sub = interaction.options.getSubcommand();
     if (sub === 'list') {
       const rules = await contentFilter.getRules(interaction.guildId);
-      if (!rules.length) return interaction.reply({ embeds: [infoEmbed('🛡️ Content filter', 'No rules yet — add one with /content-filter add.\n\nTip: use type "word" for slurs and banned phrases, type "domain" for scam/phishing sites (subdomains included).')], ephemeral: true });
+      if (!rules.length) return interaction.reply({ embeds: [infoEmbed('🛡️ Content filter', 'No rules yet — add one with /content-filter add.\n\nTip: use type "word" for slurs and banned phrases, type "domain" for scam/phishing sites (subdomains included).')] });
       const lines = rules.map((r) => `${r.severity === 'high' ? '🔴' : r.severity === 'low' ? '🟢' : '🟡'} **${r.value}** (${r.type}, ${r.action}, ${r.severity})`);
-      return interaction.reply({ embeds: [infoEmbed(`🛡️ Content filter (${rules.length})`, lines.join('\n').slice(0, 4000))], ephemeral: true });
+      return interaction.reply({ embeds: [infoEmbed(`🛡️ Content filter (${rules.length})`, lines.join('\n').slice(0, 4000))] });
     }
     const type = interaction.options.getString('type');
     const value = interaction.options.getString('value').trim().toLowerCase();
-    if (!value) return interaction.reply({ embeds: [errorEmbed('Empty value', 'Give a word or a domain to block.')], ephemeral: true });
+    if (!value) return interaction.reply({ embeds: [errorEmbed('Empty value', 'Give a word or a domain to block.')] });
     if (type === 'domain' && !/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(value)) {
-      return interaction.reply({ embeds: [errorEmbed('Invalid domain', `"${value}" doesn't look like a domain — use something like \`scam-example.com\` (no http://, no path).`)], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Invalid domain', `"${value}" doesn't look like a domain — use something like \`scam-example.com\` (no http://, no path).`)] });
     }
     if (sub === 'add') {
       const action = interaction.options.getString('action') || 'delete_warn';
@@ -66,12 +66,12 @@ module.exports = {
       );
       return interaction.reply({ embeds: [successEmbed('Rule added', type === 'word'
         ? `Messages containing **${value}** (word-boundary match) will now be handled with **${action}** (${severity} severity).`
-        : `Links to **${value}** (and its subdomains) will now be handled with **${action}** (${severity} severity).`)], ephemeral: true });
+        : `Links to **${value}** (and its subdomains) will now be handled with **${action}** (${severity} severity).`)] });
     }
     const result = await db.query('DELETE FROM content_filter_rules WHERE guild_id = ? AND type = ? AND value = ?', [interaction.guildId, type, value]);
     if (!result || result.affectedRows === 0) {
-      return interaction.reply({ embeds: [errorEmbed('Not found', `No ${type} rule for **${value}**.`)], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Not found', `No ${type} rule for **${value}**.`)] });
     }
-    return interaction.reply({ embeds: [successEmbed('Rule removed', `**${value}** (${type}) is no longer blocked by the content filter.`)], ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed('Rule removed', `**${value}** (${type}) is no longer blocked by the content filter.`)] });
   },
 };

@@ -13,9 +13,9 @@ module.exports = {
     if (!roleId) return;
     const items = await getMenuItems(menuId);
     const item = items.find((i) => i.role_id === roleId);
-    if (!item) return interaction.reply({ embeds: [errorEmbed('Unavailable', 'That role is no longer on this menu.')], ephemeral: true });
+    if (!item) return interaction.reply({ embeds: [errorEmbed('Unavailable', 'That role is no longer on this menu.')] });
     const role = interaction.guild.roles.cache.get(roleId);
-    if (!role) return interaction.reply({ embeds: [errorEmbed('Role gone', 'That role no longer exists.')], ephemeral: true });
+    if (!role) return interaction.reply({ embeds: [errorEmbed('Role gone', 'That role no longer exists.')] });
     if (interaction.member.roles.cache.has(roleId)) {
       await interaction.member.roles.remove(role).catch(() => {});
       return interaction.reply({ embeds: [successEmbed('Role removed', `➖ Removed the **${role.name}** role.`)], ephemeral: true });

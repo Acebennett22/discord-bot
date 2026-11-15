@@ -16,8 +16,8 @@ module.exports = {
     .addStringOption((o) => o.setName('option5').setDescription('Fifth option').setMaxLength(100))
     .addStringOption((o) => o.setName('duration').setDescription('Optional: when it ends, e.g. "in 2h" or "tomorrow 9am"')),
   async execute(interaction) {
-    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'Polls only work in a server.')], ephemeral: true });
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database offline', 'The database is not connected, so polls can\'t be created right now.')], ephemeral: true });
+    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'Polls only work in a server.')] });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database offline', 'The database is not connected, so polls can\'t be created right now.')] });
     const question = interaction.options.getString('question');
     const options = [];
     for (let i = 1; i <= 5; i++) {
@@ -28,7 +28,7 @@ module.exports = {
     const durationRaw = interaction.options.getString('duration');
     if (durationRaw) {
       endsAt = parseTime(durationRaw);
-      if (!endsAt) return interaction.reply({ embeds: [errorEmbed('Bad duration', 'I couldn\'t understand that time. Try "in 2h", "tomorrow 9am", or "2026-11-14 15:00".')], ephemeral: true });
+      if (!endsAt) return interaction.reply({ embeds: [errorEmbed('Bad duration', 'I couldn\'t understand that time. Try "in 2h", "tomorrow 9am", or "2026-11-14 15:00".')] });
     }
     const poll = { question, options, votes: {}, ends_at: endsAt, ended: false };
     // Post the PUBLIC poll embed in the channel (the exception to ephemeral).
@@ -52,6 +52,6 @@ module.exports = {
       }
     }
     const jump = `https://discord.com/channels/${interaction.guildId}/${interaction.channelId}/${sent.id}`;
-    return interaction.reply({ embeds: [successEmbed('Poll started', `Your poll is live — [jump to it](${jump}).${endsAt ? ` It ends <t:${Math.floor(endsAt.getTime() / 1000)}:R>.` : ' End it anytime with /poll-end.'}`)], ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed('Poll started', `Your poll is live — [jump to it](${jump}).${endsAt ? ` It ends <t:${Math.floor(endsAt.getTime() / 1000)}:R>.` : ' End it anytime with /poll-end.'}`)] });
   },
 };

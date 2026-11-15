@@ -10,7 +10,6 @@ async function requireOwner(interaction) {
   if (isOwner(interaction.user.id)) return true;
   await interaction.reply({
     embeds: [errorEmbed('Owner only', '⛔ This command is owner-only.')],
-    ephemeral: true,
   }).catch(() => {});
   return false;
 }

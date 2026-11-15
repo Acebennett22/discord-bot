@@ -15,7 +15,7 @@ module.exports = {
       await command.execute(interaction);
     } catch (err) {
       await errorLogger.log({ level: 'error', guildId: interaction.guildId, commandName: interaction.commandName, userId: interaction.user.id, message: `/${interaction.commandName} failed: ${err.message}`, stack: err.stack });
-      const payload = { embeds: [errorEmbed('Command error', 'Something went wrong running that command.')], ephemeral: true };
+      const payload = { embeds: [errorEmbed('Command error', 'Something went wrong running that command.')] };
       if (interaction.replied || interaction.deferred) await interaction.followUp(payload).catch(() => {});
       else await interaction.reply(payload).catch(() => {});
     }

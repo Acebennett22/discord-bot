@@ -10,7 +10,7 @@ module.exports = {
     const message = interaction.targetMessage;
     const text = (message?.content || '').trim();
     if (!message || !text) {
-      return interaction.reply({ embeds: [errorEmbed('Nothing to translate', 'That message has no text to translate.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Nothing to translate', 'That message has no text to translate.')] });
     }
     // Guild target language comes from the auto-translate settings
     // (translate_settings.target_lang, set via /translate-setup); English
@@ -21,7 +21,7 @@ module.exports = {
       if (settings?.target_lang && translate.SUPPORTED[settings.target_lang]) target = settings.target_lang;
     } catch {}
     const truncated = (s, n) => (s.length > n ? `${s.slice(0, n)}…` : s);
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply();
     try {
       const detected = translate.detectLanguage(text);
       if (detected === target) {

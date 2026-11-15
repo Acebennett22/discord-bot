@@ -13,7 +13,7 @@ module.exports = {
     if (!interaction.isModalSubmit() || interaction.customId !== 'wordle:guess') return;
     const guess = (interaction.fields.getTextInputValue('word') || '').toLowerCase().trim();
     const result = await wordle.submitGuess(interaction.guildId, interaction.user.id, guess).catch(() => null);
-    if (!result) return interaction.reply({ embeds: [errorEmbed('Wordle error', 'Something went wrong — try again.')], ephemeral: true });
+    if (!result) return interaction.reply({ embeds: [errorEmbed('Wordle error', 'Something went wrong — try again.')] });
     if (result.status === 'invalid') {
       return interaction.reply({ embeds: [errorEmbed('Not a word', `"${guess.toUpperCase()}" isn't in the word list — try another 5-letter word.`)], ephemeral: true });
     }

@@ -19,12 +19,12 @@ module.exports = {
     if (location !== null) patch.defaultWeatherLocation = location || '';
     if (units) patch.weatherUnits = units;
     if (!Object.keys(patch).length) {
-      return interaction.reply({ embeds: [successEmbed('Weather defaults', 'Nothing to change — give a location, units, or both.')], ephemeral: true });
+      return interaction.reply({ embeds: [successEmbed('Weather defaults', 'Nothing to change — give a location, units, or both.')] });
     }
     await setGuildSettings(interaction.guildId, patch);
     const bits = [];
     if (location !== null) bits.push(`Default location: **${location || 'cleared'}**`);
     if (units) bits.push(`Default units: **${units === 'metric' ? 'Metric (°C, km/h)' : 'Imperial (°F, mph)'}**`);
-    return interaction.reply({ embeds: [successEmbed('Weather defaults saved', `${bits.join('\n')}\n/weather and /forecast with no location will use the default.`)], ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed('Weather defaults saved', `${bits.join('\n')}\n/weather and /forecast with no location will use the default.`)] });
   },
 };

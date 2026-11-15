@@ -14,9 +14,9 @@ module.exports = {
     const reason = interaction.options.getString('reason') || 'No reason given';
     const deleteDays = interaction.options.getInteger('delete_days') || 0;
     const member = interaction.guild.members.cache.get(user.id) || await interaction.guild.members.fetch(user.id).catch(() => null);
-    if (member && !member.bannable) return interaction.reply({ embeds: [errorEmbed('Ban failed', 'I cannot ban that member — check my role position and permissions.')], ephemeral: true });
-    if (user.id === interaction.user.id) return interaction.reply({ embeds: [errorEmbed('Ban failed', 'You cannot ban yourself.')], ephemeral: true });
+    if (member && !member.bannable) return interaction.reply({ embeds: [errorEmbed('Ban failed', 'I cannot ban that member — check my role position and permissions.')] });
+    if (user.id === interaction.user.id) return interaction.reply({ embeds: [errorEmbed('Ban failed', 'You cannot ban yourself.')] });
     await interaction.guild.members.ban(user.id, { reason, deleteMessageDays: deleteDays });
-    return interaction.reply({ ephemeral: true, embeds: [successEmbed('Member banned', `**${user.tag}** was banned.\nReason: ${reason}`)] });
+    return interaction.reply({  embeds: [successEmbed('Member banned', `**${user.tag}** was banned.\nReason: ${reason}`)] });
   },
 };

@@ -14,9 +14,9 @@ module.exports = {
     const minutes = interaction.options.getInteger('minutes');
     const reason = interaction.options.getString('reason') || 'No reason given';
     const member = interaction.guild.members.cache.get(user.id) || await interaction.guild.members.fetch(user.id).catch(() => null);
-    if (!member) return interaction.reply({ embeds: [errorEmbed('Timeout failed', 'That user is not in this server.')], ephemeral: true });
-    if (!member.moderatable) return interaction.reply({ embeds: [errorEmbed('Timeout failed', 'I cannot timeout that member — check my role position and permissions.')], ephemeral: true });
+    if (!member) return interaction.reply({ embeds: [errorEmbed('Timeout failed', 'That user is not in this server.')] });
+    if (!member.moderatable) return interaction.reply({ embeds: [errorEmbed('Timeout failed', 'I cannot timeout that member — check my role position and permissions.')] });
     await member.timeout(minutes * 60_000, reason);
-    return interaction.reply({ ephemeral: true, embeds: [successEmbed('Member timed out', `**${user.tag}** was timed out for **${minutes} minute(s)**.\nReason: ${reason}`)] });
+    return interaction.reply({  embeds: [successEmbed('Member timed out', `**${user.tag}** was timed out for **${minutes} minute(s)**.\nReason: ${reason}`)] });
   },
 };

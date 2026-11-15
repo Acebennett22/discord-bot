@@ -13,15 +13,15 @@ module.exports = {
     .addStringOption((o) => o.setName('title').setDescription('Optional: post as an embed with this title').setMaxLength(256))
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
   async execute(interaction) {
-    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'Scheduled messages only work in a server.')], ephemeral: true });
+    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'Scheduled messages only work in a server.')] });
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission to schedule messages.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission to schedule messages.')] });
     }
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database offline', 'The database is not connected, so messages can\'t be scheduled right now.')], ephemeral: true });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database offline', 'The database is not connected, so messages can\'t be scheduled right now.')] });
     const channel = interaction.options.getChannel('channel');
     const sendAt = parseTime(interaction.options.getString('time'));
     if (!sendAt) {
-      return interaction.reply({ embeds: [errorEmbed('Bad time', 'I couldn\'t understand that time. Try "in 2h", "tomorrow 9am", or "2026-11-14 15:00" — it must be in the future.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Bad time', 'I couldn\'t understand that time. Try "in 2h", "tomorrow 9am", or "2026-11-14 15:00" — it must be in the future.')] });
     }
     const content = interaction.options.getString('content');
     const title = interaction.options.getString('title');
@@ -30,6 +30,6 @@ module.exports = {
       'INSERT INTO scheduled_messages (guild_id, channel_id, author_id, content, embed_json, send_at) VALUES (?, ?, ?, ?, ?, ?)',
       [interaction.guildId, channel.id, interaction.user.id, embedJson ? null : content, embedJson, sendAt],
     );
-    return interaction.reply({ embeds: [successEmbed('Message scheduled', `I'll post in ${channel} ${discordTimestamp(sendAt)} (ID #${result.insertId}).\nCancel it anytime with \`/schedule-cancel ${result.insertId}\`.`)] , ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed('Message scheduled', `I'll post in ${channel} ${discordTimestamp(sendAt)} (ID #${result.insertId}).\nCancel it anytime with \`/schedule-cancel ${result.insertId}\`.`)]  });
   },
 };

@@ -21,7 +21,7 @@ module.exports = {
     .addSubcommand((s) => s.setName('remove').setDescription('Remove one of your bookmarks.')
       .addIntegerOption((o) => o.setName('id').setDescription('Bookmark ID (from /bookmark list)').setRequired(true))),
   async execute(interaction) {
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Bookmarks need MySQL.')], ephemeral: true });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Bookmarks need MySQL.')] });
     const sub = interaction.options.getSubcommand();
     if (sub === 'list') {
       const rows = await bookmarks.listBookmarks(interaction.guildId, interaction.user.id, 25);
@@ -31,19 +31,19 @@ module.exports = {
     }
     if (sub === 'remove') {
       const removed = await bookmarks.removeBookmark(interaction.guildId, interaction.user.id, interaction.options.getInteger('id'));
-      if (!removed) return interaction.reply({ embeds: [infoEmbed('Not found', 'No bookmark with that ID in your list.')], ephemeral: true });
-      return interaction.reply({ embeds: [successEmbed('Bookmark removed', 'Done.')], ephemeral: true });
+      if (!removed) return interaction.reply({ embeds: [infoEmbed('Not found', 'No bookmark with that ID in your list.')] });
+      return interaction.reply({ embeds: [successEmbed('Bookmark removed', 'Done.')] });
     }
     // add
     const ref = parseMessageRef(interaction.options.getString('message'));
-    if (!ref) return interaction.reply({ embeds: [errorEmbed('Bad reference', 'Give a message ID or a full Discord message link.')], ephemeral: true });
+    if (!ref) return interaction.reply({ embeds: [errorEmbed('Bad reference', 'Give a message ID or a full Discord message link.')] });
     let channel = ref.channelId
       ? (interaction.guild.channels.cache.get(ref.channelId) || await interaction.guild.channels.fetch(ref.channelId).catch(() => null))
       : interaction.channel;
-    if (!channel?.isTextBased()) return interaction.reply({ embeds: [errorEmbed('Not found', 'I could not find that channel.')], ephemeral: true });
+    if (!channel?.isTextBased()) return interaction.reply({ embeds: [errorEmbed('Not found', 'I could not find that channel.')] });
     const message = await channel.messages.fetch(ref.messageId).catch(() => null);
-    if (!message) return interaction.reply({ embeds: [errorEmbed('Not found', 'I could not read that message — it may be in a channel you cannot see, or it was deleted.')], ephemeral: true });
+    if (!message) return interaction.reply({ embeds: [errorEmbed('Not found', 'I could not read that message — it may be in a channel you cannot see, or it was deleted.')] });
     const id = await bookmarks.addBookmark(interaction.guildId, interaction.user.id, message, interaction.options.getString('note'));
-    return interaction.reply({ embeds: [successEmbed('Bookmarked', `Saved as bookmark **#${id}**. See your list with /bookmark list.`)], ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed('Bookmarked', `Saved as bookmark **#${id}**. See your list with /bookmark list.`)] });
   },
 };

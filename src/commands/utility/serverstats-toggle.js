@@ -23,20 +23,20 @@ module.exports = {
         if (ch) await ch.delete('Server stats disabled').catch(() => {});
       }
       await setGuildSettings(interaction.guildId, { serverStatsEnabled: false, serverStatsChannels: {} });
-      return interaction.reply({ ephemeral: true, embeds: [successEmbed('Server Stats disabled', 'All stat channels were deleted. Run /serverstats-setup to turn them back on.')] });
+      return interaction.reply({  embeds: [successEmbed('Server Stats disabled', 'All stat channels were deleted. Run /serverstats-setup to turn them back on.')] });
     }
     if (channels[stat]) {
       const ch = interaction.guild.channels.cache.get(channels[stat]);
       if (ch) await ch.delete('Server stat disabled').catch(() => {});
       delete channels[stat];
       await setGuildSettings(interaction.guildId, { serverStatsChannels: channels, serverStatsEnabled: Object.keys(channels).length > 0 });
-      return interaction.reply({ ephemeral: true, embeds: [successEmbed('Stat disabled', `The **${STATS[stat].label}** stat channel was removed.`)] });
+      return interaction.reply({  embeds: [successEmbed('Stat disabled', `The **${STATS[stat].label}** stat channel was removed.`)] });
     }
     if (!settings.serverStatsEnabled) {
-      return interaction.reply({ embeds: [errorEmbed('Stats not set up', 'Run /serverstats-setup first — it creates the category the stat channels live in.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Stats not set up', 'Run /serverstats-setup first — it creates the category the stat channels live in.')] });
     }
     const created = await createStatChannels(interaction.guild, [stat]);
     await updateServerStats(interaction.guild);
-    return interaction.reply({ ephemeral: true, embeds: [successEmbed('Stat enabled', `The **${STATS[stat].label}** stat channel is live: <#${created[stat]}>`)] });
+    return interaction.reply({  embeds: [successEmbed('Stat enabled', `The **${STATS[stat].label}** stat channel is live: <#${created[stat]}>`)] });
   },
 };

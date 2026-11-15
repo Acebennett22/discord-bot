@@ -9,9 +9,9 @@ module.exports = {
     if (!(await requireDJ(interaction, 'queue-clear'))) return;
     const queue = getQueue(interaction.guildId);
     if (!queue || (queue.queue.length === 0 && !queue.playing)) {
-      return interaction.reply({ embeds: [errorEmbed('Queue is empty', 'There is nothing in the queue to clear.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Queue is empty', 'There is nothing in the queue to clear.')] });
     }
     const cleared = clearQueue(interaction.guildId);
-    return interaction.reply({ ephemeral: true, embeds: [successEmbed('Queue cleared', `🧹 Removed **${cleared}** upcoming song${cleared === 1 ? '' : 's'} from the queue. The current song keeps playing.`)] });
+    return interaction.reply({  embeds: [successEmbed('Queue cleared', `🧹 Removed **${cleared}** upcoming song${cleared === 1 ? '' : 's'} from the queue. The current song keeps playing.`)] });
   },
 };

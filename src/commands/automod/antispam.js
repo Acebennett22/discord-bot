@@ -31,7 +31,7 @@ module.exports = {
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
   async execute(interaction) {
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission.')] });
     }
     const patch = {};
     const getBool = (name) => interaction.options.getBoolean(name);
@@ -55,7 +55,7 @@ module.exports = {
         `Link count: ${s.linkMax > 0 ? `max ${s.linkMax} links per message` : 'off'}`,
         `Action on a hit: ${s.antispamAction}`,
         'Rate-limit spam (messages per window) is set with /automod-setup.',
-      ].join('\n'))], ephemeral: true });
+      ].join('\n'))] });
     }
     const { saved, settings } = await automod.setSettings(interaction.guildId, patch);
     const lines = [
@@ -66,6 +66,6 @@ module.exports = {
       `Action on a hit: ${settings.antispamAction}`,
     ];
     if (!saved) lines.push('\n⚠️ MySQL is not connected — these settings are only kept in memory for this run.');
-    return interaction.reply({ embeds: [successEmbed('Antispam settings saved', lines.join('\n'))], ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed('Antispam settings saved', lines.join('\n'))] });
   },
 };

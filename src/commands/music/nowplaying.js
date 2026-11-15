@@ -21,7 +21,7 @@ module.exports = {
     .setDescription('Show what is playing now, with progress and queue info.'),
   async execute(interaction) {
     const np = getNowPlaying(interaction.guildId);
-    if (!np) return interaction.reply({ embeds: [errorEmbed('Nothing playing', 'Use /play to start the music first.')], ephemeral: true });
+    if (!np) return interaction.reply({ embeds: [errorEmbed('Nothing playing', 'Use /play to start the music first.')] });
     const { track, elapsedSec, durationSec, queueLength, filter } = np;
     const bar = durationSec
       ? `${progressBar(elapsedSec, durationSec)}\n${fmtTime(elapsedSec)} / ${fmtTime(durationSec)}`
@@ -33,7 +33,6 @@ module.exports = {
         { name: 'Queue', value: `${queueLength} track(s) waiting`, inline: true },
         { name: 'Filter', value: filter === 'off' ? 'Off' : filter, inline: true },
       ])],
-      ephemeral: true,
     });
   },
 };

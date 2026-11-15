@@ -4,7 +4,7 @@ A multi-file JavaScript Discord bot built with **discord.js v14** (CommonJS) —
 
 > **Embed standard:** EVERY slash-command reply is an embed. Use `src/utils/embeds.js` — `successEmbed(title, description)` (green), `errorEmbed(title, description)` (red), `infoEmbed(title, description, fields)` / `statsEmbed(...)` (brand color from `config.json` `embedColor`, timestamp + `Vikings Hall • /utility help` footer on every embed). Do not reply with plain text as the main response. Role-mention pings (stream-live, giveaway winners) may still appear as message content *alongside* an embed, since pings don't work reliably inside embeds.
 >
-> **Ephemeral replies:** EVERY slash-command reply, followUp, and deferReply is ephemeral (`ephemeral: true`) — only the public posts a command is *meant* to make in a channel (a suggestion embed, a welcome message, an announcement) are public. The confirmation/reply back to the user who ran the command is always ephemeral.
+> **Public replies (since 1.15.7):** EVERY slash-command reply, followUp, and deferReply is PUBLIC (visible to everyone in the channel) — the `ephemeral: true` flag is gone. The only exceptions are replies that would expose private data (birthdays, verification, modmail, reports, personal lists, owner output) or per-click confirmations that would spam the channel or spoil a game (giveaway/reaction-role/role-menu/RSVP/heist/suggestion-vote/wordle/trivia confirmations). /help and /trivia are public but their menus/buttons are invoker-only via a collector filter.
 
 ## Wiki
 

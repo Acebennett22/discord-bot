@@ -11,8 +11,8 @@ module.exports = {
     const eventId = Number(eventIdStr);
     if (!['going', 'maybe', 'not_going'].includes(status) || !eventId) return;
     const event = await events.getEvent(eventId).catch(() => null);
-    if (!event || event.guild_id !== interaction.guildId) return interaction.reply({ embeds: [errorEmbed('Event not found', 'That event no longer exists.')], ephemeral: true });
-    if (event.status !== 'upcoming') return interaction.reply({ embeds: [infoEmbed('Event closed', `**${event.title}** is ${event.status} — RSVPs are closed.`)], ephemeral: true });
+    if (!event || event.guild_id !== interaction.guildId) return interaction.reply({ embeds: [errorEmbed('Event not found', 'That event no longer exists.')] });
+    if (event.status !== 'upcoming') return interaction.reply({ embeds: [infoEmbed('Event closed', `**${event.title}** is ${event.status} — RSVPs are closed.`)] });
     await events.setRsvp(eventId, interaction.user.id, status).catch(() => null);
     await events.refreshEventMessage(interaction.client, event).catch(() => {});
     return interaction.reply({ embeds: [infoEmbed('RSVP saved', `You're marked **${events.RSVP_LABELS[status]}** for **${event.title}**.`)], ephemeral: true });

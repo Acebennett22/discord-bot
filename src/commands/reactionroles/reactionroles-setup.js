@@ -12,7 +12,7 @@ module.exports = {
     .addStringOption((o) => o.setName('pairs').setDescription('Comma-separated emoji:role pairs, e.g. 🎮:Gamer, 📣:Announcements — use role NAMES'))
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
   async execute(interaction) {
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Reaction roles need MySQL.')], ephemeral: true });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Reaction roles need MySQL.')] });
     const channel = interaction.options.getChannel('channel') || interaction.channel;
     const title = interaction.options.getString('title');
     const pairsRaw = interaction.options.getString('pairs') || '';
@@ -32,6 +32,6 @@ module.exports = {
     if (added.length) {
       await msg.edit({ embeds: [infoEmbed(title, `${added.join('\n')}\n\nClick a button below to toggle a role.`)], components: await buildRows(msg.id) });
     }
-    return interaction.reply({ embeds: [successEmbed('Reaction roles posted', `Message is live in <#${channel.id}> (ID: ${msg.id}).\n${added.length ? added.join('\n') : 'No pairs added yet — use /reactionroles-add to add emoji → role pairs.'}`)], ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed('Reaction roles posted', `Message is live in <#${channel.id}> (ID: ${msg.id}).\n${added.length ? added.join('\n') : 'No pairs added yet — use /reactionroles-add to add emoji → role pairs.'}`)] });
   },
 };

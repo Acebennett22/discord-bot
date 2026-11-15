@@ -98,13 +98,15 @@ module.exports = {
         .setPlaceholder('Pick a category…')
         .addOptions(Object.entries(GROUPS).map(([key, g]) => ({ label: g.label, value: key }))),
     );
-    const response = await interaction.reply({ ephemeral: true,
+    const response = await interaction.reply({
       embeds: [infoEmbed('🤖 Vikings Hall — Help', `Pick a category below to see its commands.\n\n**${countCommands(interaction.client)} commands** loaded.`)],
       components: [menu],
       withResponse: true,
     });
     const reply = response.resource.message;
-    const collector = reply.createMessageComponentCollector({ componentType: ComponentType.StringSelect, time: 120_000 });
+    // Public since 1.15.7 — only the invoker may use the menu (others get
+    // "This interaction failed" from Discord instead of hijacking the list).
+    const collector = reply.createMessageComponentCollector({ componentType: ComponentType.StringSelect, time: 120_000, filter: (sel) => sel.user.id === interaction.user.id });
     collector.on('collect', async (sel) => {
       await sel.update({ embeds: [groupEmbed(interaction.client, sel.values[0])], components: [menu] });
     });

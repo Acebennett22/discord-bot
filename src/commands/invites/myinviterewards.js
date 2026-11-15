@@ -9,7 +9,7 @@ module.exports = {
     .setName('myinviterewards')
     .setDescription('See your invite progress and the next milestone reward.'),
   async execute(interaction) {
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Invite rewards need MySQL.')], ephemeral: true });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Invite rewards need MySQL.')] });
     const stats = await getUserInviteStats(interaction.guildId, interaction.user.id);
     const valid = stats?.valid_invites || 0;
     const rewards = await inviteRewards.getInviteRewards(interaction.guildId);
@@ -26,6 +26,6 @@ module.exports = {
     } else {
       lines.push('\nNo invite milestones are set up in this server yet.');
     }
-    return interaction.reply({ embeds: [infoEmbed('🎉 Your invite rewards', lines.join('\n'))], ephemeral: true });
+    return interaction.reply({ embeds: [infoEmbed('🎉 Your invite rewards', lines.join('\n'))] });
   },
 };

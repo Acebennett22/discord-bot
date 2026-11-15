@@ -15,7 +15,6 @@ module.exports = {
     await setGuildSettings(interaction.guildId, { birthdayChannelId: channel.id, birthdayAnnounceHour: hour });
     return interaction.reply({
       embeds: [successEmbed('Birthday announcements set up', `🎂 Birthdays will be announced in <#${channel.id}> at **${hour}:00** (bot host local time).\nMembers set theirs with /birthday set.`)],
-      ephemeral: true,
     });
   },
 };

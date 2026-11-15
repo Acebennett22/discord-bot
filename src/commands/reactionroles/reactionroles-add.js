@@ -15,7 +15,7 @@ module.exports = {
     .addIntegerOption((o) => o.setName('min_level').setDescription('Optional: member must be at least this leveling level').setMinValue(0).setMaxValue(100))
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
   async execute(interaction) {
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Reaction roles need MySQL.')], ephemeral: true });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Reaction roles need MySQL.')] });
     const messageId = interaction.options.getString('message_id');
     const emoji = interaction.options.getString('emoji');
     const role = interaction.options.getRole('role');
@@ -36,6 +36,6 @@ module.exports = {
       minDays !== null && minDays !== undefined ? `requires ${minDays}+ days in server` : null,
       minLevel !== null && minLevel !== undefined ? `requires level ${minLevel}+` : null,
     ].filter(Boolean).join(', ');
-    return interaction.reply({ embeds: [successEmbed('Pair added', `${emoji} → **${role.name}** on message ${messageId}.${reqs ? `\nRequirements: ${reqs}.` : ''}`)], ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed('Pair added', `${emoji} → **${role.name}** on message ${messageId}.${reqs ? `\nRequirements: ${reqs}.` : ''}`)] });
   },
 };

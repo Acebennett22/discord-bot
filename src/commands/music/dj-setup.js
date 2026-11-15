@@ -22,12 +22,12 @@ module.exports = {
     const djRoleId = patch.djRoleId ?? current.djRoleId;
     const djEnabled = patch.djEnabled ?? current.djEnabled;
     if (djEnabled && !djRoleId) {
-      return interaction.reply({ embeds: [errorEmbed('No DJ role set', 'Set a DJ role first — DJ mode cannot be enabled without one. Run `/dj-setup` with a role, then enable it.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('No DJ role set', 'Set a DJ role first — DJ mode cannot be enabled without one. Run `/dj-setup` with a role, then enable it.')] });
     }
     const { settings } = await setGuildSettings(interaction.guildId, patch);
     const djRole = settings.djRoleId ? `<@&${settings.djRoleId}>` : 'none';
     return interaction.reply({
-      ephemeral: true,
+      
       embeds: [successEmbed('DJ settings saved', [
         `**DJ mode:** ${settings.djEnabled ? '✅ on' : '❌ off'}`,
         `**DJ role:** ${djRole}`,

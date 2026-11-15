@@ -11,7 +11,7 @@ module.exports = {
   async execute(interaction) {
     const settings = await getGuildSettings(interaction.guildId);
     return interaction.reply({
-      ephemeral: true,
+      
       embeds: [infoEmbed('🎧 DJ mode', [
         `**DJ mode:** ${settings.djEnabled ? '✅ on' : '❌ off'}`,
         `**DJ role:** ${settings.djRoleId ? `<@&${settings.djRoleId}>` : 'none'}`,

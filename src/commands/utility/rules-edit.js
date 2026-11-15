@@ -12,11 +12,11 @@ module.exports = {
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
   async execute(interaction) {
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission to edit server rules.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission to edit server rules.')] });
     }
     const existing = await getRules(interaction.guildId);
     if (!existing) {
-      return interaction.reply({ embeds: [errorEmbed('No rules set', 'There are no rules to edit yet — run /rules-setup to create them first.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('No rules set', 'There are no rules to edit yet — run /rules-setup to create them first.')] });
     }
     const modal = new ModalBuilder()
       .setCustomId('rules_edit_modal')

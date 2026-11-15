@@ -32,10 +32,10 @@ module.exports = {
     const [, action, gameId] = interaction.customId.split(':');
     const game = getGame(gameId);
     if (!game || game.over) {
-      return interaction.reply({ embeds: [errorEmbed('Game over', 'This blackjack hand has already finished.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Game over', 'This blackjack hand has already finished.')] });
     }
     if (interaction.user.id !== game.userId) {
-      return interaction.reply({ embeds: [errorEmbed('Not your game', 'Only the player who started this hand can hit or stand.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Not your game', 'Only the player who started this hand can hit or stand.')] });
     }
 
     if (action === 'hit') {

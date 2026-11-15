@@ -12,9 +12,9 @@ module.exports = {
     const text = interaction.options.getString('text');
     const to = (interaction.options.getString('to') || 'en').toLowerCase();
     if (!translate.SUPPORTED[to]) {
-      return interaction.reply({ embeds: [errorEmbed('Unsupported language', `Supported codes: ${Object.keys(translate.SUPPORTED).join(', ')}.`)], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Unsupported language', `Supported codes: ${Object.keys(translate.SUPPORTED).join(', ')}.`)] });
     }
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply();
     try {
       const detected = translate.detectLanguage(text);
       const result = await translate.translateText(text, to);

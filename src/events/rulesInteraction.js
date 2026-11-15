@@ -22,7 +22,7 @@ module.exports = {
       const content = interaction.fields.getTextInputValue('rules').trim();
       const result = await postRules(interaction.guild, channelId, title, content);
       if (!result.ok) {
-        return interaction.reply({ embeds: [errorEmbed('Could not post rules', `I couldn't post in <#${channelId}> — ${result.error || 'check my permissions there.'}`)], ephemeral: true });
+        return interaction.reply({ embeds: [errorEmbed('Could not post rules', `I couldn't post in <#${channelId}> — ${result.error || 'check my permissions there.'}`)] });
       }
       const saved = await saveRules(interaction.guildId, {
         title, content, channelId: result.channelId, messageId: result.messageId,
@@ -34,7 +34,7 @@ module.exports = {
           : `The server rules are now posted in <#${result.channelId}>. Re-running /rules-setup will edit this message instead of posting a new one.`,
       );
       if (!saved) embed.addFields({ name: '⚠️ Not saved to database', value: 'MySQL is not connected — the rules are posted but will not survive a restart or be shown by /rules until the database is back.', inline: false });
-      return interaction.reply({ embeds: [embed], ephemeral: true });
+      return interaction.reply({ embeds: [embed] });
     }
 
     // --- /rules-edit modal ---
@@ -43,18 +43,18 @@ module.exports = {
       const content = interaction.fields.getTextInputValue('rules').trim();
       const existing = await getRules(interaction.guildId);
       if (!existing) {
-        return interaction.reply({ embeds: [errorEmbed('No rules set', 'There are no rules to edit — run /rules-setup to create them first.')], ephemeral: true });
+        return interaction.reply({ embeds: [errorEmbed('No rules set', 'There are no rules to edit — run /rules-setup to create them first.')] });
       }
       const result = await editPostedRules(interaction.guild, { title, content });
       if (!result.ok) {
-        return interaction.reply({ embeds: [errorEmbed('Could not edit rules', `I couldn't edit the posted rules message — ${result.error || 'it may have been deleted. Re-run /rules-setup to post it again.'}`)], ephemeral: true });
+        return interaction.reply({ embeds: [errorEmbed('Could not edit rules', `I couldn't edit the posted rules message — ${result.error || 'it may have been deleted. Re-run /rules-setup to post it again.'}`)] });
       }
       const saved = await saveRules(interaction.guildId, {
         title, content, channelId: existing.channelId, messageId: existing.messageId,
       });
       const embed = successEmbed('Rules updated', `The rules message in <#${existing.channelId}> was updated in place.`);
       if (!saved) embed.addFields({ name: '⚠️ Not saved to database', value: 'MySQL is not connected — the posted message was updated, but the database copy was not.', inline: false });
-      return interaction.reply({ embeds: [embed], ephemeral: true });
+      return interaction.reply({ embeds: [embed] });
     }
   },
 };

@@ -8,10 +8,10 @@ module.exports = {
     .setName('Bookmark message')
     .setType(ApplicationCommandType.Message),
   async execute(interaction) {
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Bookmarks need MySQL.')], ephemeral: true });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Bookmarks need MySQL.')] });
     const message = interaction.targetMessage;
-    if (!message) return interaction.reply({ embeds: [errorEmbed('Not found', 'Could not read that message.')], ephemeral: true });
+    if (!message) return interaction.reply({ embeds: [errorEmbed('Not found', 'Could not read that message.')] });
     const id = await bookmarks.addBookmark(interaction.guildId, interaction.user.id, message, null);
-    return interaction.reply({ embeds: [successEmbed('Bookmarked', `Saved as bookmark **#${id}**. See your list with /bookmark list.`)], ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed('Bookmarked', `Saved as bookmark **#${id}**. See your list with /bookmark list.`)] });
   },
 };

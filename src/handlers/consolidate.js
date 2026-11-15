@@ -231,10 +231,10 @@ function buildConsolidated() {
         const sub = interaction.options.getSubcommand(false);
         const key = group || sub;
         const child = key ? children.get(key) : null;
-        if (!child) return interaction.reply({ embeds: [errorEmbed('Unknown subcommand', 'That subcommand does not exist.')], ephemeral: true });
+        if (!child) return interaction.reply({ embeds: [errorEmbed('Unknown subcommand', 'That subcommand does not exist.')] });
         if (child.perms && interaction.memberPermissions && !interaction.memberPermissions.has(child.perms)) {
           const label = PERM_NAMES[child.perms] || 'the required permission';
-          return interaction.reply({ embeds: [errorEmbed('Missing permissions', `You need the **${label}** permission to use this command.`)], ephemeral: true });
+          return interaction.reply({ embeds: [errorEmbed('Missing permissions', `You need the **${label}** permission to use this command.`)] });
         }
         return child.module.execute(interaction);
       },

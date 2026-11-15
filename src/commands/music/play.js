@@ -11,9 +11,9 @@ module.exports = {
   async execute(interaction) {
     if (!(await requireDJ(interaction, 'play'))) return;
     const voiceChannel = interaction.member?.voice?.channel;
-    if (!voiceChannel) return interaction.reply({ embeds: [errorEmbed('Not in voice', 'Join a voice channel first, then use /play.')], ephemeral: true });
+    if (!voiceChannel) return interaction.reply({ embeds: [errorEmbed('Not in voice', 'Join a voice channel first, then use /play.')] });
     const query = interaction.options.getString('query');
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply();
     try {
       const result = await addTrack(interaction.guildId, voiceChannel, interaction.channel, query);
       if (!result.added) return interaction.editReply({ embeds: [errorEmbed('Could not play', result.reason)] });

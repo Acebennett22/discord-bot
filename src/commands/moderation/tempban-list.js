@@ -10,10 +10,10 @@ module.exports = {
   async execute(interaction) {
     const rows = await getActiveTempbans(interaction.guild.id).catch(() => null);
     if (rows === null) {
-      return interaction.reply({ embeds: [errorEmbed('Tempban list unavailable', 'The database is unavailable, so active tempbans cannot be listed right now.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Tempban list unavailable', 'The database is unavailable, so active tempbans cannot be listed right now.')] });
     }
     if (!rows.length) {
-      return interaction.reply({ embeds: [infoEmbed('Active tempbans', 'There are no active tempbans in this server.')], ephemeral: true });
+      return interaction.reply({ embeds: [infoEmbed('Active tempbans', 'There are no active tempbans in this server.')] });
     }
     const fields = rows.slice(0, 25).map((row) => {
       const expiryTs = Math.floor(new Date(row.expires_at).getTime() / 1000);
@@ -24,7 +24,7 @@ module.exports = {
     });
     const extra = rows.length > 25 ? `\n…and ${rows.length - 25} more.` : '';
     return interaction.reply({
-      ephemeral: true,
+      
       embeds: [infoEmbed(`Active tempbans (${rows.length})`, `Tempbans currently in effect in this server.${extra}`, fields)],
     });
   },

@@ -21,19 +21,19 @@ module.exports = {
     if (sub === 'list') {
       const panels = await tickets.listPanels(interaction.guildId);
       if (!panels.length) {
-        return interaction.reply({ embeds: [infoEmbed('🎫 Ticket panels', 'No extra panels yet — the default panel from `/ticket-setup` is the only one. Create one with `/ticket-panel create`.')], ephemeral: true });
+        return interaction.reply({ embeds: [infoEmbed('🎫 Ticket panels', 'No extra panels yet — the default panel from `/ticket-setup` is the only one. Create one with `/ticket-panel create`.')] });
       }
       const fields = panels.map((p) => ({
         name: `#${p.id} — ${p.title}`,
         value: `Category: ${p.category_id ? `<#${p.category_id}>` : 'default'} · Staff role: ${p.staff_role_id ? `<@&${p.staff_role_id}>` : 'default'} · Posted in <#${p.channel_id}>${p.message_id ? ` · [jump](https://discord.com/channels/${interaction.guildId}/${p.channel_id}/${p.message_id})` : ''}`,
       }));
-      return interaction.reply({ ephemeral: true, embeds: [infoEmbed('🎫 Ticket panels', 'Each panel opens tickets in its own category with its own staff role.', fields)] });
+      return interaction.reply({  embeds: [infoEmbed('🎫 Ticket panels', 'Each panel opens tickets in its own category with its own staff role.', fields)] });
     }
     if (sub === 'delete') {
       const id = interaction.options.getInteger('id');
       const panel = await tickets.deletePanel(interaction.guildId, id);
-      if (!panel) return interaction.reply({ embeds: [errorEmbed('Not found', `No ticket panel #${id} in this server.`)], ephemeral: true });
-      return interaction.reply({ ephemeral: true, embeds: [successEmbed('Panel deleted', `🎫 **${panel.title}** (#${id}) has been deleted. Tickets already opened from it are untouched.`)] });
+      if (!panel) return interaction.reply({ embeds: [errorEmbed('Not found', `No ticket panel #${id} in this server.`)] });
+      return interaction.reply({  embeds: [successEmbed('Panel deleted', `🎫 **${panel.title}** (#${id}) has been deleted. Tickets already opened from it are untouched.`)] });
     }
     // create
     const title = interaction.options.getString('title');
@@ -41,7 +41,7 @@ module.exports = {
     const staffRole = interaction.options.getRole('staff_role');
     const channel = interaction.options.getChannel('channel') || interaction.channel;
     const description = interaction.options.getString('description');
-    if (!channel?.isTextBased()) return interaction.reply({ embeds: [errorEmbed('Invalid channel', 'Pick a text channel for the panel.')], ephemeral: true });
+    if (!channel?.isTextBased()) return interaction.reply({ embeds: [errorEmbed('Invalid channel', 'Pick a text channel for the panel.')] });
     const panel = await tickets.createPanel(interaction.guildId, {
       channelId: channel.id,
       categoryId: category?.id || null,
@@ -50,12 +50,12 @@ module.exports = {
       description,
       createdBy: interaction.user.id,
     });
-    if (!panel) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Ticket panels need MySQL — connect the database first.')], ephemeral: true });
+    if (!panel) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Ticket panels need MySQL — connect the database first.')] });
     const message = await channel.send({ embeds: [tickets.ticketPanelEmbed(title, description)], components: [tickets.ticketPanelRow(panel.id)] }).catch(() => null);
     if (message) {
       const db = require('../../utils/database');
       await db.query('UPDATE ticket_panels SET message_id = ? WHERE id = ?', [message.id, panel.id]).catch(() => {});
     }
-    return interaction.reply({ ephemeral: true, embeds: [successEmbed('Ticket panel created', `🎫 **${title}** (#${panel.id}) is live in <#${channel.id}>${category ? ` — tickets go to **${category.name}**` : ''}${staffRole ? `, staffed by **${staffRole.name}**` : ''}.`)] });
+    return interaction.reply({  embeds: [successEmbed('Ticket panel created', `🎫 **${title}** (#${panel.id}) is live in <#${channel.id}>${category ? ` — tickets go to **${category.name}**` : ''}${staffRole ? `, staffed by **${staffRole.name}**` : ''}.`)] });
   },
 };

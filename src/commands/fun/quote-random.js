@@ -7,9 +7,9 @@ module.exports = {
     .setName('quote-random')
     .setDescription('Post a random saved quote from this server.'),
   async execute(interaction) {
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Quotes need MySQL.')], ephemeral: true });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Quotes need MySQL.')] });
     const rows = await db.query('SELECT * FROM quotes WHERE guild_id = ? ORDER BY RAND() LIMIT 1', [interaction.guildId]);
-    if (!rows?.length) return interaction.reply({ embeds: [errorEmbed('No quotes yet', 'No quotes saved in this server yet. Use /quote to save one.')], ephemeral: true });
+    if (!rows?.length) return interaction.reply({ embeds: [errorEmbed('No quotes yet', 'No quotes saved in this server yet. Use /quote to save one.')] });
     const q = rows[0];
     const author = await interaction.client.users.fetch(q.author_id).catch(() => null);
     const embed = new EmbedBuilder()

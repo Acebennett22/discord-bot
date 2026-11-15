@@ -9,7 +9,7 @@ module.exports = {
   async execute(interaction) {
     const settings = await getGuildSettings(interaction.guildId);
     if (!settings.confessionsEnabled) {
-      return interaction.reply({ embeds: [errorEmbed('Confessions disabled', 'Confessions are not enabled in this server.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Confessions disabled', 'Confessions are not enabled in this server.')] });
     }
     const modal = new ModalBuilder()
       .setCustomId('confess_submit')

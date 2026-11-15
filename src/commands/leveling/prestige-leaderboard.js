@@ -9,12 +9,12 @@ module.exports = {
   async execute(interaction) {
     const rows = await getPrestigeLeaderboard(interaction.guildId, 10);
     if (!rows?.length) {
-      return interaction.reply({ embeds: [infoEmbed('⭐ Prestige leaderboard', 'Nobody has prestiged in this server yet. Reach the max level and run `/prestige` to be the first.')], ephemeral: true });
+      return interaction.reply({ embeds: [infoEmbed('⭐ Prestige leaderboard', 'Nobody has prestiged in this server yet. Reach the max level and run `/prestige` to be the first.')] });
     }
     const fields = rows.map((r, i) => ({
       name: `#${i + 1} — <@${r.user_id}>`,
       value: `⭐ Prestige **${r.prestige}** · x${prestigeMultiplier(r.prestige).toFixed(1)} XP · level ${r.level} (${r.xp} XP)`,
     }));
-    return interaction.reply({ ephemeral: true, embeds: [infoEmbed('⭐ Prestige leaderboard', 'Top prestiged members in this server.', fields)] });
+    return interaction.reply({  embeds: [infoEmbed('⭐ Prestige leaderboard', 'Top prestiged members in this server.', fields)] });
   },
 };

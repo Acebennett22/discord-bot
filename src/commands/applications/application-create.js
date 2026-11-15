@@ -10,7 +10,7 @@ module.exports = {
     .addRoleOption((o) => o.setName('role_to_grant').setDescription('Role granted when an application is accepted (optional)'))
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
   async execute(interaction) {
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Applications are stored in MySQL — connect the database first.')], ephemeral: true });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Applications are stored in MySQL — connect the database first.')] });
     const reviewChannel = interaction.options.getChannel('review_channel');
     const role = interaction.options.getRole('role_to_grant');
     const modal = new ModalBuilder()

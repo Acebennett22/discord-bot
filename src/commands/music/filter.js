@@ -13,17 +13,16 @@ module.exports = {
   async execute(interaction) {
     if (!(await requireDJ(interaction, 'filter'))) return;
     const name = interaction.options.getString('name');
-    if (!isValidFilter(name)) return interaction.reply({ embeds: [errorEmbed('Unknown filter', `Available filters: ${listFilters().join(', ')}.`)], ephemeral: true });
+    if (!isValidFilter(name)) return interaction.reply({ embeds: [errorEmbed('Unknown filter', `Available filters: ${listFilters().join(', ')}.`)] });
     const queue = getQueue(interaction.guildId);
     if (!queue || !queue.playing) {
-      return interaction.reply({ embeds: [errorEmbed('Nothing playing', 'Play something with /play first, then apply a filter.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Nothing playing', 'Play something with /play first, then apply a filter.')] });
     }
     applyFilter(interaction.guildId, name);
     return interaction.reply({
       embeds: [successEmbed('Filter applied', name === 'off'
         ? 'Filters off — the current track restarted clean.'
         : `Filter **${name}** on — the current track restarted with the filter applied (filters need re-encoding, so the track starts over).`)],
-      ephemeral: true,
     });
   },
 };

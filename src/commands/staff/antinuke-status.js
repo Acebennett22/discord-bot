@@ -10,8 +10,8 @@ module.exports = {
     .setName('antinuke-status')
     .setDescription('Staff only: show anti-nuke settings and recent anti-nuke events.'),
   async execute(interaction) {
-    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'Anti-nuke status is per server.')], ephemeral: true });
-    if (!(await staff.isStaff(interaction.user.id))) return interaction.reply({ embeds: [errorEmbed('Staff only', 'This command is for the bot owner and approved staff.')], ephemeral: true });
+    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'Anti-nuke status is per server.')] });
+    if (!(await staff.isStaff(interaction.user.id))) return interaction.reply({ embeds: [errorEmbed('Staff only', 'This command is for the bot owner and approved staff.')] });
     const settings = await getGuildSettings(interaction.guildId);
     const whitelist = parseWhitelist(settings.antInukeWhitelistRoles);
     const enabled = settings.antInukeEnabled ?? false;
@@ -33,6 +33,6 @@ module.exports = {
     }
     return interaction.reply({ embeds: [infoEmbed('🛡️ Anti-nuke status',
       `**Enabled:** ${enabled ? 'Yes' : 'No'}\n**Action:** ${action}\n**Threshold:** ${threshold} destructive actions in 60s\n**Whitelisted roles:** ${whitelist.length ? whitelist.map((id) => `<@&${id}>`).join(', ') : 'None'}\n**Log channel:** ${settings.antInukeLogChannelId ? `<#${settings.antInukeLogChannelId}>` : 'Not set'}`,
-      [{ name: 'Recent events (last 10)', value: eventLines.join('\n').slice(0, 1000) }])], ephemeral: true });
+      [{ name: 'Recent events (last 10)', value: eventLines.join('\n').slice(0, 1000) }])] });
   },
 };

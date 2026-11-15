@@ -14,12 +14,12 @@ module.exports = {
       const rows = await db.query('SELECT * FROM invites WHERE guild_id = ? AND code = ?', [interaction.guildId, code]);
       row = rows?.[0];
     }
-    if (!liveInv && !row) return interaction.reply({ embeds: [errorEmbed('Invite not found', `No invite with code \`${code}\` in this server.`)], ephemeral: true });
+    if (!liveInv && !row) return interaction.reply({ embeds: [errorEmbed('Invite not found', `No invite with code \`${code}\` in this server.`)] });
     const inviter = liveInv?.inviter?.id || row?.inviter_id;
     const uses = liveInv?.uses ?? row?.uses ?? 0;
     const maxUses = liveInv?.maxUses ?? row?.max_uses;
     const channelId = liveInv?.channelId || row?.channel_id;
-    return interaction.reply({ ephemeral: true, embeds: [infoEmbed(`🔗 Invite discord.gg/${code}`,
+    return interaction.reply({  embeds: [infoEmbed(`🔗 Invite discord.gg/${code}`,
       `**Created by:** ${inviter ? `<@${inviter}>` : 'unknown'}\n**Uses:** ${uses}${maxUses ? ` / ${maxUses}` : ' (unlimited)'}\n**Channel:** ${channelId ? `<#${channelId}>` : 'unknown'}\n**Expires:** ${liveInv?.expiresAt ? `<t:${Math.floor(liveInv.expiresAt.getTime() / 1000)}:R>` : 'never / unknown'}`)] });
   },
 };

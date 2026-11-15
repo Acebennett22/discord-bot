@@ -21,21 +21,21 @@ module.exports = {
     const sort = interaction.options.getString('sort') || 'xp';
     if (sort === 'voice') {
       const rows = await getVoiceLeaderboard(interaction.guildId, 10);
-      if (!rows) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Leveling needs MySQL — connect the database first.')], ephemeral: true });
-      if (!rows.length) return interaction.reply({ ephemeral: true, embeds: [infoEmbed('Voice leaderboard', 'Nobody has logged voice time yet.')] });
+      if (!rows) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Leveling needs MySQL — connect the database first.')] });
+      if (!rows.length) return interaction.reply({  embeds: [infoEmbed('Voice leaderboard', 'Nobody has logged voice time yet.')] });
       const lines = await Promise.all(rows.map(async (r, i) => {
         const member = await interaction.guild.members.fetch(r.user_id).catch(() => null);
         return `**${i + 1}.** ${member ? member.user.tag : `<@${r.user_id}>`} — ${fmtMinutes(r.total_minutes)} in voice (${r.sessions} sessions)`;
       }));
-      return interaction.reply({ ephemeral: true, embeds: [infoEmbed('🎙️ Voice Time Leaderboard', lines.join('\n'))] });
+      return interaction.reply({  embeds: [infoEmbed('🎙️ Voice Time Leaderboard', lines.join('\n'))] });
     }
     const rows = await getLeaderboard(interaction.guildId, 10);
-    if (!rows) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Leveling needs MySQL — connect the database first.')], ephemeral: true });
-    if (!rows.length) return interaction.reply({ ephemeral: true, embeds: [infoEmbed('Leaderboard', 'Nobody has earned XP yet — start chatting!')] });
+    if (!rows) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Leveling needs MySQL — connect the database first.')] });
+    if (!rows.length) return interaction.reply({  embeds: [infoEmbed('Leaderboard', 'Nobody has earned XP yet — start chatting!')] });
     const lines = await Promise.all(rows.map(async (r, i) => {
       const member = await interaction.guild.members.fetch(r.user_id).catch(() => null);
       return `**${i + 1}.** ${member ? member.user.tag : `<@${r.user_id}>`} — Level ${r.level} · ${r.xp} XP`;
     }));
-    return interaction.reply({ ephemeral: true, embeds: [infoEmbed('🏆 XP Leaderboard', lines.join('\n'))] });
+    return interaction.reply({  embeds: [infoEmbed('🏆 XP Leaderboard', lines.join('\n'))] });
   },
 };

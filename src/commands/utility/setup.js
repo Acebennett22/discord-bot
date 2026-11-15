@@ -26,7 +26,7 @@ module.exports = {
     if (tlog) patch.ticketLogChannelId = tlog.id;
     if (role) patch.ticketSupportRoleId = role.id;
     if (!Object.keys(patch).length) {
-      return interaction.reply({ embeds: [errorEmbed('Nothing to set', 'Give at least one option, e.g. /setup welcome_channel:#general log_channel:#mod-logs')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Nothing to set', 'Give at least one option, e.g. /setup welcome_channel:#general log_channel:#mod-logs')] });
     }
     const { saved, settings } = await setGuildSettings(interaction.guildId, patch);
     const lines = [
@@ -37,6 +37,6 @@ module.exports = {
       `Ticket support role: ${settings.ticketSupportRoleId ? `<@&${settings.ticketSupportRoleId}>` : 'not set'}`,
     ];
     if (!saved) lines.push('\n⚠️ MySQL is not connected, so these settings are only kept in memory for this run — connect the database to make /setup permanent.');
-    return interaction.reply({ ephemeral: true, embeds: [successEmbed('Server setup saved', lines.join('\n'))] });
+    return interaction.reply({  embeds: [successEmbed('Server setup saved', lines.join('\n'))] });
   },
 };

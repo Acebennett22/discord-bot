@@ -8,8 +8,8 @@ module.exports = {
   async execute(interaction) {
     if (!(await requireDJ(interaction, 'resume'))) return;
     const queue = getQueue(interaction.guildId);
-    if (!queue || !queue.playing) return interaction.reply({ embeds: [errorEmbed('Nothing playing', 'There is no song playing right now.')], ephemeral: true });
+    if (!queue || !queue.playing) return interaction.reply({ embeds: [errorEmbed('Nothing playing', 'There is no song playing right now.')] });
     resume(interaction.guildId);
-    return interaction.reply({ ephemeral: true, embeds: [successEmbed('Resumed', `Resumed **${queue.playing.title}**.`)] });
+    return interaction.reply({  embeds: [successEmbed('Resumed', `Resumed **${queue.playing.title}**.`)] });
   },
 };

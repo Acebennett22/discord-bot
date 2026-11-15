@@ -16,11 +16,11 @@ module.exports = {
     .setDescription('Admin only: show the server\'s protection state — what\'s on, what\'s off, recent actions.')
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
   async execute(interaction) {
-    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'Safety status only works in a server.')], ephemeral: true });
+    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'Safety status only works in a server.')] });
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission.')] });
     }
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database offline', 'Protection settings live in MySQL — connect the database first.')], ephemeral: true });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database offline', 'Protection settings live in MySQL — connect the database first.')] });
     const [am, filterRules, logging, responders] = await Promise.all([
       automod.getSettings(interaction.guildId),
       contentFilter.getRules(interaction.guildId),
@@ -57,6 +57,6 @@ module.exports = {
       `**Stream watchers:** ${Number(streamRows?.[0]?.c || 0)} (Twitch/YouTube/Kick auto-check; TikTok/Facebook manual via /stream-announce)`,
       `**Automod actions (24h):** ${totalActions} — ${actionLine}`,
     ];
-    return interaction.reply({ embeds: [statsEmbed(`🛡️ Safety status — ${interaction.guild.name}`, lines.join('\n\n'))], ephemeral: true });
+    return interaction.reply({ embeds: [statsEmbed(`🛡️ Safety status — ${interaction.guild.name}`, lines.join('\n\n'))] });
   },
 };

@@ -9,7 +9,7 @@ module.exports = {
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
   async execute(interaction) {
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission.')] });
     }
     const s = await automod.getSettings(interaction.guildId);
     const embed = infoEmbed('🛡️ Automod settings', s.enabled ? 'Automod is ✅ enabled in this server.' : 'Automod is ❌ disabled in this server — use /automod-setup to turn it on.');
@@ -22,6 +22,6 @@ module.exports = {
       { name: 'Exempt channels', value: s.exemptChannels.length ? s.exemptChannels.map((c) => `<#${c}>`).join(' ') : 'none', inline: false },
       { name: 'Log channel', value: s.logChannelId ? `<#${s.logChannelId}>` : 'not set', inline: false },
     );
-    return interaction.reply({ embeds: [embed], ephemeral: true });
+    return interaction.reply({ embeds: [embed] });
   },
 };

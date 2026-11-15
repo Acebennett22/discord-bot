@@ -33,9 +33,9 @@ module.exports = {
     if (interaction.isButton() && ['ticket_close', 'ticket_claim', 'ticket_add_user'].includes(interaction.customId)) {
       const ticket = await tickets.getTicketByChannel(interaction.channelId);
       const settings = await getGuildSettings(interaction.guildId);
-      if (!ticket) return interaction.reply({ embeds: [errorEmbed('Not a ticket', 'This channel is not a ticket.')], ephemeral: true });
+      if (!ticket) return interaction.reply({ embeds: [errorEmbed('Not a ticket', 'This channel is not a ticket.')] });
       if (!tickets.canManageTicket(interaction.member, ticket, settings)) {
-        return interaction.reply({ embeds: [errorEmbed('No permission', 'Only the ticket creator, support staff, or an admin can do that.')], ephemeral: true });
+        return interaction.reply({ embeds: [errorEmbed('No permission', 'Only the ticket creator, support staff, or an admin can do that.')] });
       }
       if (interaction.customId === 'ticket_close') {
         const modal = new ModalBuilder().setCustomId('ticket_close_modal').setTitle('Close Ticket');
@@ -60,21 +60,21 @@ module.exports = {
       const channelId = interaction.customId.split(':')[1];
       const channel = interaction.guild.channels.cache.get(channelId)
         || await interaction.guild.channels.fetch(channelId).catch(() => null);
-      if (!channel) return interaction.reply({ embeds: [errorEmbed('Not found', 'That ticket channel no longer exists.')], ephemeral: true });
+      if (!channel) return interaction.reply({ embeds: [errorEmbed('Not found', 'That ticket channel no longer exists.')] });
       const ticket = await tickets.getTicketByChannel(channelId);
       const settings = await getGuildSettings(interaction.guildId);
       if (!tickets.isSupport(interaction.member, ticket, settings)) {
-        return interaction.reply({ embeds: [errorEmbed('No permission', 'Only support staff or an admin can reopen a ticket.')], ephemeral: true });
+        return interaction.reply({ embeds: [errorEmbed('No permission', 'Only support staff or an admin can reopen a ticket.')] });
       }
       await tickets.reopenTicket(channel, ticket, interaction.user);
-      return interaction.reply({ embeds: [successEmbed('Ticket reopened', `🔓 Ticket <#${channelId}> reopened.`)], ephemeral: true });
+      return interaction.reply({ embeds: [successEmbed('Ticket reopened', `🔓 Ticket <#${channelId}> reopened.`)] });
     }
 
     // --- Modals ---
     if (interaction.isModalSubmit() && (interaction.customId === 'ticket_create_modal' || interaction.customId.startsWith('ticket_create_modal:'))) {
       const panelId = interaction.customId.includes(':') ? interaction.customId.split(':')[1] : null;
       const subject = interaction.fields.getTextInputValue('subject');
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply();
       const settings = await getGuildSettings(interaction.guildId);
       // Multi-panel (1.11.5): the panel's own category/staff role win.
       let panel = null;
@@ -93,7 +93,7 @@ module.exports = {
     if (interaction.isModalSubmit() && interaction.customId === 'ticket_close_modal') {
       const reason = interaction.fields.getTextInputValue('reason') || 'No reason given';
       const ticket = await tickets.getTicketByChannel(interaction.channelId);
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply();
       await tickets.closeTicket(interaction, interaction.channel, ticket, reason, interaction.user);
       return interaction.editReply({ embeds: [successEmbed('Ticket closed', '🔒 Transcript generated — the channel will be deleted in 60 seconds unless reopened.')] });
     }
@@ -102,7 +102,7 @@ module.exports = {
       const raw = interaction.fields.getTextInputValue('user');
       const userId = raw.replace(/[^0-9]/g, '');
       const user = await client.users.fetch(userId).catch(() => null);
-      if (!user) return interaction.reply({ embeds: [errorEmbed('User not found', 'Could not find that user — use their user ID or @mention.')], ephemeral: true });
+      if (!user) return interaction.reply({ embeds: [errorEmbed('User not found', 'Could not find that user — use their user ID or @mention.')] });
       await interaction.channel.permissionOverwrites.edit(userId, {
         ViewChannel: true, SendMessages: true, ReadMessageHistory: true,
       });

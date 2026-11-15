@@ -21,6 +21,6 @@ module.exports = {
       `**Enabled:** ${settings.newMemberLinkEnabled ? '✅ on' : '❌ off'}`,
       `**Blocked for:** members who joined less than **${settings.newMemberLinkDays} day(s)** ago`,
       'Blocked messages are deleted, the member gets a warning that deletes itself after 10 seconds, and the block is logged to Automod actions. Staff roles and Automod-exempt roles/channels bypass it.',
-    ].join('\n'))], ephemeral: true });
+    ].join('\n'))] });
   },
 };

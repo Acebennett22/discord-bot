@@ -14,20 +14,20 @@ module.exports = {
       .addStringOption((o) => o.setName('evidence').setDescription('Link to a message, screenshot, or other evidence').setMaxLength(1000)))
     .addSubcommand((s) => s.setName('list').setDescription('Mod only: list open reports in this server.')),
   async execute(interaction) {
-    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'Reports only work in a server.')], ephemeral: true });
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database offline', 'The database is not connected, so reports can\'t be filed right now.')], ephemeral: true });
+    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'Reports only work in a server.')] });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database offline', 'The database is not connected, so reports can\'t be filed right now.')] });
     const sub = interaction.options.getSubcommand();
 
     if (sub === 'list') {
       if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageMessages)) {
-        return interaction.reply({ embeds: [errorEmbed('Mod only', 'You need the Manage Messages permission to list reports.')], ephemeral: true });
+        return interaction.reply({ embeds: [errorEmbed('Mod only', 'You need the Manage Messages permission to list reports.')] });
       }
       const rows = await db.query(
         "SELECT id, reporter_id, reported_id, reason, evidence, created_at FROM reports WHERE guild_id = ? AND status = 'open' ORDER BY created_at ASC LIMIT 25",
         [interaction.guildId],
       ) || [];
       if (!rows.length) {
-        return interaction.reply({ embeds: [infoEmbed('Open reports', 'There are no open reports in this server.')], ephemeral: true });
+        return interaction.reply({ embeds: [infoEmbed('Open reports', 'There are no open reports in this server.')] });
       }
       const lines = rows.map((r) => {
         const when = Math.floor(new Date(r.created_at).getTime() / 1000);
@@ -42,10 +42,10 @@ module.exports = {
     const reason = interaction.options.getString('reason');
     const evidence = interaction.options.getString('evidence') || null;
     if (reported.id === interaction.user.id) {
-      return interaction.reply({ embeds: [errorEmbed('Can\'t report yourself', 'If you need help with your own account, please ask a moderator directly.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Can\'t report yourself', 'If you need help with your own account, please ask a moderator directly.')] });
     }
     if (reported.bot) {
-      return interaction.reply({ embeds: [errorEmbed('Can\'t report a bot', 'Bot issues should be raised with a moderator directly.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Can\'t report a bot', 'Bot issues should be raised with a moderator directly.')] });
     }
     const result = await db.query(
       'INSERT INTO reports (guild_id, reporter_id, reported_id, reason, evidence) VALUES (?, ?, ?, ?, ?)',

@@ -12,7 +12,7 @@ module.exports = {
     if (!interaction.customId.startsWith('prestige_confirm:') && !interaction.customId.startsWith('prestige_cancel:')) return;
     const [action, userId] = interaction.customId.split(':');
     if (interaction.user.id !== userId) {
-      return interaction.reply({ embeds: [errorEmbed('Not yours', 'Only the member who ran `/prestige` can confirm it.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Not yours', 'Only the member who ran `/prestige` can confirm it.')] });
     }
     if (action === 'prestige_cancel') {
       return interaction.update({ embeds: [successEmbed('Prestige cancelled', 'No changes made — your level and XP are untouched.')], components: [] });

@@ -9,9 +9,9 @@ module.exports = {
     .addStringOption((o) => o.setName('question').setDescription('Your question').setRequired(true).setMaxLength(1000)),
   async execute(interaction) {
     if (!isAiConfigured()) {
-      return interaction.reply({ embeds: [errorEmbed('AI not set up', 'The server owner needs to add an OpenAI API key in config.json (ai.apiKey). Any OpenAI-compatible endpoint works — see README.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('AI not set up', 'The server owner needs to add an OpenAI API key in config.json (ai.apiKey). Any OpenAI-compatible endpoint works — see README.')] });
     }
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply();
     const result = await askAI({
       guildId: interaction.guildId,
       guildName: interaction.guild?.name,

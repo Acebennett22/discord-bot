@@ -28,10 +28,10 @@ module.exports = {
     }
     if (!location) location = settings.defaultWeatherLocation;
     if (!location) {
-      return interaction.reply({ embeds: [errorEmbed('Where?', 'Give a location — `/weather location: Blairsville, PA` — set a personal home with `/weather-home set`, or ask an admin to set a server default with `/weather-set`.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Where?', 'Give a location — `/weather location: Blairsville, PA` — set a personal home with `/weather-home set`, or ask an admin to set a server default with `/weather-set`.')] });
     }
     const units = interaction.options.getString('units') || settings.weatherUnits || 'imperial';
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply();
     const result = await getWeather(location, units);
     if (result.error) return interaction.editReply({ embeds: [errorEmbed('Weather', result.error)] });
     const c = result.current;

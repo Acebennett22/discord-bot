@@ -14,14 +14,14 @@ module.exports = {
     .addSubcommand((s) => s.setName('cancel').setDescription('Cancel one of your pending reminders.')
       .addIntegerOption((o) => o.setName('id').setDescription('Reminder ID (see /remind list)').setRequired(true).setMinValue(1))),
   async execute(interaction) {
-    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'Reminders only work in a server.')], ephemeral: true });
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database offline', 'The database is not connected, so reminders can\'t be used right now.')], ephemeral: true });
+    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'Reminders only work in a server.')] });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database offline', 'The database is not connected, so reminders can\'t be used right now.')] });
     const sub = interaction.options.getSubcommand();
 
     if (sub === 'set') {
       const remindAt = parseTime(interaction.options.getString('time'));
       if (!remindAt) {
-        return interaction.reply({ embeds: [errorEmbed('Bad time', 'I couldn\'t understand that time. Try "in 2h", "tomorrow 9am", or "2026-11-14 15:00" — it must be in the future.')], ephemeral: true });
+        return interaction.reply({ embeds: [errorEmbed('Bad time', 'I couldn\'t understand that time. Try "in 2h", "tomorrow 9am", or "2026-11-14 15:00" — it must be in the future.')] });
       }
       const text = interaction.options.getString('text');
       const result = await db.query(
@@ -51,8 +51,8 @@ module.exports = {
       [id, interaction.guildId, interaction.user.id],
     );
     if (!result || result.affectedRows === 0) {
-      return interaction.reply({ embeds: [errorEmbed('Not found', `No pending reminder **#${id}** belongs to you in this server. Check the ID with \`/remind list\`.`)], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Not found', `No pending reminder **#${id}** belongs to you in this server. Check the ID with \`/remind list\`.`)] });
     }
-    return interaction.reply({ embeds: [successEmbed('Reminder cancelled', `Reminder **#${id}** has been cancelled.`)], ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed('Reminder cancelled', `Reminder **#${id}** has been cancelled.`)] });
   },
 };

@@ -45,23 +45,23 @@ module.exports = {
     } else if (/^https?:\/\//i.test(input)) {
       imageUrl = input;
       if (!name) {
-        return interaction.reply({ embeds: [errorEmbed('Name needed', 'When stealing from an image URL, give a `name` for the emoji (2–32 letters, numbers, underscores).')], ephemeral: true });
+        return interaction.reply({ embeds: [errorEmbed('Name needed', 'When stealing from an image URL, give a `name` for the emoji (2–32 letters, numbers, underscores).')] });
       }
     } else {
-      return interaction.reply({ embeds: [errorEmbed('Not a custom emoji', 'Give a custom emoji like `<:name:id>` (or `<a:name:id>` for animated) or a direct image URL. Unicode emoji can\'t be stolen.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Not a custom emoji', 'Give a custom emoji like `<:name:id>` (or `<a:name:id>` for animated) or a direct image URL. Unicode emoji can\'t be stolen.')] });
     }
 
     if (!NAME_RE.test(name)) {
-      return interaction.reply({ embeds: [errorEmbed('Invalid name', 'Emoji names must be 2–32 characters, letters, numbers, and underscores only.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Invalid name', 'Emoji names must be 2–32 characters, letters, numbers, and underscores only.')] });
     }
     const limit = interaction.guild.emojiLimit || 50;
     if (interaction.guild.emojis.cache.size >= limit) {
-      return interaction.reply({ embeds: [errorEmbed('Emoji slots full', `This server already has ${interaction.guild.emojis.cache.size}/${limit} custom emoji — remove one first with \`/emoji-remove\`.`)] , ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Emoji slots full', `This server already has ${interaction.guild.emojis.cache.size}/${limit} custom emoji — remove one first with \`/emoji-remove\`.`)]  });
     }
     if (interaction.guild.emojis.cache.some((e) => e.name === name)) {
-      return interaction.reply({ embeds: [errorEmbed('Name taken', `An emoji named \`:${name}:\` already exists in this server.`)], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Name taken', `An emoji named \`:${name}:\` already exists in this server.`)] });
     }
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply();
     let image;
     try {
       image = await fetchImage(imageUrl);

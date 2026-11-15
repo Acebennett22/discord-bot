@@ -15,18 +15,18 @@ module.exports = {
     // Step 2: channel select for a new embed.
     if (interaction.isChannelSelectMenu() && interaction.customId.startsWith('embed:create:channel:')) {
       const userId = interaction.customId.split(':')[3];
-      if (interaction.user.id !== userId) return interaction.reply({ content: 'That embed builder is not yours.', ephemeral: true });
+      if (interaction.user.id !== userId) return interaction.reply({ content: 'That embed builder is not yours.' });
       const entry = pending.get(userId);
-      if (!entry) return interaction.reply({ embeds: [errorEmbed('Expired', 'The embed draft expired — run /embed create again.')], ephemeral: true });
+      if (!entry) return interaction.reply({ embeds: [errorEmbed('Expired', 'The embed draft expired — run /embed create again.')] });
       const channelId = interaction.values[0];
       const channel = interaction.guild.channels.cache.get(channelId) || await interaction.guild.channels.fetch(channelId).catch(() => null);
-      if (!channel?.isTextBased()) return interaction.reply({ embeds: [errorEmbed('Bad channel', 'Pick a text channel.')], ephemeral: true });
+      if (!channel?.isTextBased()) return interaction.reply({ embeds: [errorEmbed('Bad channel', 'Pick a text channel.')] });
       const embed = customEmbeds.buildEmbedFromData(entry.data);
       const msg = await channel.send({ embeds: [embed] }).catch(() => null);
-      if (!msg) return interaction.reply({ embeds: [errorEmbed('Could not post', 'I could not send a message in that channel — check my permissions.')], ephemeral: true });
+      if (!msg) return interaction.reply({ embeds: [errorEmbed('Could not post', 'I could not send a message in that channel — check my permissions.')] });
       const id = await customEmbeds.saveEmbed(interaction.guildId, channel.id, msg.id, entry.data, interaction.user.id).catch(() => null);
       pending.delete(userId);
-      return interaction.update({ content: `✅ Embed posted in <#${channel.id}> (embed #${id}). Edit it later with /embed edit.`, components: [] }).catch(() => interaction.reply({ embeds: [successEmbed('Embed posted', `Posted in <#${channel.id}> (embed #${id}).`)], ephemeral: true }));
+      return interaction.update({ content: `✅ Embed posted in <#${channel.id}> (embed #${id}). Edit it later with /embed edit.`, components: [] }).catch(() => interaction.reply({ embeds: [successEmbed('Embed posted', `Posted in <#${channel.id}> (embed #${id}).`)] }));
     }
     if (!interaction.isModalSubmit() || !interaction.customId.startsWith('embed:')) return;
     const parts = interaction.customId.split(':');
@@ -45,13 +45,13 @@ module.exports = {
           .setPlaceholder('Pick a channel to post in')
           .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement),
       );
-      return interaction.reply({ content: 'Step 2 — pick the channel to post this embed in:', components: [row], ephemeral: true });
+      return interaction.reply({ content: 'Step 2 — pick the channel to post this embed in:', components: [row] });
     }
     // Edit an existing embed.
     if (parts[1] === 'edit') {
       const embedId = Number(parts[2]);
       const row = await customEmbeds.getEmbed(embedId, interaction.guildId).catch(() => null);
-      if (!row) return interaction.reply({ embeds: [errorEmbed('Not found', 'That embed no longer exists.')], ephemeral: true });
+      if (!row) return interaction.reply({ embeds: [errorEmbed('Not found', 'That embed no longer exists.')] });
       const data = {
         title: interaction.fields.getTextInputValue('title') || '',
         description: interaction.fields.getTextInputValue('description') || '',
@@ -62,10 +62,10 @@ module.exports = {
       const embed = customEmbeds.buildEmbedFromData(data);
       const channel = interaction.guild.channels.cache.get(row.channel_id) || await interaction.guild.channels.fetch(row.channel_id).catch(() => null);
       const msg = channel?.isTextBased() ? await channel.messages.fetch(row.message_id).catch(() => null) : null;
-      if (!msg) return interaction.reply({ embeds: [errorEmbed('Message gone', 'The original embed message was deleted — I cannot edit it.')], ephemeral: true });
+      if (!msg) return interaction.reply({ embeds: [errorEmbed('Message gone', 'The original embed message was deleted — I cannot edit it.')] });
       await msg.edit({ embeds: [embed] }).catch(() => null);
       await customEmbeds.updateEmbed(embedId, interaction.guildId, data).catch(() => {});
-      return interaction.reply({ embeds: [successEmbed('Embed updated', `Embed #${embedId} has been updated in <#${row.channel_id}>.`)], ephemeral: true });
+      return interaction.reply({ embeds: [successEmbed('Embed updated', `Embed #${embedId} has been updated in <#${row.channel_id}>.`)] });
     }
   },
 };

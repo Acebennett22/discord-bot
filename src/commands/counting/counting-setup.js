@@ -11,11 +11,10 @@ module.exports = {
   async execute(interaction) {
     const channel = interaction.options.getChannel('channel');
     if (!(await setSettings(interaction.guildId, channel.id))) {
-      return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Counting needs MySQL.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Counting needs MySQL.')] });
     }
     return interaction.reply({
       embeds: [successEmbed('Counting set up', `Counting now happens in <#${channel.id}>.\nEach message must start with the next number (1, 2, 3…). A wrong number or the same person counting twice in a row resets the count to 0.`)],
-      ephemeral: true,
     });
   },
 };

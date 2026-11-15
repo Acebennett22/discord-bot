@@ -30,13 +30,13 @@ module.exports = {
     .setDescription('Casino: play blackjack vs the dealer. Blackjack pays 3:2, win pays x2, push returns your bet.')
     .addIntegerOption((o) => o.setName('bet').setDescription('Coins to bet (min 10, max 10000)').setRequired(true).setMinValue(1)),
   async execute(interaction) {
-    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'Casino games only work in a server.')], ephemeral: true });
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Casino offline', 'The database is not connected, so casino games are unavailable right now.')], ephemeral: true });
+    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'Casino games only work in a server.')] });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Casino offline', 'The database is not connected, so casino games are unavailable right now.')] });
     const bet = interaction.options.getInteger('bet');
     const remaining = casino.cooldownRemainingMs(interaction.user.id);
-    if (remaining > 0) return interaction.reply({ embeds: [errorEmbed('Slow down', `Wait **${Math.ceil(remaining / 1000)}s** between casino games.`)], ephemeral: true });
+    if (remaining > 0) return interaction.reply({ embeds: [errorEmbed('Slow down', `Wait **${Math.ceil(remaining / 1000)}s** between casino games.`)] });
     const check = await casino.validateBet(interaction.guildId, interaction.user.id, bet);
-    if (!check.ok) return interaction.reply({ embeds: [errorEmbed('Bet rejected', check.error)], ephemeral: true });
+    if (!check.ok) return interaction.reply({ embeds: [errorEmbed('Bet rejected', check.error)] });
     casino.markPlayed(interaction.user.id);
     await casino.placeBet(interaction.guildId, interaction.user.id, bet);
 
@@ -51,21 +51,21 @@ module.exports = {
       if (playerBJ && dealerBJ) {
         await casino.refund(game.guildId, game.userId, bet);
         endGame(game.id);
-        return interaction.reply({ embeds: [gameEmbed(game, true, '🃏 Blackjack — push!')], components: [], ephemeral: true });
+        return interaction.reply({ embeds: [gameEmbed(game, true, '🃏 Blackjack — push!')], components: [] });
       }
       if (playerBJ) {
         // 3:2 — credit stake + 1.5x stake, rounded down to whole coins.
         const payoutAmount = bet + Math.floor(bet * 3 / 2);
         await casino.payout(game.guildId, game.userId, payoutAmount, 'Blackjack 3:2');
         endGame(game.id);
-        return interaction.reply({ embeds: [gameEmbed(game, true, '🃏 BLACKJACK! You win 3:2!')], components: [], ephemeral: true });
+        return interaction.reply({ embeds: [gameEmbed(game, true, '🃏 BLACKJACK! You win 3:2!')], components: [] });
       }
       // Dealer blackjack — stake already deducted, game over.
       endGame(game.id);
-      return interaction.reply({ embeds: [gameEmbed(game, true, '🃏 Dealer blackjack — you lose')], components: [], ephemeral: true });
+      return interaction.reply({ embeds: [gameEmbed(game, true, '🃏 Dealer blackjack — you lose')], components: [] });
     }
 
-    await interaction.reply({ embeds: [gameEmbed(game, false)], components: buttons(game.id, false), ephemeral: true });
+    await interaction.reply({ embeds: [gameEmbed(game, false)], components: buttons(game.id, false) });
     // Auto-stand after 2 minutes of inactivity so the game can't hang forever.
     setTimeout(async () => {
       const stillThere = require('../../utils/blackjack').getGame(game.id);

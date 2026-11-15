@@ -13,22 +13,22 @@ module.exports = {
       .addChannelOption((o) => o.setName('channel').setDescription('Channel (defaults to this one)')))
     .addSubcommand((s) => s.setName('list').setDescription('List slowmode schedules in this server.')),
   async execute(interaction) {
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Slowmode schedules need MySQL.')], ephemeral: true });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Slowmode schedules need MySQL.')] });
     if (!interaction.memberPermissions?.has('ManageChannels')) {
-      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need Manage Channels to use slowmode settings.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need Manage Channels to use slowmode settings.')] });
     }
     const sub = interaction.options.getSubcommand();
     if (sub === 'list') {
       const rows = await slowmode.listSchedules(interaction.guildId);
-      if (!rows.length) return interaction.reply({ embeds: [infoEmbed('⏱️ Slowmode schedules', 'No slowmode schedules set. Use /slowmode-schedule to add one.')], ephemeral: true });
+      if (!rows.length) return interaction.reply({ embeds: [infoEmbed('⏱️ Slowmode schedules', 'No slowmode schedules set. Use /slowmode-schedule to add one.')] });
       const lines = rows.map((r) => `<#${r.channel_id}> — day **${r.day_seconds}s** · night **${r.night_seconds}s** (${r.night_start_hour}:00–${r.night_end_hour}:00)`);
-      return interaction.reply({ embeds: [infoEmbed('⏱️ Slowmode schedules', lines.join('\n'))], ephemeral: true });
+      return interaction.reply({ embeds: [infoEmbed('⏱️ Slowmode schedules', lines.join('\n'))] });
     }
     // set
     const seconds = interaction.options.getInteger('seconds');
     const channel = interaction.options.getChannel('channel') || interaction.channel;
-    if (typeof channel.setRateLimitPerUser !== 'function') return interaction.reply({ embeds: [errorEmbed('Not a text channel', 'Slowmode only works in text channels.')], ephemeral: true });
+    if (typeof channel.setRateLimitPerUser !== 'function') return interaction.reply({ embeds: [errorEmbed('Not a text channel', 'Slowmode only works in text channels.')] });
     await channel.setRateLimitPerUser(seconds, `Set by ${interaction.user.tag}`).catch(() => null);
-    return interaction.reply({ embeds: [successEmbed('Slowmode set', seconds === 0 ? `Slowmode is now **off** in <#${channel.id}>.` : `Slowmode in <#${channel.id}> is now **${seconds} seconds** between messages.`)], ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed('Slowmode set', seconds === 0 ? `Slowmode is now **off** in <#${channel.id}>.` : `Slowmode in <#${channel.id}> is now **${seconds} seconds** between messages.`)] });
   },
 };

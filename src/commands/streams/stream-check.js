@@ -21,11 +21,11 @@ module.exports = {
     .addStringOption((o) => o.setName('channel').setDescription('Channel name/ID as added with /stream-add').setRequired(true).setMaxLength(128))
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
   async execute(interaction) {
-    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'Stream checks only work in a server.')], ephemeral: true });
+    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'Stream checks only work in a server.')] });
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission.')] });
     }
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database offline', 'Stream watchers are stored in MySQL — connect the database first.')], ephemeral: true });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database offline', 'Stream watchers are stored in MySQL — connect the database first.')] });
     const platform = interaction.options.getString('platform');
     const channelName = interaction.options.getString('channel').trim();
     const rows = await db.query(
@@ -34,12 +34,12 @@ module.exports = {
     );
     const row = rows?.[0];
     if (!row) {
-      return interaction.reply({ embeds: [errorEmbed('Not watched', `**${channelName}** on **${platform}** isn't being watched in this server. Add them with /stream-add first.`)], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Not watched', `**${channelName}** on **${platform}** isn't being watched in this server. Add them with /stream-add first.`)] });
     }
     if (MANUAL_ONLY.includes(platform)) {
-      return interaction.reply({ embeds: [infoEmbed('Manual-only platform', `**${platform}** has no public live-status API, so there's nothing to check automatically. Use /stream-announce to post when **${channelName}** goes live.`)], ephemeral: true });
+      return interaction.reply({ embeds: [infoEmbed('Manual-only platform', `**${platform}** has no public live-status API, so there's nothing to check automatically. Use /stream-announce to post when **${channelName}** goes live.`)] });
     }
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply();
     const wasLive = Boolean(row.is_live);
     const status = await checkOneStreamer(interaction.client, row.id).catch(() => null);
     if (!status || status.error) {

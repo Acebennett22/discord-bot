@@ -23,29 +23,29 @@ module.exports = {
     .addSubcommand((s) => s.setName('stop').setDescription('Admin only: stop the active XP boost.'))
     .addSubcommand((s) => s.setName('status').setDescription('Show whether an XP boost is active.')),
   async execute(interaction) {
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'XP boosts need MySQL.')], ephemeral: true });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'XP boosts need MySQL.')] });
     const sub = interaction.options.getSubcommand();
     // start/stop are admin-only (checked here because subcommands can't
     // carry their own default member permissions).
     if ((sub === 'start' || sub === 'stop') && !interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
-      return interaction.reply({ embeds: [errorEmbed('Admin only', 'Only server admins can start or stop XP boosts.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Admin only', 'Only server admins can start or stop XP boosts.')] });
     }
     if (sub === 'status') {
       const boost = await getActiveBoost(interaction.guildId);
-      if (!boost) return interaction.reply({ embeds: [infoEmbed('XP boost', 'No XP boost is active right now.')] , ephemeral: true });
-      return interaction.reply({ embeds: [infoEmbed('XP boost active!', `⚡ **${parseFloat(boost.multiplier)}x XP** until <t:${Math.floor(new Date(boost.ends_at).getTime() / 1000)}:R>.`)], ephemeral: true });
+      if (!boost) return interaction.reply({ embeds: [infoEmbed('XP boost', 'No XP boost is active right now.')]  });
+      return interaction.reply({ embeds: [infoEmbed('XP boost active!', `⚡ **${parseFloat(boost.multiplier)}x XP** until <t:${Math.floor(new Date(boost.ends_at).getTime() / 1000)}:R>.`)] });
     }
     if (sub === 'start') {
       const multiplier = interaction.options.getNumber('multiplier');
       const ms = parseDuration(interaction.options.getString('duration'));
       if (!ms || ms < 60_000 || ms > 7 * 86_400_000) {
-        return interaction.reply({ embeds: [errorEmbed('Invalid duration', 'Use a duration like 2h or 1d (between 1 minute and 7 days).')], ephemeral: true });
+        return interaction.reply({ embeds: [errorEmbed('Invalid duration', 'Use a duration like 2h or 1d (between 1 minute and 7 days).')] });
       }
       const boost = await startBoost(interaction.guildId, multiplier, ms, interaction.user.id);
-      return interaction.reply({ embeds: [successEmbed('XP boost started!', `⚡ **${multiplier}x XP** for everyone in this server until <t:${Math.floor(boost.endsAt.getTime() / 1000)}:R>.`)], ephemeral: true });
+      return interaction.reply({ embeds: [successEmbed('XP boost started!', `⚡ **${multiplier}x XP** for everyone in this server until <t:${Math.floor(boost.endsAt.getTime() / 1000)}:R>.`)] });
     }
     // stop
     const stopped = await stopBoost(interaction.guildId);
-    return interaction.reply({ embeds: [stopped ? successEmbed('XP boost stopped', 'XP is back to normal.') : infoEmbed('No boost', 'No XP boost was active.')], ephemeral: true });
+    return interaction.reply({ embeds: [stopped ? successEmbed('XP boost stopped', 'XP is back to normal.') : infoEmbed('No boost', 'No XP boost was active.')] });
   },
 };

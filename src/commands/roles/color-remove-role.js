@@ -10,13 +10,13 @@ module.exports = {
     .addRoleOption((o) => o.setName('role').setDescription('Color role to unregister').setRequired(true))
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles),
   async execute(interaction) {
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Color roles need MySQL.')], ephemeral: true });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Color roles need MySQL.')] });
     const role = interaction.options.getRole('role');
     const roles = await getColorRoles(interaction.guildId);
     if (!roles.some((r) => r.role_id === role.id)) {
-      return interaction.reply({ embeds: [errorEmbed('Not a color role', `**${role.name}** isn't registered as a color role.`)], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Not a color role', `**${role.name}** isn't registered as a color role.`)] });
     }
     await removeColorRole(interaction.guildId, role.id);
-    return interaction.reply({ embeds: [successEmbed('Color role removed', `🎨 **${role.name}** is no longer a self-assignable color role.`)], ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed('Color role removed', `🎨 **${role.name}** is no longer a self-assignable color role.`)] });
   },
 };

@@ -26,7 +26,6 @@ async function requireDJ(interaction, commandName) {
   const role = interaction.guild?.roles.cache.get(settings.djRoleId);
   await interaction.reply({
     embeds: [errorEmbed('DJ only', `🎧 DJ mode is on — only members with the ${role ? `<@&${role.id}>` : 'DJ'} role (or admins) can use \`/${commandName}\` in this server.`)],
-    ephemeral: true,
   }).catch(() => {});
   return false;
 }

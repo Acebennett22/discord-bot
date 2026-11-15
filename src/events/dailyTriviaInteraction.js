@@ -9,7 +9,7 @@ module.exports = {
     if (!interaction.isButton() || !interaction.customId.startsWith('dtrivia:')) return;
     const [, guildId, dateStr, idxStr] = interaction.customId.split(':');
     const result = await answerDaily(interaction, guildId, dateStr, Number(idxStr)).catch(() => null);
-    if (!result) return interaction.reply({ embeds: [errorEmbed('Trivia error', 'Something went wrong — try again.')], ephemeral: true });
+    if (!result) return interaction.reply({ embeds: [errorEmbed('Trivia error', 'Something went wrong — try again.')] });
     if (result.status === 'correct') return interaction.reply({ embeds: [successEmbed('Correct!', result.message)], ephemeral: true });
     if (result.status === 'wrong') return interaction.reply({ embeds: [infoEmbed('🧠 Daily trivia', result.message)], ephemeral: true });
     return interaction.reply({ embeds: [infoEmbed('🧠 Daily trivia', result.message)], ephemeral: true });

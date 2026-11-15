@@ -16,17 +16,17 @@ module.exports = {
     if (sub === 'view') {
       const tpl = await getTemplate(interaction.guildId);
       return interaction.reply({ embeds: [infoEmbed('Live channel name template',
-        `**Current:** \`${tpl}\`\n**Preview:** \`${renderTemplate(tpl, { name: 'ExampleStreamer', game: 'Just Chatting', title: 'Chilling with chat' })}\`\n\nPlaceholders: \`{name}\` (required), \`{game}\`, \`{title}\`. Max 100 characters, one line.\nSet it with \`/stream-template set\` or on the dashboard Streams tab — both read the same database field.`)], ephemeral: true });
+        `**Current:** \`${tpl}\`\n**Preview:** \`${renderTemplate(tpl, { name: 'ExampleStreamer', game: 'Just Chatting', title: 'Chilling with chat' })}\`\n\nPlaceholders: \`{name}\` (required), \`{game}\`, \`{title}\`. Max 100 characters, one line.\nSet it with \`/stream-template set\` or on the dashboard Streams tab — both read the same database field.`)] });
     }
     if (sub === 'reset') {
       const { setGuildSettings } = require('../../utils/guildSettings');
       await setGuildSettings(interaction.guildId, { liveChannelNameTemplate: '' });
-      return interaction.reply({ ephemeral: true, embeds: [successEmbed('Template reset', `Back to the default: \`${DEFAULT_TEMPLATE}\``)] });
+      return interaction.reply({  embeds: [successEmbed('Template reset', `Back to the default: \`${DEFAULT_TEMPLATE}\``)] });
     }
     const template = interaction.options.getString('template');
     const result = await setTemplate(interaction.guildId, template);
-    if (!result.ok) return interaction.reply({ embeds: [errorEmbed('Invalid template', result.error)], ephemeral: true });
-    return interaction.reply({ ephemeral: true, embeds: [successEmbed('Template saved',
+    if (!result.ok) return interaction.reply({ embeds: [errorEmbed('Invalid template', result.error)] });
+    return interaction.reply({  embeds: [successEmbed('Template saved',
       `New template: \`${template}\`\nPreview: \`${renderTemplate(template, { name: 'ExampleStreamer', game: 'Just Chatting', title: 'Chilling with chat' })}\``)] });
   },
 };

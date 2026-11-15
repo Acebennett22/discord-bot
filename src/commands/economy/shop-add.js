@@ -18,11 +18,11 @@ module.exports = {
     .addStringOption((o) => o.setName('crate_contents').setDescription('Crate only: JSON rewards, e.g. [{"kind":"coins","min":50,"max":150,"weight":60}]').setMaxLength(2000))
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
   async execute(interaction) {
-    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'The shop only works in a server.')], ephemeral: true });
+    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'The shop only works in a server.')] });
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission to add shop items.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission to add shop items.')] });
     }
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Shop offline', 'The database is not connected, so items can\'t be added right now.')], ephemeral: true });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Shop offline', 'The database is not connected, so items can\'t be added right now.')] });
     const itemName = interaction.options.getString('name');
     const price = interaction.options.getInteger('price');
     const description = interaction.options.getString('description');
@@ -32,12 +32,12 @@ module.exports = {
     const emojiOpt = interaction.options.getString('emoji');
     let sellPrice = interaction.options.getInteger('sell_price');
     if (sellPrice != null && sellPrice > price) {
-      return interaction.reply({ embeds: [errorEmbed('Invalid sell price', `Sell price (${sellPrice}) can't be above the buy price (${price}). Leave it unset for half price.`)], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Invalid sell price', `Sell price (${sellPrice}) can't be above the buy price (${price}). Leave it unset for half price.`)] });
     }
     let crateContents = null;
     const crateJson = interaction.options.getString('crate_contents');
     if (crateJson) {
-      if (type !== 'crate') return interaction.reply({ embeds: [errorEmbed('Wrong type', 'crate_contents only applies to crate items — set type to Crate.')], ephemeral: true });
+      if (type !== 'crate') return interaction.reply({ embeds: [errorEmbed('Wrong type', 'crate_contents only applies to crate items — set type to Crate.')] });
       try {
         const parsed = JSON.parse(crateJson);
         if (!Array.isArray(parsed) || !parsed.length) throw new Error('must be a non-empty array');
@@ -48,11 +48,11 @@ module.exports = {
         }
         crateContents = JSON.stringify(parsed);
       } catch (err) {
-        return interaction.reply({ embeds: [errorEmbed('Bad crate_contents JSON', `Couldn't parse the rewards: ${err.message}\nExample: \`[{"kind":"coins","min":50,"max":150,"weight":60},{"kind":"item","item_name":"Rare Crate","weight":10}]\``)], ephemeral: true });
+        return interaction.reply({ embeds: [errorEmbed('Bad crate_contents JSON', `Couldn't parse the rewards: ${err.message}\nExample: \`[{"kind":"coins","min":50,"max":150,"weight":60},{"kind":"item","item_name":"Rare Crate","weight":10}]\``)] });
       }
     }
     if (type === 'crate' && !crateContents) {
-      return interaction.reply({ embeds: [errorEmbed('Crate needs contents', 'A crate item needs crate_contents — the weighted rewards players roll when they open it. See the example in the option description.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Crate needs contents', 'A crate item needs crate_contents — the weighted rewards players roll when they open it. See the example in the option description.')] });
     }
     const settings = await getPremiumSettings(interaction.guildId);
     const emoji = settings.economyCurrencyEmoji || '🪙';
@@ -61,6 +61,6 @@ module.exports = {
       'INSERT INTO shop_items (guild_id, name, description, price, role_id, emoji, type, sell_price, crate_contents, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [interaction.guildId, itemName, description || null, price, role?.id || null, emojiOpt || null, type, sellPrice ?? null, crateContents, interaction.user.id],
     );
-    return interaction.reply({ embeds: [successEmbed('Item added', `**${itemName}** (#${result.insertId}, ${type}) is now in the shop for ${emoji} ${price} ${cname}.${role ? ` Buyers get the ${role} role.` : ''}${type === 'crate' ? ' Open it with /open-crate.' : ''}`)], ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed('Item added', `**${itemName}** (#${result.insertId}, ${type}) is now in the shop for ${emoji} ${price} ${cname}.${role ? ` Buyers get the ${role} role.` : ''}${type === 'crate' ? ' Open it with /open-crate.' : ''}`)] });
   },
 };

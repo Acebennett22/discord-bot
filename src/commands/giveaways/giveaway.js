@@ -24,11 +24,11 @@ module.exports = {
     .addSubcommand((s) => s.setName('list').setDescription('List active giveaways in this server.'))
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
   async execute(interaction) {
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Giveaways need MySQL.')], ephemeral: true });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Giveaways need MySQL.')] });
     const sub = interaction.options.getSubcommand();
     if (sub === 'start') {
       const ms = parseDuration(interaction.options.getString('duration'));
-      if (!ms || ms < 10_000) return interaction.reply({ embeds: [errorEmbed('Invalid duration', 'Use a duration like 10m, 1h, or 1d (at least 10s).')], ephemeral: true });
+      if (!ms || ms < 10_000) return interaction.reply({ embeds: [errorEmbed('Invalid duration', 'Use a duration like 10m, 1h, or 1d (at least 10s).')] });
       const prize = interaction.options.getString('prize');
       const winners = interaction.options.getInteger('winners') || 1;
       const role = interaction.options.getRole('required_role');
@@ -46,12 +46,12 @@ module.exports = {
       const giveaway = { id: giveawayId, prize, winners_count: winners, ends_at: endsAt, required_role_id: role?.id || null, min_days_in_server: minDays ?? null, min_level: minLevel ?? null, bonus_role_id: bonusRole?.id || null, bonus_entries: bonusEntries };
       const msg = await channel.send({ embeds: [giveawayEmbed(giveaway, 0)], components: [enterRow(giveawayId)] });
       await db.query('UPDATE giveaways SET message_id = ? WHERE id = ?', [msg.id, giveawayId]);
-      return interaction.reply({ embeds: [successEmbed('Giveaway started', `🎉 **${prize}** — ${winners} winner(s), ends <t:${Math.floor(endsAt.getTime() / 1000)}:R> in <#${channel.id}>.\nGiveaway ID: **${giveawayId}**`)], ephemeral: true });
+      return interaction.reply({ embeds: [successEmbed('Giveaway started', `🎉 **${prize}** — ${winners} winner(s), ends <t:${Math.floor(endsAt.getTime() / 1000)}:R> in <#${channel.id}>.\nGiveaway ID: **${giveawayId}**`)] });
     }
     if (sub === 'list') {
       const rows = await db.query("SELECT * FROM giveaways WHERE guild_id = ? AND status = 'active' ORDER BY ends_at", [interaction.guildId]);
-      if (!rows?.length) return interaction.reply({ ephemeral: true, embeds: [infoEmbed('Giveaways', 'No active giveaways in this server.')] });
-      return interaction.reply({ ephemeral: true, embeds: [infoEmbed('Active giveaways', rows.map((g) => {
+      if (!rows?.length) return interaction.reply({  embeds: [infoEmbed('Giveaways', 'No active giveaways in this server.')] });
+      return interaction.reply({  embeds: [infoEmbed('Active giveaways', rows.map((g) => {
         const reqs = [
           g.required_role_id ? `needs <@&${g.required_role_id}>` : null,
           g.min_days_in_server !== null && g.min_days_in_server !== undefined ? `${g.min_days_in_server}d+` : null,
@@ -64,10 +64,10 @@ module.exports = {
     const id = interaction.options.getInteger('id');
     const rows = await db.query('SELECT * FROM giveaways WHERE id = ? AND guild_id = ?', [id, interaction.guildId]);
     const giveaway = rows?.[0];
-    if (!giveaway) return interaction.reply({ embeds: [errorEmbed('Not found', `No giveaway #${id} in this server.`)], ephemeral: true });
-    if (sub === 'end' && giveaway.status !== 'active') return interaction.reply({ embeds: [errorEmbed('Already ended', 'That giveaway has already ended — use /giveaway reroll instead.')], ephemeral: true });
-    if (sub === 'reroll' && giveaway.status !== 'ended') return interaction.reply({ embeds: [errorEmbed('Not ended yet', 'Only ended giveaways can be re-rolled — use /giveaway end first.')], ephemeral: true });
-    await interaction.deferReply({ ephemeral: true });
+    if (!giveaway) return interaction.reply({ embeds: [errorEmbed('Not found', `No giveaway #${id} in this server.`)] });
+    if (sub === 'end' && giveaway.status !== 'active') return interaction.reply({ embeds: [errorEmbed('Already ended', 'That giveaway has already ended — use /giveaway reroll instead.')] });
+    if (sub === 'reroll' && giveaway.status !== 'ended') return interaction.reply({ embeds: [errorEmbed('Not ended yet', 'Only ended giveaways can be re-rolled — use /giveaway end first.')] });
+    await interaction.deferReply();
     const winners = await endGiveaway(interaction.client, giveaway, { reroll: sub === 'reroll' });
     return interaction.editReply({ embeds: [winners.length ? successEmbed('Winner(s) picked', `🎉 ${winners.map((w) => `<@${w}>`).join(', ')}`) : infoEmbed('No winner', 'No entries — no winner could be picked.')] });
   },

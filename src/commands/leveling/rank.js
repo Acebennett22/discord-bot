@@ -11,7 +11,7 @@ module.exports = {
   async execute(interaction) {
     const user = interaction.options.getUser('user') || interaction.user;
     const rank = await getRank(user.id, interaction.guildId);
-    if (!rank) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Leveling needs MySQL — connect the database first.')], ephemeral: true });
+    if (!rank) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Leveling needs MySQL — connect the database first.')] });
     const { level, into, needed } = xpIntoLevel(rank.xp);
     const prestigeLine = rank.prestige > 0 ? `\n**Prestige:** ⭐ ${rank.prestige} (x${(1 + Math.min(rank.prestige, 10) * 0.1).toFixed(1)} XP)` : '';
     const embed = infoEmbed(`🏆 Rank — ${user.tag}`, [
@@ -33,8 +33,8 @@ module.exports = {
       totalMessages: rank.messages || 0,
     });
     if (card) {
-      return interaction.reply({ ephemeral: true, files: [new AttachmentBuilder(card, { name: 'rank-card.png' })] });
+      return interaction.reply({  files: [new AttachmentBuilder(card, { name: 'rank-card.png' })] });
     }
-    return interaction.reply({ ephemeral: true, embeds: [embed] });
+    return interaction.reply({  embeds: [embed] });
   },
 };

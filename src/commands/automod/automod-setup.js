@@ -25,7 +25,7 @@ module.exports = {
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
   async execute(interaction) {
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission.')] });
     }
     const patch = {};
     const getBool = (name) => interaction.options.getBoolean(name);
@@ -40,7 +40,7 @@ module.exports = {
     const logChannel = interaction.options.getChannel('log_channel');
     if (logChannel) patch.logChannelId = logChannel.id;
     if (!Object.keys(patch).length) {
-      return interaction.reply({ embeds: [errorEmbed('Nothing to set', 'Give at least one option — or run /automod to see the current settings.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Nothing to set', 'Give at least one option — or run /automod to see the current settings.')] });
     }
     const { saved, settings } = await automod.setSettings(interaction.guildId, patch);
     const lines = [
@@ -50,6 +50,6 @@ module.exports = {
       `Log channel: ${settings.logChannelId ? `<#${settings.logChannelId}>` : 'not set'}`,
     ];
     if (!saved) lines.push('\n⚠️ MySQL is not connected — these settings are only kept in memory for this run.');
-    return interaction.reply({ embeds: [successEmbed('Automod settings saved', lines.join('\n'))], ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed('Automod settings saved', lines.join('\n'))] });
   },
 };

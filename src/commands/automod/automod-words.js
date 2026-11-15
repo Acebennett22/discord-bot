@@ -12,27 +12,26 @@ module.exports = {
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
   async execute(interaction) {
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission.')] });
     }
     const sub = interaction.options.getSubcommand();
     const settings = await automod.getSettings(interaction.guildId);
     if (sub === 'list') {
       return interaction.reply({
         embeds: [infoEmbed('🛡️ Banned words', settings.bannedWords.length ? settings.bannedWords.join(', ') : 'No banned words set. Add one with /automod-words add.')],
-        ephemeral: true,
       });
     }
     const word = interaction.options.getString('word').trim().toLowerCase();
-    if (!word) return interaction.reply({ embeds: [errorEmbed('Empty word', 'Give a word to add or remove.')], ephemeral: true });
+    if (!word) return interaction.reply({ embeds: [errorEmbed('Empty word', 'Give a word to add or remove.')] });
     let words = [...settings.bannedWords];
     if (sub === 'add') {
-      if (words.includes(word)) return interaction.reply({ embeds: [errorEmbed('Already banned', `"${word}" is already on the banned-words list.`)], ephemeral: true });
+      if (words.includes(word)) return interaction.reply({ embeds: [errorEmbed('Already banned', `"${word}" is already on the banned-words list.`)] });
       words.push(word);
     } else {
-      if (!words.includes(word)) return interaction.reply({ embeds: [errorEmbed('Not on the list', `"${word}" is not on the banned-words list.`)], ephemeral: true });
+      if (!words.includes(word)) return interaction.reply({ embeds: [errorEmbed('Not on the list', `"${word}" is not on the banned-words list.`)] });
       words = words.filter((w) => w !== word);
     }
     await automod.setSettings(interaction.guildId, { bannedWords: words });
-    return interaction.reply({ embeds: [successEmbed(sub === 'add' ? 'Word banned' : 'Word removed', sub === 'add' ? `"${word}" will now trigger Automod (word-boundary match).` : `"${word}" was removed from the banned-words list.`)], ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed(sub === 'add' ? 'Word banned' : 'Word removed', sub === 'add' ? `"${word}" will now trigger Automod (word-boundary match).` : `"${word}" was removed from the banned-words list.`)] });
   },
 };

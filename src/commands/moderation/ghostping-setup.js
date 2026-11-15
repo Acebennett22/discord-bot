@@ -17,10 +17,10 @@ module.exports = {
     if (channel) patch.ghostpingChannelId = channel.id;
     if (!Object.keys(patch).length) {
       const s = await getGuildSettings(interaction.guildId);
-      return interaction.reply({ embeds: [successEmbed('Ghost-ping settings', `Enabled: **${s.ghostpingEnabled ? 'yes' : 'no'}**\nCallout channel: ${s.ghostpingChannelId ? `<#${s.ghostpingChannelId}>` : 'same channel as the deleted message'}\n\nBot-deleted messages (automod, purge) are ignored; max 1 callout per user per minute.`)], ephemeral: true });
+      return interaction.reply({ embeds: [successEmbed('Ghost-ping settings', `Enabled: **${s.ghostpingEnabled ? 'yes' : 'no'}**\nCallout channel: ${s.ghostpingChannelId ? `<#${s.ghostpingChannelId}>` : 'same channel as the deleted message'}\n\nBot-deleted messages (automod, purge) are ignored; max 1 callout per user per minute.`)] });
     }
     await setGuildSettings(interaction.guildId, patch);
     const s = await getGuildSettings(interaction.guildId);
-    return interaction.reply({ embeds: [successEmbed('Ghost-ping updated', `Enabled: **${s.ghostpingEnabled ? 'yes' : 'no'}**\nCallout channel: ${s.ghostpingChannelId ? `<#${s.ghostpingChannelId}>` : 'same channel as the deleted message'}`)], ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed('Ghost-ping updated', `Enabled: **${s.ghostpingEnabled ? 'yes' : 'no'}**\nCallout channel: ${s.ghostpingChannelId ? `<#${s.ghostpingChannelId}>` : 'same channel as the deleted message'}`)] });
   },
 };

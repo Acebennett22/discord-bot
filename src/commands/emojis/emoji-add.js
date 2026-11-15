@@ -35,19 +35,19 @@ module.exports = {
     const attachment = interaction.options.getAttachment('image');
     const url = interaction.options.getString('image_url');
     if (!NAME_RE.test(name)) {
-      return interaction.reply({ embeds: [errorEmbed('Invalid name', 'Emoji names must be 2–32 characters, letters, numbers, and underscores only.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Invalid name', 'Emoji names must be 2–32 characters, letters, numbers, and underscores only.')] });
     }
     if (!attachment && !url) {
-      return interaction.reply({ embeds: [errorEmbed('No image', 'Attach an image or give an `image_url`.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('No image', 'Attach an image or give an `image_url`.')] });
     }
     const limit = interaction.guild.emojiLimit || 50;
     if (interaction.guild.emojis.cache.size >= limit) {
-      return interaction.reply({ embeds: [errorEmbed('Emoji slots full', `This server already has ${interaction.guild.emojis.cache.size}/${limit} custom emoji — remove one first with \`/emoji-remove\`.`)] , ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Emoji slots full', `This server already has ${interaction.guild.emojis.cache.size}/${limit} custom emoji — remove one first with \`/emoji-remove\`.`)]  });
     }
     if (interaction.guild.emojis.cache.some((e) => e.name === name)) {
-      return interaction.reply({ embeds: [errorEmbed('Name taken', `An emoji named \`:${name}:\` already exists in this server.`)], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Name taken', `An emoji named \`:${name}:\` already exists in this server.`)] });
     }
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply();
     let image;
     try {
       if (attachment) {

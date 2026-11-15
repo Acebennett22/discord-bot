@@ -21,17 +21,17 @@ module.exports = {
     .setDescription('Use a consumable item from your inventory.')
     .addIntegerOption((o) => o.setName('item').setDescription('Consumable item ID (see /inventory)').setRequired(true).setMinValue(1)),
   async execute(interaction) {
-    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'Items only work in a server.')], ephemeral: true });
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Offline', 'The database is not connected, so items are unavailable right now.')], ephemeral: true });
+    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'Items only work in a server.')] });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Offline', 'The database is not connected, so items are unavailable right now.')] });
     const itemId = interaction.options.getInteger('item');
     const item = await inv.getShopItem(interaction.guildId, itemId);
-    if (!item) return interaction.reply({ embeds: [errorEmbed('Not found', `No shop item with ID #${itemId}.`)], ephemeral: true });
-    if (item.type !== 'consumable') return interaction.reply({ embeds: [errorEmbed('Not usable', `**${item.name}** is a ${item.type} item — only consumables can be used.`)], ephemeral: true });
+    if (!item) return interaction.reply({ embeds: [errorEmbed('Not found', `No shop item with ID #${itemId}.`)] });
+    if (item.type !== 'consumable') return interaction.reply({ embeds: [errorEmbed('Not usable', `**${item.name}** is a ${item.type} item — only consumables can be used.`)] });
     const have = await inv.getInventoryQuantity(interaction.guildId, interaction.user.id, itemId);
-    if (have < 1) return interaction.reply({ embeds: [errorEmbed('Not owned', `You don't have a ${inv.itemLabel(item)} in your inventory.`)], ephemeral: true });
+    if (have < 1) return interaction.reply({ embeds: [errorEmbed('Not owned', `You don't have a ${inv.itemLabel(item)} in your inventory.`)] });
     const res = await applyConsumable(interaction, item);
-    if (!res.ok) return interaction.reply({ embeds: [errorEmbed('No effect', res.text)], ephemeral: true });
+    if (!res.ok) return interaction.reply({ embeds: [errorEmbed('No effect', res.text)] });
     await inv.removeItem(interaction.guildId, interaction.user.id, itemId, 1);
-    return interaction.reply({ embeds: [successEmbed('Used!', res.text)], ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed('Used!', res.text)] });
   },
 };

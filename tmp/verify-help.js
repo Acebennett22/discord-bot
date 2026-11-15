@@ -94,9 +94,10 @@ check(allParents.every((p) => parentToGroups[p]), 'no parent missing from groups
 (async () => {
   let captured = null;
   let collected = null;
-  const replyMsg = { createMessageComponentCollector: () => { collected = { on: () => {} }; return collected; } };
+  const replyMsg = { createMessageComponentCollector: (opts) => { collected = { on: () => {}, opts }; return collected; } };
   const interaction = {
     client,
+    user: { id: '111' },
     reply: async (opts) => { captured = opts; return { resource: { message: replyMsg } }; },
     editReply: async () => {},
   };
@@ -104,7 +105,13 @@ check(allParents.every((p) => parentToGroups[p]), 'no parent missing from groups
   const opening = captured.embeds[0].data.description;
   check(opening.includes('**266 commands**'), `opening embed says 266 commands (got: ${opening.split('\n').pop()})`);
   check(captured.components[0].components[0].options.length <= 25, `select menu has ${captured.components[0].components[0].options.length} options (<= 25)`);
-  check(captured.ephemeral === true, 'reply is ephemeral');
+  // 1.15.7: the reply is PUBLIC now (no ephemeral flag); the menu is
+  // invoker-only via a collector filter instead.
+  check(captured.ephemeral === undefined, 'reply is public (no ephemeral flag)');
+  check(typeof collected.opts.filter === 'function'
+    && collected.opts.filter({ user: { id: '111' } }) === true
+    && collected.opts.filter({ user: { id: '222' } }) === false,
+  'collector is invoker-only (accepts invoker, rejects others)');
   console.log(failures === 0 ? 'ALL HELP CHECKS PASSED' : `${failures} FAILURES`);
   process.exit(failures === 0 ? 0 : 1);
 })().catch((e) => { console.log('FAIL: execute threw', e); process.exit(1); });

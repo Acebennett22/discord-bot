@@ -12,7 +12,7 @@ module.exports = {
     .addBooleanOption((o) => o.setName('enabled').setDescription('Enable or disable temp voice channels (default: true)'))
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
   async execute(interaction) {
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Temp VC setup needs MySQL.')], ephemeral: true });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Temp VC setup needs MySQL.')] });
     const createChannel = interaction.options.getChannel('create_channel');
     const category = interaction.options.getChannel('category');
     const enabled = interaction.options.getBoolean('enabled');
@@ -32,6 +32,6 @@ module.exports = {
       `Create channel: ${settings.tempvcCreateChannelId ? `<#${settings.tempvcCreateChannelId}>` : 'not set'}`,
       `Category: ${settings.tempvcCategoryId ? `<#${settings.tempvcCategoryId}>` : 'not set (uses the create channel\'s category)'}`,
       active ? 'Members who join the create channel will get their own temp voice channel, deleted when empty.' : 'Temp voice channels are off — no new temp channels will be created.',
-    ].join('\n'))], ephemeral: true });
+    ].join('\n'))] });
   },
 };

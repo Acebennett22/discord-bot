@@ -13,7 +13,6 @@ module.exports = {
     await setGuildSettings(interaction.guildId, { bumpChannelId: channel.id });
     return interaction.reply({
       embeds: [successEmbed('Bump reminders set up', `When 2 hours pass since the last bump, the bot will remind everyone in <#${channel.id}>.\nBumps are recorded when someone types \`!d bump\` or when DISBOARD confirms a bump. Use /bump to check the timer.`)],
-      ephemeral: true,
     });
   },
 };

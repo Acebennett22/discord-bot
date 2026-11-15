@@ -21,6 +21,6 @@ module.exports = {
     }
     const embed = infoEmbed(`User info — ${user.tag}`, lines.join('\n'));
     embed.setThumbnail(user.displayAvatarURL());
-    return interaction.reply({ ephemeral: true, embeds: [embed] });
+    return interaction.reply({  embeds: [embed] });
   },
 };

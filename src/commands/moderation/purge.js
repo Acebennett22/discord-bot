@@ -17,12 +17,12 @@ module.exports = {
     const contains = interaction.options.getString('contains');
 
     if (!interaction.channel?.isTextBased?.() || typeof interaction.channel.messages?.fetch !== 'function') {
-      return interaction.reply({ embeds: [errorEmbed('Purge failed', 'This command can only be used in a text channel.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Purge failed', 'This command can only be used in a text channel.')] });
     }
 
     const fetched = await interaction.channel.messages.fetch({ limit: 100 }).catch(() => null);
     if (!fetched) {
-      return interaction.reply({ embeds: [errorEmbed('Purge failed', 'I could not read recent messages in this channel.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Purge failed', 'I could not read recent messages in this channel.')] });
     }
     const { deletable, skippedOld, skippedPinned } = filterMessages(fetched, {
       userId: user?.id || null,
@@ -38,7 +38,6 @@ module.exports = {
         embeds: [infoEmbed('Nothing to purge', why
           ? `No matching messages could be deleted. ${why}.`
           : 'No recent messages matched the given filter.')],
-        ephemeral: true,
       });
     }
 
@@ -48,7 +47,7 @@ module.exports = {
     toDelete.forEach((m) => markBotDeleted(m.id));
     const deleted = await interaction.channel.bulkDelete(toDelete, true).catch(() => null);
     if (!deleted) {
-      return interaction.reply({ embeds: [errorEmbed('Purge failed', 'I could not delete those messages — check my permissions in this channel.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Purge failed', 'I could not delete those messages — check my permissions in this channel.')] });
     }
 
     // Audit log (best-effort: silently skipped if the DB is down).
@@ -71,7 +70,7 @@ module.exports = {
     ].filter(Boolean);
     const filterNote = filterParts.length ? `\nFilter: messages ${filterParts.join(' and ')}.` : '';
     return interaction.reply({
-      ephemeral: true,
+      
       embeds: [successEmbed('Messages purged', `Deleted **${deleted.size}** message(s)${filterNote}.${skippedNote}`)],
     });
   },

@@ -14,7 +14,7 @@ module.exports = {
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
   async execute(interaction) {
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission.')] });
     }
     const sub = interaction.options.getSubcommand();
     const settings = await automod.getSettings(interaction.guildId);
@@ -24,7 +24,7 @@ module.exports = {
         { name: 'Roles', value: settings.exemptRoles.length ? settings.exemptRoles.map((r) => `<@&${r}>`).join(' ') : 'none', inline: false },
         { name: 'Channels', value: settings.exemptChannels.length ? settings.exemptChannels.map((c) => `<#${c}>`).join(' ') : 'none', inline: false },
       );
-      return interaction.reply({ embeds: [embed], ephemeral: true });
+      return interaction.reply({ embeds: [embed] });
     }
     const isRole = sub.includes('role');
     const id = isRole ? interaction.options.getRole('role').id : interaction.options.getChannel('channel').id;
@@ -32,13 +32,13 @@ module.exports = {
     const key = isRole ? 'exemptRoles' : 'exemptChannels';
     let list = [...settings[key]];
     if (sub.startsWith('add')) {
-      if (list.includes(id)) return interaction.reply({ embeds: [errorEmbed('Already exempt', `${label} is already exempt from Automod.`)], ephemeral: true });
+      if (list.includes(id)) return interaction.reply({ embeds: [errorEmbed('Already exempt', `${label} is already exempt from Automod.`)] });
       list.push(id);
     } else {
-      if (!list.includes(id)) return interaction.reply({ embeds: [errorEmbed('Not exempt', `${label} is not exempt from Automod.`)], ephemeral: true });
+      if (!list.includes(id)) return interaction.reply({ embeds: [errorEmbed('Not exempt', `${label} is not exempt from Automod.`)] });
       list = list.filter((x) => x !== id);
     }
     await automod.setSettings(interaction.guildId, { [key]: list });
-    return interaction.reply({ embeds: [successEmbed(sub.startsWith('add') ? 'Exemption added' : 'Exemption removed', sub.startsWith('add') ? `${label} now bypasses all Automod checks.` : `${label} is no longer exempt from Automod.`)], ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed(sub.startsWith('add') ? 'Exemption added' : 'Exemption removed', sub.startsWith('add') ? `${label} now bypasses all Automod checks.` : `${label} is no longer exempt from Automod.`)] });
   },
 };

@@ -9,8 +9,8 @@ module.exports = {
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
   async execute(interaction) {
     if (!(await resetCount(interaction.guildId))) {
-      return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Counting needs MySQL.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Counting needs MySQL.')] });
     }
-    return interaction.reply({ embeds: [successEmbed('Counting reset', 'The count is back to **0** — next number is 1.')], ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed('Counting reset', 'The count is back to **0** — next number is 1.')] });
   },
 };

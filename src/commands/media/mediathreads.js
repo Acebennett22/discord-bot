@@ -17,18 +17,18 @@ module.exports = {
     const settings = await getGuildSettings(interaction.guildId);
     const channels = settings.mediaChannels || [];
     if (sub === 'list') {
-      if (!channels.length) return interaction.reply({ embeds: [infoEmbed('Media auto-threads', 'No media channels configured yet. Use /mediathreads add to add one.')], ephemeral: true });
-      return interaction.reply({ embeds: [infoEmbed('Media auto-threads', channels.map((id) => `<#${id}>`).join('\n'))], ephemeral: true });
+      if (!channels.length) return interaction.reply({ embeds: [infoEmbed('Media auto-threads', 'No media channels configured yet. Use /mediathreads add to add one.')] });
+      return interaction.reply({ embeds: [infoEmbed('Media auto-threads', channels.map((id) => `<#${id}>`).join('\n'))] });
     }
     const channel = interaction.options.getChannel('channel');
     if (sub === 'add') {
-      if (channels.includes(channel.id)) return interaction.reply({ embeds: [infoEmbed('Already added', `<#${channel.id}> already has media auto-threads.`)], ephemeral: true });
+      if (channels.includes(channel.id)) return interaction.reply({ embeds: [infoEmbed('Already added', `<#${channel.id}> already has media auto-threads.`)] });
       await setGuildSettings(interaction.guildId, { mediaChannels: [...channels, channel.id] });
-      return interaction.reply({ embeds: [successEmbed('Media channel added', `🧵 Image/video posts in <#${channel.id}> will now get a discussion thread automatically.`)], ephemeral: true });
+      return interaction.reply({ embeds: [successEmbed('Media channel added', `🧵 Image/video posts in <#${channel.id}> will now get a discussion thread automatically.`)] });
     }
     // remove
-    if (!channels.includes(channel.id)) return interaction.reply({ embeds: [errorEmbed('Not a media channel', `<#${channel.id}> isn't in the media auto-thread list.`)], ephemeral: true });
+    if (!channels.includes(channel.id)) return interaction.reply({ embeds: [errorEmbed('Not a media channel', `<#${channel.id}> isn't in the media auto-thread list.`)] });
     await setGuildSettings(interaction.guildId, { mediaChannels: channels.filter((id) => id !== channel.id) });
-    return interaction.reply({ embeds: [successEmbed('Media channel removed', `<#${channel.id}> no longer gets auto-threads.`)], ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed('Media channel removed', `<#${channel.id}> no longer gets auto-threads.`)] });
   },
 };

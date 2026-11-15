@@ -6,6 +6,11 @@ in `package.json` is the source of truth for the current release — every
 version below must match a `package.json` version, and the dashboard
 `/version` page renders from this file.
 
+## [1.15.7] - 2026-11-15
+
+### Changed
+- Public replies (1.15.7) — every slash-command reply, followUp, and deferReply is now PUBLIC (visible to everyone in the channel) instead of ephemeral. `ephemeral: true` was removed from 1,095 call sites across 272 files by a scripted codemod (`tmp/remove-ephemeral-codemod.py`); bare `deferReply({ ephemeral: true })` calls became `deferReply()`. This also removes the `ephemeral` deprecation warnings. Kept ephemeral in 74 audited sites only: replies showing private data (birthday DOB, verification/captcha flows, modmail, reports, personal bookmark/reminder lists, application submission, confessions, ticket ratings, owner-command output) and per-click confirmations that would spam the channel or spoil a game (giveaway/reaction-role/role-menu/RSVP/heist/suggestion-vote/wordle/daily-trivia). /help and /trivia are public now but their menu/buttons are invoker-only via a collector filter (non-invokers get Discord's "This interaction failed"). Verified by `tmp/verify-ephemeral-removal.js` (full load: 266 commands, 37 top-level, 0 failures; check-deploy: 0 problems). README and AGENTS.md conventions updated to the new default.
+
 ## [1.15.6] - 2026-11-15
 
 ### Changed

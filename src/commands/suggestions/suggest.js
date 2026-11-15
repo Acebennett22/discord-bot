@@ -9,7 +9,7 @@ module.exports = {
   async execute(interaction) {
     const settings = await getGuildSettings(interaction.guildId);
     if (!settings.suggestionChannelId) {
-      return interaction.reply({ embeds: [errorEmbed('Suggestions not set up', 'No suggestions channel is configured — an admin needs to run /suggestions-setup first.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Suggestions not set up', 'No suggestions channel is configured — an admin needs to run /suggestions-setup first.')] });
     }
     const modal = new ModalBuilder().setCustomId('suggest_submit').setTitle('Submit a suggestion');
     modal.addComponents(

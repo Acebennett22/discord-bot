@@ -23,8 +23,8 @@ module.exports = {
     .addSubcommand((s) => s.setName('remove').setDescription('Admin only: take a role off sale.')
       .addRoleOption((o) => o.setName('role').setDescription('The role to remove').setRequired(true))),
   async execute(interaction) {
-    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'The role shop only works in a server.')], ephemeral: true });
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Role shop offline', 'The database is not connected, so the role shop is unavailable right now.')], ephemeral: true });
+    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'The role shop only works in a server.')] });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Role shop offline', 'The database is not connected, so the role shop is unavailable right now.')] });
     const sub = interaction.options.getSubcommand();
     const settings = await getPremiumSettings(interaction.guildId);
     const emoji = settings.economyCurrencyEmoji || '🪙';
@@ -32,7 +32,7 @@ module.exports = {
 
     if (sub === 'list') {
       const items = await getShopItems(interaction.guildId);
-      if (!items.length) return interaction.reply({ embeds: [infoEmbed('🛒 Role shop', 'No roles are for sale yet — an admin can add some with /roleshop add.')], ephemeral: true });
+      if (!items.length) return interaction.reply({ embeds: [infoEmbed('🛒 Role shop', 'No roles are for sale yet — an admin can add some with /roleshop add.')] });
       const purchased = await db.query('SELECT role_id FROM roleshop_purchases WHERE guild_id = ? AND user_id = ?', [interaction.guildId, interaction.user.id]) || [];
       const ownedIds = new Set(purchased.map((p) => p.role_id));
       const lines = items.map((i) => {
@@ -41,32 +41,32 @@ module.exports = {
         const state = ownedIds.has(i.role_id) || interaction.member.roles.cache.has(i.role_id) ? ' ✅ Owned' : '';
         return `${label} — ${emoji} ${i.price} ${name}${state}`;
       });
-      return interaction.reply({ embeds: [infoEmbed('🛒 Role shop', `${lines.join('\n')}\n\nBuy with \`/roleshop buy <role>\`. Purchases are one-time — no refunds, no re-buys.`)], ephemeral: true });
+      return interaction.reply({ embeds: [infoEmbed('🛒 Role shop', `${lines.join('\n')}\n\nBuy with \`/roleshop buy <role>\`. Purchases are one-time — no refunds, no re-buys.`)] });
     }
 
     if (sub === 'buy') {
       const role = interaction.options.getRole('role');
       const items = await getShopItems(interaction.guildId);
       const item = items.find((i) => i.role_id === role.id);
-      if (!item) return interaction.reply({ embeds: [errorEmbed('Not for sale', `**${role.name}** is not in the role shop.`)], ephemeral: true });
+      if (!item) return interaction.reply({ embeds: [errorEmbed('Not for sale', `**${role.name}** is not in the role shop.`)] });
       if (interaction.member.roles.cache.has(role.id)) {
-        return interaction.reply({ embeds: [errorEmbed('Already yours', `You already have the **${role.name}** role.`)], ephemeral: true });
+        return interaction.reply({ embeds: [errorEmbed('Already yours', `You already have the **${role.name}** role.`)] });
       }
       const purchased = await db.query('SELECT 1 AS x FROM roleshop_purchases WHERE guild_id = ? AND user_id = ? AND role_id = ?', [interaction.guildId, interaction.user.id, role.id]);
       if (purchased?.length) {
-        return interaction.reply({ embeds: [errorEmbed('Already purchased', `You already bought **${role.name}** once — role shop purchases are one-time. If the role was removed from you, ask an admin to re-grant it.`)], ephemeral: true });
+        return interaction.reply({ embeds: [errorEmbed('Already purchased', `You already bought **${role.name}** once — role shop purchases are one-time. If the role was removed from you, ask an admin to re-grant it.`)] });
       }
       const check = botCanManageRole(interaction.guild, role);
-      if (!check.ok) return interaction.reply({ embeds: [errorEmbed('Bot cannot grant this role', check.reason)], ephemeral: true });
+      if (!check.ok) return interaction.reply({ embeds: [errorEmbed('Bot cannot grant this role', check.reason)] });
       const bal = await getBalance(interaction.guildId, interaction.user.id);
       if (!bal || bal.balance < item.price) {
-        return interaction.reply({ embeds: [errorEmbed('Not enough coins', `**${role.name}** costs ${emoji} ${item.price} ${name} — you have ${emoji} ${bal?.balance ?? 0} in your wallet.`)], ephemeral: true });
+        return interaction.reply({ embeds: [errorEmbed('Not enough coins', `**${role.name}** costs ${emoji} ${item.price} ${name} — you have ${emoji} ${bal?.balance ?? 0} in your wallet.`)] });
       }
       // Grant the role first: if Discord refuses, nobody has been charged.
       let granted = true;
       try { await interaction.member.roles.add(role); } catch { granted = false; }
       if (!granted) {
-        return interaction.reply({ embeds: [errorEmbed('Could not grant role', `Discord wouldn't let me grant **${role.name}** — you have not been charged.`)], ephemeral: true });
+        return interaction.reply({ embeds: [errorEmbed('Could not grant role', `Discord wouldn't let me grant **${role.name}** — you have not been charged.`)] });
       }
       await addCoins(interaction.guildId, interaction.user.id, -item.price, 'roleshop', `Role shop: ${role.name}`);
       const inserted = await db.query(
@@ -80,31 +80,31 @@ module.exports = {
         await interaction.member.roles.remove(role).catch(() => {});
         return interaction.reply({ embeds: [errorEmbed('Purchase failed', `Your purchase of **${role.name}** could not be recorded, so you were refunded and the role was removed. Please try again.`)] });
       }
-      return interaction.reply({ embeds: [successEmbed('Role purchased!', `🛒 You bought **${role.name}** for ${emoji} ${item.price} ${name}.`)], ephemeral: true });
+      return interaction.reply({ embeds: [successEmbed('Role purchased!', `🛒 You bought **${role.name}** for ${emoji} ${item.price} ${name}.`)] });
     }
 
     // add / remove — admin only (checked at runtime: subcommand-level
     // default permissions don't exist, so the whole command can't be
     // locked to admins without locking list/buy too).
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
-      return interaction.reply({ embeds: [errorEmbed('Admin only', 'Only server admins can manage the role shop catalog.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Admin only', 'Only server admins can manage the role shop catalog.')] });
     }
     const role = interaction.options.getRole('role');
     if (sub === 'add') {
       const price = interaction.options.getInteger('price');
-      if (role.managed) return interaction.reply({ embeds: [errorEmbed('Cannot sell this role', `**${role.name}** is a managed role (bot/integration role) and can't be sold.`)], ephemeral: true });
-      if (role.id === interaction.guild.id) return interaction.reply({ embeds: [errorEmbed('Cannot sell this role', 'The @everyone role can\'t be sold.')], ephemeral: true });
+      if (role.managed) return interaction.reply({ embeds: [errorEmbed('Cannot sell this role', `**${role.name}** is a managed role (bot/integration role) and can't be sold.`)] });
+      if (role.id === interaction.guild.id) return interaction.reply({ embeds: [errorEmbed('Cannot sell this role', 'The @everyone role can\'t be sold.')] });
       const check = botCanManageRole(interaction.guild, role);
-      if (!check.ok) return interaction.reply({ embeds: [errorEmbed('Bot cannot grant this role', check.reason)], ephemeral: true });
+      if (!check.ok) return interaction.reply({ embeds: [errorEmbed('Bot cannot grant this role', check.reason)] });
       await db.query(
         'INSERT INTO roleshop_items (guild_id, role_id, price) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE price = VALUES(price)',
         [interaction.guildId, role.id, price],
       );
-      return interaction.reply({ embeds: [successEmbed('Role listed', `🛒 **${role.name}** is now for sale at ${emoji} ${price} ${name}.`)], ephemeral: true });
+      return interaction.reply({ embeds: [successEmbed('Role listed', `🛒 **${role.name}** is now for sale at ${emoji} ${price} ${name}.`)] });
     }
     // remove
     const res = await db.query('DELETE FROM roleshop_items WHERE guild_id = ? AND role_id = ?', [interaction.guildId, role.id]);
-    if (!res?.affectedRows) return interaction.reply({ embeds: [errorEmbed('Not listed', `**${role.name}** isn't in the role shop.`)], ephemeral: true });
-    return interaction.reply({ embeds: [successEmbed('Role removed', `**${role.name}** is no longer for sale. Members who already bought it keep the role.`)], ephemeral: true });
+    if (!res?.affectedRows) return interaction.reply({ embeds: [errorEmbed('Not listed', `**${role.name}** isn't in the role shop.`)] });
+    return interaction.reply({ embeds: [successEmbed('Role removed', `**${role.name}** is no longer for sale. Members who already bought it keep the role.`)] });
   },
 };

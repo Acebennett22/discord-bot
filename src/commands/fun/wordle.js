@@ -30,13 +30,12 @@ module.exports = {
     .setName('wordle')
     .setDescription("Play today's Wordle — one word per server per day, 6 guesses."),
   async execute(interaction) {
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Wordle needs MySQL.')], ephemeral: true });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Wordle needs MySQL.')] });
     const game = await wordle.getOrCreateGame(interaction.guildId, interaction.user.id);
     const done = game.won || game.attempts >= wordle.MAX_GUESSES;
     return interaction.reply({
       embeds: [boardEmbed(game, interaction.guild?.name || 'Wordle')],
       components: done ? [] : [guessRow()],
-      ephemeral: true,
     });
   },
 };

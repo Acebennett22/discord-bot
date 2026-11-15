@@ -11,7 +11,7 @@ module.exports = {
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
   async execute(interaction) {
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission to set up welcome messages.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission to set up welcome messages.')] });
     }
     const channel = interaction.options.getChannel('channel');
     const message = interaction.options.getString('message');
@@ -26,6 +26,6 @@ module.exports = {
       { name: 'Preview (for you)', value: preview.slice(0, 1024), inline: false },
       { name: 'Status', value: '✅ Enabled — use /welcome-toggle to turn it off.', inline: false });
     if (!saved) embed.addFields({ name: '⚠️ Not saved to database', value: 'MySQL is not connected — this is only kept in memory for this run.', inline: false });
-    return interaction.reply({ embeds: [embed], ephemeral: true });
+    return interaction.reply({ embeds: [embed] });
   },
 };

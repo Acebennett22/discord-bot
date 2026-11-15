@@ -12,17 +12,17 @@ module.exports = {
     .addStringOption((o) => o.setName('emoji').setDescription('Star emoji to count (default ⭐)').setMaxLength(32))
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
   async execute(interaction) {
-    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'Starboard only works in a server.')], ephemeral: true });
+    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'Starboard only works in a server.')] });
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission to set up the starboard.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission to set up the starboard.')] });
     }
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database offline', 'The database is not connected, so settings can\'t be saved right now.')], ephemeral: true });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database offline', 'The database is not connected, so settings can\'t be saved right now.')] });
     const channel = interaction.options.getChannel('channel');
     const current = await getPremiumSettings(interaction.guildId);
     const threshold = interaction.options.getInteger('threshold') ?? current.starboardThreshold ?? 3;
     const emoji = interaction.options.getString('emoji') || current.starboardEmoji || '⭐';
     const { saved } = await setPremiumSettings(interaction.guildId, { starboardChannelId: channel.id, starboardThreshold: threshold, starboardEmoji: emoji });
-    if (!saved) return interaction.reply({ embeds: [errorEmbed('Not saved', 'Settings were kept in memory only — MySQL is not connected.')], ephemeral: true });
-    return interaction.reply({ embeds: [successEmbed('Starboard set up', `⭐ Messages with **${threshold} ${emoji}** reactions will be posted to ${channel}.`)], ephemeral: true });
+    if (!saved) return interaction.reply({ embeds: [errorEmbed('Not saved', 'Settings were kept in memory only — MySQL is not connected.')] });
+    return interaction.reply({ embeds: [successEmbed('Starboard set up', `⭐ Messages with **${threshold} ${emoji}** reactions will be posted to ${channel}.`)] });
   },
 };

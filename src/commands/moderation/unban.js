@@ -12,8 +12,8 @@ module.exports = {
     const userId = interaction.options.getString('user_id');
     const reason = interaction.options.getString('reason') || 'No reason given';
     const banned = await interaction.guild.bans.fetch(userId).catch(() => null);
-    if (!banned) return interaction.reply({ embeds: [errorEmbed('Unban failed', 'That user ID is not on this server\'s ban list.')], ephemeral: true });
+    if (!banned) return interaction.reply({ embeds: [errorEmbed('Unban failed', 'That user ID is not on this server\'s ban list.')] });
     await interaction.guild.members.unban(userId, reason);
-    return interaction.reply({ ephemeral: true, embeds: [successEmbed('User unbanned', `**${banned.user.tag}** was unbanned.\nReason: ${reason}`)] });
+    return interaction.reply({  embeds: [successEmbed('User unbanned', `**${banned.user.tag}** was unbanned.\nReason: ${reason}`)] });
   },
 };

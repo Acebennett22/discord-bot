@@ -55,7 +55,7 @@ module.exports = {
       const why = toggle.reason === 'feature'
         ? `The **${toggle.feature}** feature is disabled${interaction.guildId ? ' in this server' : ''}.`
         : 'This command is disabled.';
-      return interaction.reply({ embeds: [errorEmbed('Disabled', why)], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Disabled', why)] });
     }
     let success = true;
     let errorMessage = null;
@@ -65,7 +65,7 @@ module.exports = {
       success = false;
       errorMessage = err.message;
       await errorLogger.log({ level: 'error', guildId: interaction.guildId, commandName: effectiveName, userId: interaction.user.id, message: `/${effectiveName} failed: ${err.message}`, stack: err.stack, context: { channelId: interaction.channelId } });
-      const payload = { embeds: [errorEmbed('Command error', 'Something went wrong running that command.')], ephemeral: true };
+      const payload = { embeds: [errorEmbed('Command error', 'Something went wrong running that command.')] };
       if (interaction.replied || interaction.deferred) await interaction.followUp(payload).catch(() => {});
       else await interaction.reply(payload).catch(() => {});
     }

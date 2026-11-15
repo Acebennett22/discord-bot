@@ -30,7 +30,7 @@ module.exports = {
     const message = interaction.options.getString('message');
     const url = await fetchNekosGif('kiss');
     if (!url) {
-      return interaction.reply({ embeds: [errorEmbed('GIF service unavailable', 'I couldn\'t fetch a kiss GIF from nekos.best right now — please try again in a bit.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('GIF service unavailable', 'I couldn\'t fetch a kiss GIF from nekos.best right now — please try again in a bit.')] });
     }
     const embed = infoEmbed(`😘 ${interaction.user.username} kissed ${target.username}!`, message ? `*"${message}"*` : `${interaction.user} kissed ${target}!`)
       .setColor(0xff69b4)

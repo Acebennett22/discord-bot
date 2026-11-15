@@ -20,7 +20,7 @@ module.exports = {
     // --- /apply form picker ---
     if (interaction.isStringSelectMenu() && interaction.customId === 'apply_pick_form') {
       const form = await apps.getForm(parseInt(interaction.values[0], 10), interaction.guildId);
-      if (!form || !form.is_open) return interaction.reply({ embeds: [errorEmbed('Form closed', 'That form is no longer open.')], ephemeral: true });
+      if (!form || !form.is_open) return interaction.reply({ embeds: [errorEmbed('Form closed', 'That form is no longer open.')] });
       const { applyModal } = require('../commands/applications/apply');
       return interaction.showModal(applyModal(form));
     }
@@ -31,7 +31,7 @@ module.exports = {
       const name = interaction.fields.getTextInputValue('name').trim();
       const description = interaction.fields.getTextInputValue('description')?.trim() || '';
       const questions = apps.parseQuestions(interaction.fields.getTextInputValue('questions'));
-      if (!questions.length) return interaction.reply({ embeds: [errorEmbed('No questions', 'Add at least one question (one per line).')], ephemeral: true });
+      if (!questions.length) return interaction.reply({ embeds: [errorEmbed('No questions', 'Add at least one question (one per line).')] });
       const formId = await apps.createForm({
         guildId: interaction.guildId, name, description, questions,
         roleToGrant: roleId === 'none' ? null : roleId, reviewChannelId, createdBy: interaction.user.id,
@@ -44,7 +44,7 @@ module.exports = {
     if (interaction.isModalSubmit() && interaction.customId.startsWith('apply_submit:')) {
       const formId = parseInt(interaction.customId.split(':')[1], 10);
       const form = await apps.getForm(formId, interaction.guildId);
-      if (!form || !form.is_open) return interaction.reply({ embeds: [errorEmbed('Form closed', 'That form is no longer open.')], ephemeral: true });
+      if (!form || !form.is_open) return interaction.reply({ embeds: [errorEmbed('Form closed', 'That form is no longer open.')] });
       await interaction.deferReply({ ephemeral: true });
       const answers = form.questions.map((_, i) => interaction.fields.getTextInputValue(`q${i}`) || '');
       const appId = await apps.submitApplication(form, interaction.user.id, answers);
@@ -63,14 +63,14 @@ module.exports = {
       const appId = parseInt(appIdRaw, 10);
       const settings = await getGuildSettings(interaction.guildId);
       if (!apps.isReviewer(interaction.member, settings)) {
-        return interaction.reply({ embeds: [errorEmbed('No permission', 'Only admins or the application reviewer role can review applications.')], ephemeral: true });
+        return interaction.reply({ embeds: [errorEmbed('No permission', 'Only admins or the application reviewer role can review applications.')] });
       }
       if (action === 'app_deny') {
         const modal = new ModalBuilder().setCustomId(`app_deny_modal:${appId}`).setTitle('Deny application');
         modal.addComponents(textRow('reason', 'Denial reason (sent to the applicant)', false));
         return interaction.showModal(modal);
       }
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply();
       const app = await apps.getApplication(appId, interaction.guildId);
       if (!app) return interaction.editReply({ embeds: [errorEmbed('Not found', 'That application no longer exists.')] });
       const form = await apps.getForm(app.form_id, interaction.guildId);
@@ -83,7 +83,7 @@ module.exports = {
     if (interaction.isModalSubmit() && interaction.customId.startsWith('app_deny_modal:')) {
       const appId = parseInt(interaction.customId.split(':')[1], 10);
       const reason = interaction.fields.getTextInputValue('reason')?.trim() || '';
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply();
       const app = await apps.getApplication(appId, interaction.guildId);
       if (!app) return interaction.editReply({ embeds: [errorEmbed('Not found', 'That application no longer exists.')] });
       const form = await apps.getForm(app.form_id, interaction.guildId);

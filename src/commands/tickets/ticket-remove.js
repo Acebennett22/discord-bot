@@ -10,14 +10,14 @@ module.exports = {
     .addUserOption((o) => o.setName('user').setDescription('User to remove').setRequired(true)),
   async execute(interaction) {
     const ticket = await tickets.getTicketByChannel(interaction.channelId);
-    if (!ticket) return interaction.reply({ embeds: [errorEmbed('Not a ticket', 'This command only works inside a ticket channel.')], ephemeral: true });
+    if (!ticket) return interaction.reply({ embeds: [errorEmbed('Not a ticket', 'This command only works inside a ticket channel.')] });
     const settings = await getGuildSettings(interaction.guildId);
     if (!tickets.canManageTicket(interaction.member, ticket, settings)) {
-      return interaction.reply({ embeds: [errorEmbed('No permission', 'Only the ticket creator, support staff, or an admin can remove users.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('No permission', 'Only the ticket creator, support staff, or an admin can remove users.')] });
     }
     const user = interaction.options.getUser('user');
-    if (user.id === ticket.user_id) return interaction.reply({ embeds: [errorEmbed('Cannot remove', 'You cannot remove the ticket creator.')], ephemeral: true });
+    if (user.id === ticket.user_id) return interaction.reply({ embeds: [errorEmbed('Cannot remove', 'You cannot remove the ticket creator.')] });
     await interaction.channel.permissionOverwrites.delete(user.id).catch(() => {});
-    return interaction.reply({ ephemeral: true, embeds: [successEmbed('User removed', `${user} was removed from this ticket.`)] });
+    return interaction.reply({  embeds: [successEmbed('User removed', `${user} was removed from this ticket.`)] });
   },
 };

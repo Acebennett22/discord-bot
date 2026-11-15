@@ -13,26 +13,26 @@ module.exports = {
     .setDescription('Open one crate from your inventory and reveal the loot.')
     .addIntegerOption((o) => o.setName('item').setDescription('Crate item ID (see /inventory)').setRequired(true).setMinValue(1)),
   async execute(interaction) {
-    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'Crates only work in a server.')], ephemeral: true });
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Offline', 'The database is not connected, so crates are unavailable right now.')], ephemeral: true });
+    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'Crates only work in a server.')] });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Offline', 'The database is not connected, so crates are unavailable right now.')] });
     const last = cooldowns.get(interaction.user.id);
     if (last && Date.now() - last < 10_000) {
-      return interaction.reply({ embeds: [errorEmbed('Slow down', `Wait **${Math.ceil((10_000 - (Date.now() - last)) / 1000)}s** before opening another crate.`)], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Slow down', `Wait **${Math.ceil((10_000 - (Date.now() - last)) / 1000)}s** before opening another crate.`)] });
     }
     const itemId = interaction.options.getInteger('item');
     await inv.ensureDefaultItems(interaction.guildId);
     const item = await inv.getShopItem(interaction.guildId, itemId);
-    if (!item) return interaction.reply({ embeds: [errorEmbed('Not found', `No shop item with ID #${itemId}.`)], ephemeral: true });
-    if (item.type !== 'crate') return interaction.reply({ embeds: [errorEmbed('Not a crate', `**${item.name}** is a ${item.type} item, not a crate.`)], ephemeral: true });
+    if (!item) return interaction.reply({ embeds: [errorEmbed('Not found', `No shop item with ID #${itemId}.`)] });
+    if (item.type !== 'crate') return interaction.reply({ embeds: [errorEmbed('Not a crate', `**${item.name}** is a ${item.type} item, not a crate.`)] });
     const have = await inv.getInventoryQuantity(interaction.guildId, interaction.user.id, itemId);
-    if (have < 1) return interaction.reply({ embeds: [errorEmbed('No crate', `You don't have a ${inv.itemLabel(item)} in your inventory. Buy one with /buy ${itemId}.`)], ephemeral: true });
+    if (have < 1) return interaction.reply({ embeds: [errorEmbed('No crate', `You don't have a ${inv.itemLabel(item)} in your inventory. Buy one with /buy ${itemId}.`)] });
     const entry = inv.rollCrateContents(item);
-    if (!entry) return interaction.reply({ embeds: [errorEmbed('Empty crate', 'This crate has no rewards configured — ask an admin to set its contents with /shop-add.')], ephemeral: true });
+    if (!entry) return interaction.reply({ embeds: [errorEmbed('Empty crate', 'This crate has no rewards configured — ask an admin to set its contents with /shop-add.')] });
     cooldowns.set(interaction.user.id, Date.now());
     setTimeout(() => cooldowns.delete(interaction.user.id), 11_000).unref?.();
 
     const removed = await inv.removeItem(interaction.guildId, interaction.user.id, itemId, 1);
-    if (!removed) return interaction.reply({ embeds: [errorEmbed('Open failed', 'Your inventory changed — try again.')], ephemeral: true });
+    if (!removed) return interaction.reply({ embeds: [errorEmbed('Open failed', 'Your inventory changed — try again.')] });
 
     const settings = await require('../../utils/premiumSettings').getPremiumSettings(interaction.guildId);
     const emoji = settings.economyCurrencyEmoji || '🪙';
@@ -57,6 +57,6 @@ module.exports = {
         lootLine = `${emoji} **${coinsWon} ${cname}** (the crate's item reward wasn't in the shop, so you got coins instead)`;
       }
     }
-    return interaction.reply({ embeds: [successEmbed(`📦 You opened a ${item.name}!`, `Inside you found:\n${lootLine}`)], ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed(`📦 You opened a ${item.name}!`, `Inside you found:\n${lootLine}`)] });
   },
 };

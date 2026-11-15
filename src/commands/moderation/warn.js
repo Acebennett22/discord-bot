@@ -39,11 +39,11 @@ module.exports = {
           }
         } catch (err) { actionNote = `\n⚠️ Warn threshold reached, but the auto-action failed: ${err.message}`; }
       }
-      return interaction.reply({ ephemeral: true, embeds: [successEmbed('Member warned', `**${user.tag}** was warned.\nReason: ${reason}\nThey now have **${warns.length}** warning(s).${actionNote}`)] });
+      return interaction.reply({  embeds: [successEmbed('Member warned', `**${user.tag}** was warned.\nReason: ${reason}\nThey now have **${warns.length}** warning(s).${actionNote}`)] });
     }
     const warns = getWarns(interaction.guildId, user.id);
-    if (!warns.length) return interaction.reply({ ephemeral: true, embeds: [infoEmbed('Warnings', `**${user.tag}** has no warnings.`)] });
+    if (!warns.length) return interaction.reply({  embeds: [infoEmbed('Warnings', `**${user.tag}** has no warnings.`)] });
     const lines = warns.map((w, i) => `**${i + 1}.** ${w.reason} — by ${w.moderator} (${new Date(w.date).toLocaleString()})`);
-    return interaction.reply({ ephemeral: true, embeds: [infoEmbed(`Warnings for ${user.tag} (${warns.length})`, lines.join('\n'))] });
+    return interaction.reply({  embeds: [infoEmbed(`Warnings for ${user.tag} (${warns.length})`, lines.join('\n'))] });
   },
 };

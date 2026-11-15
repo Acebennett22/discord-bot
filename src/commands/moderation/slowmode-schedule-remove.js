@@ -10,12 +10,12 @@ module.exports = {
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels)
     .addChannelOption((o) => o.setName('channel').setDescription('Channel').setRequired(true)),
   async execute(interaction) {
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Slowmode schedules need MySQL.')], ephemeral: true });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Slowmode schedules need MySQL.')] });
     if (!interaction.memberPermissions?.has('ManageChannels')) {
-      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need Manage Channels to use slowmode settings.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need Manage Channels to use slowmode settings.')] });
     }
     const channel = interaction.options.getChannel('channel');
     await slowmode.removeSchedule(interaction.guildId, channel.id);
-    return interaction.reply({ embeds: [successEmbed('Schedule removed', `Slowmode schedule removed for <#${channel.id}>. The current slowmode stays as-is until changed.`)], ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed('Schedule removed', `Slowmode schedule removed for <#${channel.id}>. The current slowmode stays as-is until changed.`)] });
   },
 };

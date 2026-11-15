@@ -23,6 +23,6 @@ module.exports = {
       `**Node:** ${process.version} on ${os.platform()} ${os.arch()}`,
       `**Ping:** ${client.ws.ping}ms`,
     ].join('\n'));
-    return interaction.reply({ ephemeral: true, embeds: [embed] });
+    return interaction.reply({  embeds: [embed] });
   },
 };

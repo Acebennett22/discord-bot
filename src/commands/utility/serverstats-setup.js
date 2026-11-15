@@ -12,9 +12,9 @@ module.exports = {
     const raw = interaction.options.getString('stats') || 'members,online,bots,boosts';
     const keys = raw.split(',').map((s) => s.trim().toLowerCase()).filter((k) => STATS[k]);
     if (!keys.length) {
-      return interaction.reply({ embeds: [errorEmbed('No valid stats', `Valid stats: ${Object.keys(STATS).join(', ')}`)], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('No valid stats', `Valid stats: ${Object.keys(STATS).join(', ')}`)] });
     }
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply();
     const channels = await createStatChannels(interaction.guild, keys);
     return interaction.editReply({ embeds: [successEmbed('Server Stats enabled', [
       'Created the **📊 Server Stats** category with display-only voice channels:',

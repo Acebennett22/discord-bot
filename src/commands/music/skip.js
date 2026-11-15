@@ -8,9 +8,9 @@ module.exports = {
   async execute(interaction) {
     if (!(await requireDJ(interaction, 'skip'))) return;
     const queue = getQueue(interaction.guildId);
-    if (!queue || !queue.playing) return interaction.reply({ embeds: [errorEmbed('Nothing playing', 'There is no song playing right now.')], ephemeral: true });
+    if (!queue || !queue.playing) return interaction.reply({ embeds: [errorEmbed('Nothing playing', 'There is no song playing right now.')] });
     const title = queue.playing.title;
     skip(interaction.guildId);
-    return interaction.reply({ ephemeral: true, embeds: [successEmbed('Skipped', `Skipped **${title}**.`)] });
+    return interaction.reply({  embeds: [successEmbed('Skipped', `Skipped **${title}**.`)] });
   },
 };

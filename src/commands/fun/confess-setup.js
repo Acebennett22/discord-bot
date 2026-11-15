@@ -22,7 +22,6 @@ module.exports = {
     return interaction.reply({
       embeds: [successEmbed('Confessions set up',
         `🤫 Confessions will be posted in <#${channel.id}>.\n**Enabled:** ${enabled ? 'yes' : 'no'}\n**Staff approval required:** ${approval ? 'yes' : 'no'}${approval ? '\nStaff review confessions in the modlog channel (approve/deny buttons).' : ''}\nMembers submit with /confess.${saved ? '' : '\n⚠️ Database is offline, so this setup was only kept in memory and will be lost on restart.'}`)],
-      ephemeral: true,
     });
   },
 };

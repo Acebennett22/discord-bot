@@ -26,20 +26,20 @@ module.exports = {
     .addSubcommand((s) => s.setName('list').setDescription('List all automatic replies'))
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
   async execute(interaction) {
-    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'Autoresponders only work in a server.')], ephemeral: true });
+    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'Autoresponders only work in a server.')] });
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission.')] });
     }
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database offline', 'Autoresponders are stored in MySQL — connect the database first.')], ephemeral: true });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database offline', 'Autoresponders are stored in MySQL — connect the database first.')] });
     const sub = interaction.options.getSubcommand();
     if (sub === 'list') {
       const rules = await getRules(interaction.guildId);
-      if (!rules.length) return interaction.reply({ embeds: [infoEmbed('💬 Autoresponders', 'No automatic replies yet — add one with /autoresponder add.')], ephemeral: true });
+      if (!rules.length) return interaction.reply({ embeds: [infoEmbed('💬 Autoresponders', 'No automatic replies yet — add one with /autoresponder add.')] });
       const lines = rules.map((r) => `${r.enabled ? '✅' : '⏸️'} **${r.trigger}** (${r.match_type}, used ${r.use_count}×)\n> ${String(r.response).slice(0, 200)}`);
-      return interaction.reply({ embeds: [infoEmbed(`💬 Autoresponders (${rules.length})`, lines.join('\n\n').slice(0, 4000))], ephemeral: true });
+      return interaction.reply({ embeds: [infoEmbed(`💬 Autoresponders (${rules.length})`, lines.join('\n\n').slice(0, 4000))] });
     }
     const trigger = interaction.options.getString('trigger').trim();
-    if (!trigger) return interaction.reply({ embeds: [errorEmbed('Empty trigger', 'Give a phrase to watch for.')], ephemeral: true });
+    if (!trigger) return interaction.reply({ embeds: [errorEmbed('Empty trigger', 'Give a phrase to watch for.')] });
     if (sub === 'add') {
       const response = interaction.options.getString('response').trim();
       const match = interaction.options.getString('match') || 'contains';
@@ -48,21 +48,21 @@ module.exports = {
          VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE response = VALUES(response), match_type = VALUES(match_type), enabled = 1, created_by = VALUES(created_by)`,
         [interaction.guildId, trigger, response, match, interaction.user.id],
       );
-      return interaction.reply({ embeds: [successEmbed('Autoresponder added', `When a message ${match === 'exact' ? 'is exactly' : 'contains'} **${trigger}**, I'll reply:\n> ${response.slice(0, 500)}`)], ephemeral: true });
+      return interaction.reply({ embeds: [successEmbed('Autoresponder added', `When a message ${match === 'exact' ? 'is exactly' : 'contains'} **${trigger}**, I'll reply:\n> ${response.slice(0, 500)}`)] });
     }
     if (sub === 'remove') {
       const result = await db.query('DELETE FROM autoresponders WHERE guild_id = ? AND `trigger` = ?', [interaction.guildId, trigger]);
       if (!result || result.affectedRows === 0) {
-        return interaction.reply({ embeds: [errorEmbed('Not found', `No autoresponder with trigger **${trigger}**.`)], ephemeral: true });
+        return interaction.reply({ embeds: [errorEmbed('Not found', `No autoresponder with trigger **${trigger}**.`)] });
       }
-      return interaction.reply({ embeds: [successEmbed('Autoresponder removed', `**${trigger}** will no longer get an automatic reply.`)], ephemeral: true });
+      return interaction.reply({ embeds: [successEmbed('Autoresponder removed', `**${trigger}** will no longer get an automatic reply.`)] });
     }
     // toggle
     const enabled = interaction.options.getBoolean('enabled');
     const result = await db.query('UPDATE autoresponders SET enabled = ? WHERE guild_id = ? AND `trigger` = ?', [enabled ? 1 : 0, interaction.guildId, trigger]);
     if (!result || result.affectedRows === 0) {
-      return interaction.reply({ embeds: [errorEmbed('Not found', `No autoresponder with trigger **${trigger}**.`)], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Not found', `No autoresponder with trigger **${trigger}**.`)] });
     }
-    return interaction.reply({ embeds: [successEmbed(enabled ? 'Autoresponder on' : 'Autoresponder off', `**${trigger}** is now ${enabled ? '✅ live' : '⏸️ paused'}.`)], ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed(enabled ? 'Autoresponder on' : 'Autoresponder off', `**${trigger}** is now ${enabled ? '✅ live' : '⏸️ paused'}.`)] });
   },
 };

@@ -20,9 +20,9 @@ module.exports = {
     const wanted = interaction.options.getString('game');
     const filtered = wanted ? servers.filter((s) => s.name.toLowerCase().includes(wanted.toLowerCase())) : servers;
     if (!filtered.length) {
-      return interaction.reply({ embeds: [errorEmbed('No game servers', wanted ? `No tracked server matches "${wanted}".` : 'No game servers are configured yet. Add one with /gameserver-add or in config.json `gameServers.custom`.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('No game servers', wanted ? `No tracked server matches "${wanted}".` : 'No game servers are configured yet. Add one with /gameserver-add or in config.json `gameServers.custom`.')] });
     }
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply();
     const lines = [];
     for (const s of filtered) {
       const st = await queryServer(s);

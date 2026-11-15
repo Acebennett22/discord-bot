@@ -21,23 +21,23 @@ module.exports = {
       .addStringOption((o) => o.setName('message').setDescription('Message ID or message link of the bot embed').setRequired(true)))
     .addSubcommand((s) => s.setName('list').setDescription('Admin: list embeds the bot has built in this server.')),
   async execute(interaction) {
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Embed builder needs MySQL.')], ephemeral: true });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Embed builder needs MySQL.')] });
     const sub = interaction.options.getSubcommand();
     if (sub === 'list') {
       const rows = await customEmbeds.listEmbeds(interaction.guildId, 25);
-      if (!rows.length) return interaction.reply({ embeds: [infoEmbed('🧩 Embeds', 'No embeds built yet. Use /embed create.')], ephemeral: true });
+      if (!rows.length) return interaction.reply({ embeds: [infoEmbed('🧩 Embeds', 'No embeds built yet. Use /embed create.')] });
       const lines = rows.map((r) => {
         let data = {};
         try { data = JSON.parse(r.embed_json); } catch {}
         return `**#${r.id}** — ${data.title || '(no title)'} — <#${r.channel_id}> — [jump](https://discord.com/channels/${interaction.guildId}/${r.channel_id}/${r.message_id})`;
       });
-      return interaction.reply({ embeds: [infoEmbed('🧩 Built embeds', `${lines.join('\n')}\n\nEdit one with /embed edit <message link>.`)], ephemeral: true });
+      return interaction.reply({ embeds: [infoEmbed('🧩 Built embeds', `${lines.join('\n')}\n\nEdit one with /embed edit <message link>.`)] });
     }
     if (sub === 'edit') {
       const ref = parseMessageRef(interaction.options.getString('message'));
-      if (!ref) return interaction.reply({ embeds: [errorEmbed('Bad reference', 'Give a message ID or a full Discord message link.')], ephemeral: true });
+      if (!ref) return interaction.reply({ embeds: [errorEmbed('Bad reference', 'Give a message ID or a full Discord message link.')] });
       const row = await customEmbeds.getEmbedByMessage(interaction.guildId, ref.messageId);
-      if (!row) return interaction.reply({ embeds: [errorEmbed('Not found', 'That message is not one of the embeds this bot built (or it is in another server).')], ephemeral: true });
+      if (!row) return interaction.reply({ embeds: [errorEmbed('Not found', 'That message is not one of the embeds this bot built (or it is in another server).')] });
       const data = row.data || {};
       const modal = new ModalBuilder().setCustomId(`embed:edit:${row.id}`).setTitle('Edit embed');
       modal.addComponents(

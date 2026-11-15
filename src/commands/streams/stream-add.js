@@ -16,7 +16,7 @@ module.exports = {
     .addChannelOption((o) => o.setName('live_channel').setDescription('Optional: channel whose NAME updates to say they are live (voice or text)'))
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
   async execute(interaction) {
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Stream watchers are stored in MySQL — connect the database first.')], ephemeral: true });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Stream watchers are stored in MySQL — connect the database first.')] });
     const platform = interaction.options.getString('platform');
     const channelName = interaction.options.getString('channel');
     const notify = interaction.options.getChannel('notify_channel');
@@ -24,7 +24,7 @@ module.exports = {
     const liveChannel = interaction.options.getChannel('live_channel');
     if (liveChannel) {
       const clash = await db.query('SELECT channel_id_or_name FROM streamers WHERE guild_id = ? AND live_channel_id = ?', [interaction.guildId, liveChannel.id]);
-      if (clash?.length) return interaction.reply({ embeds: [errorEmbed('Live channel already in use', `**<#${liveChannel.id}>** is already the live channel for **${clash[0].channel_id_or_name}** in this server. One streamer per live channel.`)], ephemeral: true });
+      if (clash?.length) return interaction.reply({ embeds: [errorEmbed('Live channel already in use', `**<#${liveChannel.id}>** is already the live channel for **${clash[0].channel_id_or_name}** in this server. One streamer per live channel.`)] });
     }
     const channelUrl = platform === 'twitch' ? `https://twitch.tv/${channelName}`
       : platform === 'kick' ? `https://kick.com/${channelName}`
@@ -38,6 +38,6 @@ module.exports = {
     const note = (platform === 'facebook' || platform === 'tiktok')
       ? '\n\n⚠️ Facebook/TikTok have no public live API — this watcher will NOT auto-detect going live. Use /stream-announce to announce manually.'
       : '';
-    return interaction.reply({ ephemeral: true, embeds: [successEmbed('Streamer added', `Now watching **${channelName}** on **${platform}**.\nAnnouncements go to <#${notify.id}>${role ? `, pinging <@&${role.id}>` : ''}.${liveChannel ? `\nLive channel: <#${liveChannel.id}> — its name becomes the live template while they stream, then restores.` : ''}${note}`)] });
+    return interaction.reply({  embeds: [successEmbed('Streamer added', `Now watching **${channelName}** on **${platform}**.\nAnnouncements go to <#${notify.id}>${role ? `, pinging <@&${role.id}>` : ''}.${liveChannel ? `\nLive channel: <#${liveChannel.id}> — its name becomes the live template while they stream, then restores.` : ''}${note}`)] });
   },
 };

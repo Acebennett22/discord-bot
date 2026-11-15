@@ -22,35 +22,35 @@ module.exports = {
     if (sub === 'list') {
       const rules = await listRules(interaction.guildId);
       if (!rules.length) {
-        return interaction.reply({ embeds: [infoEmbed('📨 Invite role rules', 'No rules yet. Add one with `/inviterole add <code> <role>` — members who join via that invite link get the role automatically.')], ephemeral: true });
+        return interaction.reply({ embeds: [infoEmbed('📨 Invite role rules', 'No rules yet. Add one with `/inviterole add <code> <role>` — members who join via that invite link get the role automatically.')] });
       }
       const fields = rules.map((r) => ({
         name: `discord.gg/${r.invite_code}`,
         value: `→ <@&${r.role_id}>`,
       }));
-      return interaction.reply({ ephemeral: true, embeds: [infoEmbed('📨 Invite role rules', 'Joining via one of these invite links grants the matching role.', fields)] });
+      return interaction.reply({  embeds: [infoEmbed('📨 Invite role rules', 'Joining via one of these invite links grants the matching role.', fields)] });
     }
     if (sub === 'remove') {
       const code = cleanCode(interaction.options.getString('code'));
       const removed = await removeRule(interaction.guildId, code);
-      if (!removed) return interaction.reply({ embeds: [errorEmbed('Not found', `No rule for invite code \`${code}\`.`)], ephemeral: true });
-      return interaction.reply({ ephemeral: true, embeds: [successEmbed('Rule removed', `Members joining via \`discord.gg/${code}\` no longer get <@&${removed.role_id}>.`)] });
+      if (!removed) return interaction.reply({ embeds: [errorEmbed('Not found', `No rule for invite code \`${code}\`.`)] });
+      return interaction.reply({  embeds: [successEmbed('Rule removed', `Members joining via \`discord.gg/${code}\` no longer get <@&${removed.role_id}>.`)] });
     }
     // add
     const code = cleanCode(interaction.options.getString('code'));
     const role = interaction.options.getRole('role');
-    if (!code) return interaction.reply({ embeds: [errorEmbed('Invalid code', 'Give a real invite code or a discord.gg link.')], ephemeral: true });
+    if (!code) return interaction.reply({ embeds: [errorEmbed('Invalid code', 'Give a real invite code or a discord.gg link.')] });
     // The code must be a real invite in this guild.
     const invites = await interaction.guild.invites.fetch().catch(() => null);
     if (!invites || !invites.has(code)) {
-      return interaction.reply({ embeds: [errorEmbed('Invite not found', `\`discord.gg/${code}\` is not an active invite in this server. Create the invite first, then add the rule.`)], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Invite not found', `\`discord.gg/${code}\` is not an active invite in this server. Create the invite first, then add the rule.`)] });
     }
     const me = interaction.guild.members.me;
     if (me && role.position >= me.roles.highest.position) {
-      return interaction.reply({ embeds: [errorEmbed('Role too high', `I can't grant **${role.name}** — it is above my highest role. Move my role above it first.`)], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Role too high', `I can't grant **${role.name}** — it is above my highest role. Move my role above it first.`)] });
     }
     const rule = await addRule(interaction.guildId, code, role.id, interaction.user.id);
-    if (!rule) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Invite role rules need MySQL — connect the database first.')], ephemeral: true });
-    return interaction.reply({ ephemeral: true, embeds: [successEmbed('Rule added', `Members who join via \`discord.gg/${code}\` will now automatically get <@&${role.id}>.`)] });
+    if (!rule) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Invite role rules need MySQL — connect the database first.')] });
+    return interaction.reply({  embeds: [successEmbed('Rule added', `Members who join via \`discord.gg/${code}\` will now automatically get <@&${role.id}>.`)] });
   },
 };

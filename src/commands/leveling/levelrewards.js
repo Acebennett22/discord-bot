@@ -9,13 +9,13 @@ module.exports = {
     .setName('levelrewards')
     .setDescription('List your next level-up role rewards and how close you are.'),
   async execute(interaction) {
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Level rewards need MySQL.')], ephemeral: true });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Level rewards need MySQL.')] });
     const settings = await getGuildSettings(interaction.guildId);
     const rewards = settings.levelRoles || {};
     const entries = Object.entries(rewards)
       .map(([lvl, roleId]) => ({ level: parseInt(lvl, 10), roleId }))
       .sort((a, b) => a.level - b.level);
-    if (!entries.length) return interaction.reply({ embeds: [infoEmbed('Level rewards', 'No level role rewards are set up in this server yet. Admins set them on the dashboard Leveling tab.')], ephemeral: true });
+    if (!entries.length) return interaction.reply({ embeds: [infoEmbed('Level rewards', 'No level role rewards are set up in this server yet. Admins set them on the dashboard Leveling tab.')] });
     const rank = await getRank(interaction.user.id, interaction.guildId);
     const level = rank?.level ?? 0;
     const lines = entries.map((r) => {
@@ -29,6 +29,6 @@ module.exports = {
     const remText = reminders.length
       ? `\n\n🔔 Reminders set: ${reminders.map((r) => `level ${r.target_level}`).join(', ')} — I'll DM you when you get there.`
       : '';
-    return interaction.reply({ embeds: [infoEmbed(`Your level rewards (you're level ${level})`, `${lines.join('\n')}${remText}`)], ephemeral: true });
+    return interaction.reply({ embeds: [infoEmbed(`Your level rewards (you're level ${level})`, `${lines.join('\n')}${remText}`)] });
   },
 };

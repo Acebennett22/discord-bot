@@ -11,17 +11,17 @@ module.exports = {
     .addUserOption((o) => o.setName('user').setDescription('Discord user whose linked Steam to show'))
     .addStringOption((o) => o.setName('steam').setDescription('Steam ID, vanity name, or profile URL')),
   async execute(interaction) {
-    if (!steam.apiKey()) return interaction.reply({ embeds: [errorEmbed('Steam not configured', 'No Steam API key is set in config.json (`steam.apiKey`). Get one free at steamcommunity.com/dev/apikey.')], ephemeral: true });
+    if (!steam.apiKey()) return interaction.reply({ embeds: [errorEmbed('Steam not configured', 'No Steam API key is set in config.json (`steam.apiKey`). Get one free at steamcommunity.com/dev/apikey.')] });
     let steamId = null;
     const user = interaction.options.getUser('user');
     const input = interaction.options.getString('steam');
     if (input) steamId = await steam.resolveSteamId(input).catch(() => null);
     else steamId = await steam.getLinkedSteamId(user?.id || interaction.user.id);
     if (!steamId) {
-      return interaction.reply({ embeds: [errorEmbed('No Steam profile', user ? `${user.tag} has not linked a Steam profile (use /linksteam).` : 'You have not linked a Steam profile yet — use /linksteam, or pass a Steam ID/vanity to this command.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('No Steam profile', user ? `${user.tag} has not linked a Steam profile (use /linksteam).` : 'You have not linked a Steam profile yet — use /linksteam, or pass a Steam ID/vanity to this command.')] });
     }
     const profile = await steam.getPlayerSummary(steamId).catch(() => null);
-    if (!profile) return interaction.reply({ embeds: [errorEmbed('Profile not found', 'Steam returned no profile for that ID.')], ephemeral: true });
+    if (!profile) return interaction.reply({ embeds: [errorEmbed('Profile not found', 'Steam returned no profile for that ID.')] });
     const embed = infoEmbed(`🎮 ${profile.personaname}`, [
       `**Status:** ${PERSONA[profile.personastate] || 'Unknown'}`,
       profile.gameextrainfo ? `**Currently playing:** ${profile.gameextrainfo}` : null,
@@ -29,6 +29,6 @@ module.exports = {
       `**Profile:** https://steamcommunity.com/profiles/${profile.steamid}`,
     ].filter(Boolean).join('\n'));
     if (profile.avatarfull) embed.setThumbnail(profile.avatarfull);
-    return interaction.reply({ ephemeral: true, embeds: [embed] });
+    return interaction.reply({  embeds: [embed] });
   },
 };

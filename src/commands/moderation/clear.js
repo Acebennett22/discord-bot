@@ -10,7 +10,7 @@ module.exports = {
   async execute(interaction) {
     const amount = interaction.options.getInteger('amount');
     const deleted = await interaction.channel.bulkDelete(amount, true).catch(() => null);
-    if (!deleted) return interaction.reply({ embeds: [errorEmbed('Clear failed', 'I could not delete those messages (they may be older than 14 days).')], ephemeral: true });
-    return interaction.reply({ embeds: [successEmbed('Messages cleared', `Deleted **${deleted.size}** message(s).`)], ephemeral: true });
+    if (!deleted) return interaction.reply({ embeds: [errorEmbed('Clear failed', 'I could not delete those messages (they may be older than 14 days).')] });
+    return interaction.reply({ embeds: [successEmbed('Messages cleared', `Deleted **${deleted.size}** message(s).`)] });
   },
 };

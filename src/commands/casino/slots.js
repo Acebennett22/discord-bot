@@ -17,13 +17,13 @@ module.exports = {
     .setDescription('Casino: spin the 3-reel slot machine. Three of a kind wins big!')
     .addIntegerOption((o) => o.setName('bet').setDescription('Coins to bet (min 10, max 10000)').setRequired(true).setMinValue(1)),
   async execute(interaction) {
-    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'Casino games only work in a server.')], ephemeral: true });
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Casino offline', 'The database is not connected, so casino games are unavailable right now.')], ephemeral: true });
+    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'Casino games only work in a server.')] });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Casino offline', 'The database is not connected, so casino games are unavailable right now.')] });
     const bet = interaction.options.getInteger('bet');
     const remaining = casino.cooldownRemainingMs(interaction.user.id);
-    if (remaining > 0) return interaction.reply({ embeds: [errorEmbed('Slow down', `Wait **${Math.ceil(remaining / 1000)}s** between casino games.`)], ephemeral: true });
+    if (remaining > 0) return interaction.reply({ embeds: [errorEmbed('Slow down', `Wait **${Math.ceil(remaining / 1000)}s** between casino games.`)] });
     const check = await casino.validateBet(interaction.guildId, interaction.user.id, bet);
-    if (!check.ok) return interaction.reply({ embeds: [errorEmbed('Bet rejected', check.error)], ephemeral: true });
+    if (!check.ok) return interaction.reply({ embeds: [errorEmbed('Bet rejected', check.error)] });
     casino.markPlayed(interaction.user.id);
     const settings = await getPremiumSettings(interaction.guildId);
     const emoji = settings.economyCurrencyEmoji || '🪙';
@@ -49,7 +49,6 @@ module.exports = {
     return interaction.reply({
       embeds: [statsEmbed(title,
         `${reels.join(' | ')}\n\n${resultText}\n**Bet:** ${emoji} ${bet} ${name}\n**Return:** ${emoji} ${bet * multiplier} ${name}\n**Net:** ${net >= 0 ? '+' : ''}${net} ${name}`)],
-      ephemeral: true,
     });
   },
 };

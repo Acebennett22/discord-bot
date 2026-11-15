@@ -13,10 +13,10 @@ module.exports = {
   async execute(interaction) {
     if (!interaction.isButton() || !interaction.customId.startsWith('giveaway_enter:')) return;
     const giveawayId = interaction.customId.split(':')[1];
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Giveaways need MySQL.')], ephemeral: true });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Giveaways need MySQL.')] });
     const rows = await db.query('SELECT * FROM giveaways WHERE id = ? AND status = \'active\'', [giveawayId]);
     const giveaway = rows?.[0];
-    if (!giveaway) return interaction.reply({ embeds: [errorEmbed('Giveaway ended', 'This giveaway has ended.')], ephemeral: true });
+    if (!giveaway) return interaction.reply({ embeds: [errorEmbed('Giveaway ended', 'This giveaway has ended.')] });
     const missed = [];
     if (giveaway.required_role_id && !interaction.member.roles.cache.has(giveaway.required_role_id)) {
       missed.push(`You need the <@&${giveaway.required_role_id}> role to enter.`);

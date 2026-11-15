@@ -16,11 +16,11 @@ module.exports = {
   data: new SlashCommandBuilder().setName('apply').setDescription('Apply to join something — pick an open application form.'),
   async execute(interaction) {
     const forms = await apps.listForms(interaction.guildId, true);
-    if (!forms.length) return interaction.reply({ embeds: [errorEmbed('No open applications', 'There are no open application forms in this server right now.')], ephemeral: true });
+    if (!forms.length) return interaction.reply({ embeds: [errorEmbed('No open applications', 'There are no open application forms in this server right now.')] });
     if (forms.length === 1) return interaction.showModal(applyModal(forms[0]));
     const menu = new StringSelectMenuBuilder().setCustomId('apply_pick_form').setPlaceholder('Choose an application form')
       .addOptions(forms.map((f) => ({ label: f.name.slice(0, 100), value: String(f.id), description: (f.description || '').slice(0, 100) || undefined })));
-    return interaction.reply({ embeds: [infoEmbed('Apply', 'Pick the form you want to apply with:')], components: [new ActionRowBuilder().addComponents(menu)], ephemeral: true });
+    return interaction.reply({ embeds: [infoEmbed('Apply', 'Pick the form you want to apply with:')], components: [new ActionRowBuilder().addComponents(menu)] });
   },
   applyModal,
 };

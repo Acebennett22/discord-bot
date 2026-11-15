@@ -10,13 +10,13 @@ module.exports = {
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
   async execute(interaction) {
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission.')] });
     }
     const enabled = interaction.options.getBoolean('enabled');
     const { settings } = await setGuildSettings(interaction.guildId, { goodbyeEnabled: enabled });
     if (!settings.goodbyeChannelId) {
-      return interaction.reply({ embeds: [successEmbed('Goodbye messages ' + (enabled ? 'enabled' : 'disabled'), 'No goodbye channel is set yet — run /goodbye-setup to pick one.')], ephemeral: true });
+      return interaction.reply({ embeds: [successEmbed('Goodbye messages ' + (enabled ? 'enabled' : 'disabled'), 'No goodbye channel is set yet — run /goodbye-setup to pick one.')] });
     }
-    return interaction.reply({ embeds: [successEmbed('Goodbye messages ' + (enabled ? 'enabled' : 'disabled'), `Goodbyes in <#${settings.goodbyeChannelId}> are now ${enabled ? '✅ on' : '❌ off'}.`)], ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed('Goodbye messages ' + (enabled ? 'enabled' : 'disabled'), `Goodbyes in <#${settings.goodbyeChannelId}> are now ${enabled ? '✅ on' : '❌ off'}.`)] });
   },
 };

@@ -32,10 +32,10 @@ module.exports = {
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
   async execute(interaction) {
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission to post announcements.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission to post announcements.')] });
     }
     if (!interaction.guild) {
-      return interaction.reply({ embeds: [errorEmbed('Server only', 'Announcements can only be posted in a server.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Server only', 'Announcements can only be posted in a server.')] });
     }
 
     const channel = interaction.options.getChannel('channel');
@@ -57,23 +57,23 @@ module.exports = {
 
     // Validate image URL.
     if (imageRaw && !IMAGE_URL.test(imageRaw.trim())) {
-      return interaction.reply({ embeds: [errorEmbed('Invalid image URL', 'The image must be an http(s) URL ending in .png, .jpg, .jpeg, .gif or .webp.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Invalid image URL', 'The image must be an http(s) URL ending in .png, .jpg, .jpeg, .gif or .webp.')] });
     }
     const image = imageRaw ? imageRaw.trim() : null;
 
     // The ping role must be mentionable by the bot.
     const me = interaction.guild.members.me;
     if (pingRole && !pingRole.mentionable && !me?.permissions.has(PermissionFlagsBits.MentionEveryone)) {
-      return interaction.reply({ embeds: [errorEmbed('Role cannot be pinged', `I can't mention **${pingRole.name}** — that role is not mentionable and I don't have the Mention Everyone permission. Make the role mentionable or give me that permission and try again.`)], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Role cannot be pinged', `I can't mention **${pingRole.name}** — that role is not mentionable and I don't have the Mention Everyone permission. Make the role mentionable or give me that permission and try again.`)] });
     }
 
     // The bot must be able to send (and embed, for embed mode) in the channel.
     const perms = channel.permissionsFor(me);
     if (!perms?.has(PermissionFlagsBits.ViewChannel) || !perms?.has(PermissionFlagsBits.SendMessages)) {
-      return interaction.reply({ embeds: [errorEmbed('Cannot post there', `I don't have permission to send messages in ${channel}.`)], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Cannot post there', `I don't have permission to send messages in ${channel}.`)] });
     }
     if (!plain && !perms?.has(PermissionFlagsBits.EmbedLinks)) {
-      return interaction.reply({ embeds: [errorEmbed('Cannot post there', `I need the Embed Links permission in ${channel} to post an embed — or use the plain option instead.`)], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Cannot post there', `I need the Embed Links permission in ${channel} to post an embed — or use the plain option instead.`)] });
     }
 
     const pingText = pingRole ? `${pingRole}` : '';
@@ -91,11 +91,10 @@ module.exports = {
       const link = `https://discord.com/channels/${interaction.guildId}/${channel.id}/${sent.id}`;
       return interaction.reply({
         embeds: [successEmbed('Announcement posted', `Posted in ${channel} — [jump to message](${link}).${colorNote}`)],
-        ephemeral: true,
       });
     } catch (err) {
       await logWarn('announce: failed to send announcement', { commandName: 'announce', error: err.message });
-      return interaction.reply({ embeds: [errorEmbed('Announcement failed', `I couldn't post in ${channel} — check my permissions there and try again. (${err.message})`)], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Announcement failed', `I couldn't post in ${channel} — check my permissions there and try again. (${err.message})`)] });
     }
   },
 };

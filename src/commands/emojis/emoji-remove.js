@@ -12,12 +12,12 @@ module.exports = {
     const name = interaction.options.getString('name').replace(/:/g, '');
     const emoji = interaction.guild.emojis.cache.find((e) => e.name === name);
     if (!emoji) {
-      return interaction.reply({ embeds: [errorEmbed('Not found', `No custom emoji named \`:${name}:\` in this server. See them all with \`/emoji-list\`.`)] , ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Not found', `No custom emoji named \`:${name}:\` in this server. See them all with \`/emoji-list\`.`)]  });
     }
     await emoji.delete('Removed via /emoji-remove').catch((err) => { throw err; });
     if (db.isEnabled()) {
       await db.query('INSERT INTO emoji_logs (guild_id, user_id, action, emoji_name) VALUES (?, ?, ?, ?)', [interaction.guildId, interaction.user.id, 'remove', name]).catch(() => {});
     }
-    return interaction.reply({ embeds: [successEmbed('Emoji removed', `\`:${name}:\` has been removed from this server.`)] , ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed('Emoji removed', `\`:${name}:\` has been removed from this server.`)]  });
   },
 };

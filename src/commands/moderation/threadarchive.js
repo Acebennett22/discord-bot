@@ -21,19 +21,19 @@ module.exports = {
       const rows = db.isEnabled() ? await db.query('SELECT channel_id, archive_minutes FROM thread_archive_settings WHERE guild_id = ?', [interaction.guildId]) || [] : [];
       const lines = [`**Server default:** ${settings.threadArchiveMinutes} minutes`];
       if (rows.length) lines.push('', '**Per-channel overrides:**', ...rows.map((r) => `<#${r.channel_id}> — ${r.archive_minutes} minutes`));
-      return interaction.reply({ embeds: [infoEmbed('🧵 Thread auto-archive', lines.join('\n'))], ephemeral: true });
+      return interaction.reply({ embeds: [infoEmbed('🧵 Thread auto-archive', lines.join('\n'))] });
     }
     const minutes = interaction.options.getInteger('minutes');
     const channel = interaction.options.getChannel('channel');
     if (channel) {
-      if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Per-channel overrides need MySQL.')], ephemeral: true });
+      if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Per-channel overrides need MySQL.')] });
       await db.query(
         'INSERT INTO thread_archive_settings (guild_id, channel_id, archive_minutes) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE archive_minutes = VALUES(archive_minutes)',
         [interaction.guildId, channel.id, minutes],
       );
-      return interaction.reply({ embeds: [successEmbed('Thread archive override set', `🧵 Threads in <#${channel.id}> will auto-archive after **${minutes} minutes** of inactivity.`)], ephemeral: true });
+      return interaction.reply({ embeds: [successEmbed('Thread archive override set', `🧵 Threads in <#${channel.id}> will auto-archive after **${minutes} minutes** of inactivity.`)] });
     }
     await setGuildSettings(interaction.guildId, { threadArchiveMinutes: minutes });
-    return interaction.reply({ embeds: [successEmbed('Thread archive default set', `🧵 Threads will auto-archive after **${minutes} minutes** of inactivity (per-channel overrides still win).`)], ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed('Thread archive default set', `🧵 Threads will auto-archive after **${minutes} minutes** of inactivity (per-channel overrides still win).`)] });
   },
 };

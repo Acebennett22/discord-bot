@@ -22,11 +22,11 @@ module.exports = {
     const settings = await getGuildSettings(interaction.guildId);
     const location = interaction.options.getString('location') || settings.defaultWeatherLocation;
     if (!location) {
-      return interaction.reply({ embeds: [errorEmbed('Where?', 'Give a location — `/forecast location: Blairsville, PA` — or set a server default with `/weather-set`.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Where?', 'Give a location — `/forecast location: Blairsville, PA` — or set a server default with `/weather-set`.')] });
     }
     const days = interaction.options.getInteger('days') || 3;
     const units = interaction.options.getString('units') || settings.weatherUnits || 'imperial';
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply();
     const result = await getWeather(location, units);
     if (result.error) return interaction.editReply({ embeds: [errorEmbed('Forecast', result.error)] });
     const d = result.daily;

@@ -45,15 +45,15 @@ module.exports = {
     .setName('daily')
     .setDescription('Claim your daily coins (once every 24 hours).'),
   async execute(interaction) {
-    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'Economy only works in a server.')], ephemeral: true });
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Economy offline', 'The database is not connected, so daily rewards are unavailable right now.')], ephemeral: true });
+    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'Economy only works in a server.')] });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Economy offline', 'The database is not connected, so daily rewards are unavailable right now.')] });
     const settings = await getPremiumSettings(interaction.guildId);
     const emoji = settings.economyCurrencyEmoji || '🪙';
     const name = settings.economyCurrencyName || 'coins';
     const bal = await getBalance(interaction.guildId, interaction.user.id);
     const remaining = cooldownRemaining(bal.last_daily, 24 * 60 * 60_000);
     if (remaining > 0) {
-      return interaction.reply({ embeds: [errorEmbed('Daily already claimed', `Come back in **${formatRemaining(remaining)}** for your next daily reward.`)], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Daily already claimed', `Come back in **${formatRemaining(remaining)}** for your next daily reward.`)] });
     }
     const amount = randInt(settings.economyDailyMin, settings.economyDailyMax);
     await addCoins(interaction.guildId, interaction.user.id, amount, 'daily', 'Daily reward');
@@ -73,6 +73,6 @@ module.exports = {
       }
     }
     const loot = await grantDailyLoot(interaction, emoji, name);
-    return interaction.reply({ embeds: [successEmbed('Daily reward', `${emoji} You claimed **${amount} ${name}**!${bonus > 0 ? `\n🔥 **${streak}-day streak** (+${bonus} ${name} bonus, best: ${best})` : ''}${milestoneText}\n${loot}\nCome back tomorrow for more.`)] , ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed('Daily reward', `${emoji} You claimed **${amount} ${name}**!${bonus > 0 ? `\n🔥 **${streak}-day streak** (+${bonus} ${name} bonus, best: ${best})` : ''}${milestoneText}\n${loot}\nCome back tomorrow for more.`)]  });
   },
 };

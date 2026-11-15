@@ -17,7 +17,7 @@ module.exports = {
     const id = parseInt(idStr, 10);
     const replace = replaceStr === '1';
     if (!interaction.memberPermissions?.has('Administrator')) {
-      return interaction.reply({ embeds: [errorEmbed('Admin only', 'Only server admins can restore a backup.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Admin only', 'Only server admins can restore a backup.')] });
     }
     const rows = await db.query('SELECT * FROM server_backups WHERE id = ? AND guild_id = ?', [id, interaction.guildId]);
     const backup = rows?.[0];
@@ -27,10 +27,9 @@ module.exports = {
       const summary = await restoreBackup(interaction.guild, backup, { replace });
       await interaction.followUp({
         embeds: [successEmbed('Restore complete', `✅ **${backup.name}** restored:\n• Roles: ${summary.rolesCreated} created, ${summary.rolesUpdated} updated${replace ? `, ${summary.rolesDeleted} deleted` : ''}\n• Channels: ${summary.channelsCreated} created, ${summary.channelsUpdated} updated${replace ? `, ${summary.channelsDeleted} deleted` : ''}`)],
-        ephemeral: true,
       });
     } catch (err) {
-      await interaction.followUp({ embeds: [errorEmbed('Restore failed', err.message)], ephemeral: true });
+      await interaction.followUp({ embeds: [errorEmbed('Restore failed', err.message)] });
     }
   },
 };

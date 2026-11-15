@@ -16,7 +16,7 @@ module.exports = {
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
   async execute(interaction) {
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission to manage welcome DMs.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission to manage welcome DMs.')] });
     }
     const sub = interaction.options.getSubcommand();
     if (sub === 'set') {
@@ -32,13 +32,13 @@ module.exports = {
         { name: 'Status', value: '✅ Enabled — use /welcome-dm toggle to turn it off.', inline: false },
       );
       if (!saved) embed.addFields({ name: '⚠️ Not saved to database', value: 'MySQL is not connected — this is only kept in memory for this run.', inline: false });
-      return interaction.reply({ embeds: [embed], ephemeral: true });
+      return interaction.reply({ embeds: [embed] });
     }
     // toggle
     const enabled = interaction.options.getBoolean('enabled');
     const { settings } = await setGuildSettings(interaction.guildId, { welcomeDmEnabled: enabled });
     if (enabled && !settings.welcomeDmMessage) {
-      return interaction.reply({ embeds: [successEmbed('Welcome DMs enabled', 'No DM message is set yet — run /welcome-dm set to write one first.')], ephemeral: true });
+      return interaction.reply({ embeds: [successEmbed('Welcome DMs enabled', 'No DM message is set yet — run /welcome-dm set to write one first.')] });
     }
     const preview = settings.welcomeDmMessage
       ? formatMessage(settings.welcomeDmMessage, { id: interaction.user.id, user: interaction.user, guild: interaction.guild })
@@ -47,6 +47,6 @@ module.exports = {
       enabled
         ? `New members will be DM'd when they join.${preview ? `\n\n**Preview (for you):**\n${preview.slice(0, 1500)}` : ''}`
         : 'New members will no longer receive a welcome DM.');
-    return interaction.reply({ embeds: [embed], ephemeral: true });
+    return interaction.reply({ embeds: [embed] });
   },
 };

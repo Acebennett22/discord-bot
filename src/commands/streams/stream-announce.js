@@ -16,10 +16,10 @@ module.exports = {
     const platform = interaction.options.getString('platform');
     const url = interaction.options.getString('url');
     const title = interaction.options.getString('title') || '';
-    if (!/^https?:\/\//i.test(url)) return interaction.reply({ embeds: [errorEmbed('Invalid URL', 'Give a full stream URL starting with http(s)://.')], ephemeral: true });
+    if (!/^https?:\/\//i.test(url)) return interaction.reply({ embeds: [errorEmbed('Invalid URL', 'Give a full stream URL starting with http(s)://.')] });
     const channel = interaction.options.getChannel('channel') || interaction.channel;
     const name = url.split('/').filter(Boolean).pop() || platform;
     await channel.send({ content: `🔴 **${name}** is live on ${platform}!`, embeds: [liveEmbed(platform, name, { title, url, game: '', viewers: null, thumbnail: null })] });
-    return interaction.reply({ embeds: [successEmbed('Stream announced', `Announced the ${platform} stream in <#${channel.id}>.`)], ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed('Stream announced', `Announced the ${platform} stream in <#${channel.id}>.`)] });
   },
 };

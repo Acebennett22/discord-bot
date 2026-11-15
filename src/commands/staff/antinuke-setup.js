@@ -19,9 +19,9 @@ module.exports = {
     .addRoleOption((o) => o.setName('whitelist_role').setDescription('A role to exempt from anti-nuke (appends to the whitelist)'))
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
   async execute(interaction) {
-    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'Anti-nuke is configured per server.')], ephemeral: true });
+    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'Anti-nuke is configured per server.')] });
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
-      return interaction.reply({ embeds: [errorEmbed('Admin only', 'Only server administrators can configure anti-nuke.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Admin only', 'Only server administrators can configure anti-nuke.')] });
     }
     const enabled = interaction.options.getBoolean('enabled');
     const action = interaction.options.getString('action');
@@ -31,7 +31,7 @@ module.exports = {
     const current = await getGuildSettings(interaction.guildId);
     if (enabled === null && action === null && threshold === null && !whitelistRole) {
       const whitelist = parseWhitelist(current.antInukeWhitelistRoles);
-      return interaction.reply({ embeds: [infoEmbed('🛡️ Anti-nuke settings', `**Enabled:** ${current.antInukeEnabled ?? false ? 'Yes' : 'No'}\n**Action:** ${current.antInukeAction || 'kick'}\n**Threshold:** ${current.antInukeThreshold ?? 5} destructive actions in 60s\n**Whitelisted roles:** ${whitelist.length ? whitelist.map((id) => `<@&${id}>`).join(', ') : 'None'}\n**Log channel:** ${current.antInukeLogChannelId ? `<#${current.antInukeLogChannelId}>` : 'Not set (falls back to the general log channel)'}\n\nRe-run with options to change any of these.`)], ephemeral: true });
+      return interaction.reply({ embeds: [infoEmbed('🛡️ Anti-nuke settings', `**Enabled:** ${current.antInukeEnabled ?? false ? 'Yes' : 'No'}\n**Action:** ${current.antInukeAction || 'kick'}\n**Threshold:** ${current.antInukeThreshold ?? 5} destructive actions in 60s\n**Whitelisted roles:** ${whitelist.length ? whitelist.map((id) => `<@&${id}>`).join(', ') : 'None'}\n**Log channel:** ${current.antInukeLogChannelId ? `<#${current.antInukeLogChannelId}>` : 'Not set (falls back to the general log channel)'}\n\nRe-run with options to change any of these.`)] });
     }
 
     const patch = {};
@@ -53,6 +53,6 @@ module.exports = {
     if (action !== null) lines.push(`Action: **${action}**`);
     if (threshold !== null) lines.push(`Threshold: **${threshold}** destructive actions in 60s`);
     if (whitelistRole) lines.push(`Whitelisted role added: <@&${whitelistRole.id}> (total: ${whitelist.length})`);
-    return interaction.reply({ embeds: [successEmbed('Anti-nuke updated', `${lines.join('\n')}\n\nCurrent: enabled **${settings.antInukeEnabled ?? false ? 'Yes' : 'No'}** · action **${settings.antInukeAction || 'kick'}** · threshold **${settings.antInukeThreshold ?? 5}**${saved ? '' : '\n⚠️ Database unavailable — these settings are cached in memory only and will be lost on restart.'}`)], ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed('Anti-nuke updated', `${lines.join('\n')}\n\nCurrent: enabled **${settings.antInukeEnabled ?? false ? 'Yes' : 'No'}** · action **${settings.antInukeAction || 'kick'}** · threshold **${settings.antInukeThreshold ?? 5}**${saved ? '' : '\n⚠️ Database unavailable — these settings are cached in memory only and will be lost on restart.'}`)] });
   },
 };

@@ -18,8 +18,8 @@ module.exports = {
     .addIntegerOption((o) => o.setName('bet').setDescription('Coins to bet (min 10, max 10000)').setRequired(true).setMinValue(1))
     .addStringOption((o) => o.setName('choice').setDescription('red, black, green, or a number 0-36').setRequired(true)),
   async execute(interaction) {
-    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'Casino games only work in a server.')], ephemeral: true });
-    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Casino offline', 'The database is not connected, so casino games are unavailable right now.')], ephemeral: true });
+    if (!interaction.guild) return interaction.reply({ embeds: [errorEmbed('Server only', 'Casino games only work in a server.')] });
+    if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Casino offline', 'The database is not connected, so casino games are unavailable right now.')] });
     const bet = interaction.options.getInteger('bet');
     const rawChoice = interaction.options.getString('choice').trim().toLowerCase();
     let kind;
@@ -27,12 +27,12 @@ module.exports = {
     if (['red', 'black', 'green'].includes(rawChoice)) kind = rawChoice;
     else if (/^\d+$/.test(rawChoice) && parseInt(rawChoice, 10) >= 0 && parseInt(rawChoice, 10) <= 36) { kind = 'number'; number = parseInt(rawChoice, 10); }
     else {
-      return interaction.reply({ embeds: [errorEmbed('Invalid bet', 'Choice must be **red**, **black**, **green**, or a number **0–36**.')], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Invalid bet', 'Choice must be **red**, **black**, **green**, or a number **0–36**.')] });
     }
     const remaining = casino.cooldownRemainingMs(interaction.user.id);
-    if (remaining > 0) return interaction.reply({ embeds: [errorEmbed('Slow down', `Wait **${Math.ceil(remaining / 1000)}s** between casino games.`)], ephemeral: true });
+    if (remaining > 0) return interaction.reply({ embeds: [errorEmbed('Slow down', `Wait **${Math.ceil(remaining / 1000)}s** between casino games.`)] });
     const check = await casino.validateBet(interaction.guildId, interaction.user.id, bet);
-    if (!check.ok) return interaction.reply({ embeds: [errorEmbed('Bet rejected', check.error)], ephemeral: true });
+    if (!check.ok) return interaction.reply({ embeds: [errorEmbed('Bet rejected', check.error)] });
     casino.markPlayed(interaction.user.id);
     const settings = await getPremiumSettings(interaction.guildId);
     const emoji = settings.economyCurrencyEmoji || '🪙';
@@ -52,7 +52,6 @@ module.exports = {
         multiplier > 0 ? '🎡 Roulette — you won!' : '🎡 Roulette — you lost',
         `The ball landed on ${COLOR_EMOJI[winningColor]} **${winningNumber} ${winningColor}** — you bet on **${betText}**.\n${multiplier > 0 ? `Payout **x${multiplier}**!` : 'No win this time.'}\n**Bet:** ${emoji} ${bet} ${name}\n**Return:** ${emoji} ${bet * multiplier} ${name}\n**Net:** ${multiplier > 0 ? `+${bet * multiplier - bet}` : `-${bet}`} ${name}`,
       )],
-      ephemeral: true,
     });
   },
 };
