@@ -6,6 +6,11 @@ in `package.json` is the source of truth for the current release — every
 version below must match a `package.json` version, and the dashboard
 `/version` page renders from this file.
 
+## [1.15.5] - 2026-11-15
+
+### Fixed
+- /help group listings (1.15.5) — every category showed "No commands in this group" after the 1.15.0 consolidation, because help looked up flat command names in client.commands, which now holds consolidated parents. Groups are now defined by parent (all 32 parents covered, merged into 25 categories to fit Discord's 25-option select-menu limit), each listing its real paths (`/mod ban`, `/mod warn add`, `/economy job set`, …) with descriptions. Standalone commands (giveaway, serverbackup, mediathreads) and the two message context-menu commands are listed under "Other" / "Giveaways" instead of being hidden. The opening embed now shows the real total of 266 commands (was 37, the parent count).
+
 ## [1.15.4] - 2026-11-15
 
 ### Changed
