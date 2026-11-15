@@ -197,6 +197,7 @@ CREATE TABLE IF NOT EXISTS polls (
   question VARCHAR(256) NOT NULL,
   options JSON NOT NULL,
   votes JSON NOT NULL,
+  final_counts JSON NULL,
   ends_at TIMESTAMP NULL,
   ended TINYINT(1) NOT NULL DEFAULT 0,
   created_by VARCHAR(32) NOT NULL,

@@ -6,6 +6,11 @@ in `package.json` is the source of truth for the current release — every
 version below must match a `package.json` version, and the dashboard
 `/version` page renders from this file.
 
+## [1.14.16] - 2026-11-15
+
+### Fixed
+- Leveling SQL crash (1.14.16) — `Unknown column 'messages' in 'field list'`: the leveling code counts every message in `user_levels.messages`, but that column was only ever added by an ALTER note in `sql/schema.sql` — the CREATE TABLE never had it, so even a fresh install was missing it. An audit found 5 such columns; all 5 are now in the CREATE TABLEs (`user_levels.messages`, `user_levels.prestige`, `tickets.panel_id`, `giveaways.bonus_role_id`/`bonus_entries`, `polls.final_counts`), and the bot now self-heals on startup: `initDatabase()` checks INFORMATION_SCHEMA and adds any missing column (plus recreates the `autoresponders` table if the wizard ran before the `trigger` fix), so existing installs are fixed by restarting — no manual SQL needed.
+
 ## [1.14.15] - 2026-11-15
 
 ### Changed

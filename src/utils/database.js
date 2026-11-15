@@ -37,12 +37,71 @@ async function initDatabase() {
     conn.release();
     enabled = true;
     console.log('[db] Connected to MySQL.');
+    // Self-heal schema drift: CREATE TABLE IF NOT EXISTS never adds columns
+    // to tables that already exist, and older ALTER notes in sql/schema.sql
+    // were only comments — so an existing DB can be missing columns the code
+    // already queries (e.g. user_levels.messages). Add any that are absent.
+    // A failure here only warns; the bot keeps running without the column.
+    await runMigrations(db.database).catch((err) => console.warn('[db] Migration check failed (continuing):', err.message));
     return true;
   } catch (err) {
     console.warn('[db] Could not connect to MySQL — continuing without database logging:', err.message);
     pool = null;
     enabled = false;
     return false;
+  }
+}
+
+// Columns that were added by ALTER notes but never made it into the CREATE
+// TABLE statements — fresh installs get them from the CREATE now, existing
+// installs get them here. [table, column, definition]
+const MISSING_COLUMNS = [
+  ['user_levels', 'messages', 'INT UNSIGNED NOT NULL DEFAULT 0'],
+  ['user_levels', 'prestige', 'INT UNSIGNED NOT NULL DEFAULT 0'],
+  ['tickets', 'panel_id', 'BIGINT UNSIGNED NULL'],
+  ['giveaways', 'bonus_role_id', 'VARCHAR(32) NULL'],
+  ['giveaways', 'bonus_entries', 'INT NULL'],
+  ['polls', 'final_counts', 'JSON NULL'],
+];
+
+// The autoresponders table failed to create on installs whose wizard ran
+// before the `trigger` reserved-word fix (1.14.12) — recreate if absent.
+const AUTORESPONDERS_CREATE = `CREATE TABLE IF NOT EXISTS autoresponders (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  guild_id VARCHAR(32) NOT NULL,
+  \`trigger\` VARCHAR(128) NOT NULL,
+  response VARCHAR(2000) NOT NULL,
+  match_type ENUM('contains','exact') NOT NULL DEFAULT 'contains',
+  enabled TINYINT(1) NOT NULL DEFAULT 1,
+  use_count INT UNSIGNED NOT NULL DEFAULT 0,
+  created_by VARCHAR(32) NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_autoresponder (guild_id, \`trigger\`),
+  INDEX idx_autoresponders_guild (guild_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`;
+
+async function runMigrations(dbName) {
+  if (!pool) return;
+  for (const [table, column, definition] of MISSING_COLUMNS) {
+    try {
+      const [rows] = await pool.execute(
+        'SELECT COUNT(*) AS n FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?',
+        [dbName, table, column],
+      );
+      if (rows[0]?.n === 0) {
+        await pool.execute(`ALTER TABLE \`${table}\` ADD COLUMN \`${column}\` ${definition}`);
+        console.log(`[db] Migration: added missing column ${table}.${column}.`);
+      }
+    } catch (err) {
+      // Table itself may not exist (e.g. premium tables) — not an error.
+      console.warn(`[db] Migration: could not check/add ${table}.${column}:`, err.message);
+    }
+  }
+  try {
+    await pool.execute(AUTORESPONDERS_CREATE);
+  } catch (err) {
+    console.warn('[db] Migration: could not ensure autoresponders table:', err.message);
   }
 }
 
