@@ -6,6 +6,11 @@ in `package.json` is the source of truth for the current release — every
 version below must match a `package.json` version, and the dashboard
 `/version` page renders from this file.
 
+## [1.15.10] - 2026-11-15
+
+### Fixed
+- Dashboard login was rejected by Discord with "invalid scope :offline" (1.15.10). Root cause: 1.15.4 added `offline` to the OAuth scope (`identify guilds offline`) on the theory it was needed for refresh tokens — Discord OAuth2 has no `offline` scope, so the authorize URL was rejected outright and nobody could log in. The scope is back to exactly `identify guilds` (the pre-1.15.4 value, confirmed from git history). The 1.15.4 refresh-token machinery is untouched: Discord returns a refresh token on the authorization-code exchange with no special scope needed, so `refreshAccessToken()`, the stored refresh token, renewal on expiry/401, and the "expired connection" notice all keep working. The two comments that credited the `offline` scope for refresh tokens are corrected, and `tmp/verify-session-store.js` now asserts the corrected scope (including a live check of the real /login redirect). Verified by `tmp/verify-1.15.10.js` (20/20: rebuilt authorize URL has scope exactly `identify guilds`, no `offline` anywhere, same client_id/redirect_uri/response_type=code as before; refresh flow intact) and `tmp/verify-session-store.js` (all checks pass). Dashboard boots and serves in wizard mode; bot load unchanged (266 commands, 37 top-level, 0 problems). Dashboard restart only — no deploy, no bot restart, no npm install.
+
 ## [1.15.9] - 2026-11-15
 
 ### Fixed

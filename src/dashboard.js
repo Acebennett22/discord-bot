@@ -183,10 +183,13 @@ function requireAuth(req, res, next) {
 }
 
 async function refreshAccessToken(req) {
-  // Discord access tokens last ~7 days. With the `offline` scope from /login
-  // Discord also returns a refresh token — use it to get a fresh access
-  // token without making the user log in again. Refresh tokens rotate: store
-  // the new one whenever Discord returns one.
+  // Discord access tokens last ~7 days. Discord's authorization-code
+  // exchange returns a refresh token with no special scope needed (there is
+  // NO `offline` scope in Discord OAuth2 — 1.15.4 added it by mistake and
+  // Discord rejected the login outright with "invalid scope"). Use the
+  // refresh token to get a fresh access token without making the user log
+  // in again. Refresh tokens rotate: store the new one whenever Discord
+  // returns one.
   if (!req.session.refreshToken) return false;
   try {
     const res = await axios.post('https://discord.com/api/v10/oauth2/token', new URLSearchParams({
@@ -440,7 +443,7 @@ app.get('/login', (req, res) => {
     client_id: config.clientId,
     redirect_uri: REDIRECT_URI,
     response_type: 'code',
-    scope: 'identify guilds offline',
+    scope: 'identify guilds',
   });
   res.redirect(`https://discord.com/oauth2/authorize?${params}`);
 });
@@ -457,9 +460,10 @@ app.get('/callback', async (req, res) => {
       redirect_uri: REDIRECT_URI,
     }), { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
     req.session.accessToken = tokenRes.data.access_token;
-    // `offline` scope: Discord returns a refresh token so the access token
-    // (~7 days) can be renewed without another login. Stored in the session
-    // alongside the user — see refreshAccessToken().
+    // Discord returns a refresh token on the authorization-code exchange
+    // with no special scope needed, so the access token (~7 days) can be
+    // renewed without another login. Stored in the session alongside the
+    // user — see refreshAccessToken().
     if (tokenRes.data.refresh_token) req.session.refreshToken = tokenRes.data.refresh_token;
     if (tokenRes.data.expires_in) req.session.tokenExpiresAt = Date.now() + tokenRes.data.expires_in * 1000;
     const userRes = await discordApi.get('/users/@me', { headers: { Authorization: `Bearer ${tokenRes.data.access_token}` } });

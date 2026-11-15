@@ -111,7 +111,7 @@ async function part1() {
   check('dashboard: store: createSessionStore()', /store:\s*createSessionStore\(\)/.test(src));
   check('dashboard: cookie maxAge is SESSION_MAX_AGE_MS', /maxAge:\s*SESSION_MAX_AGE_MS/.test(src));
   check('dashboard: cookie keeps httpOnly + secure auto', /httpOnly:\s*true/.test(src) && /secure:\s*'auto'/.test(src));
-  check('dashboard: OAuth scope includes offline', /scope:\s*'identify guilds offline'/.test(src));
+  check('dashboard: OAuth scope is exactly identify guilds (no offline)', /scope:\s*'identify guilds'/.test(src) && !/scope:\s*'[^']*offline[^']*'/.test(src));
   check('dashboard: callback stores refreshToken', /req\.session\.refreshToken\s*=\s*tokenRes\.data\.refresh_token/.test(src));
   check('dashboard: callback stores tokenExpiresAt', /req\.session\.tokenExpiresAt\s*=/.test(src));
   check('dashboard: refresh uses grant_type refresh_token', /grant_type:\s*'refresh_token'/.test(src));
@@ -181,11 +181,12 @@ async function part2() {
   }
 
   const noRedirect = { redirect: 'manual' };
-  // 1. /login redirects to Discord with the offline scope.
+  // 1. /login redirects to Discord with exactly the `identify guilds` scope
+  // (Discord has no `offline` scope — 1.15.4 adding it broke login).
   const loginRes = await fetch(`${base}/login`, noRedirect);
   const loginLoc = loginRes.headers.get('location') || '';
   check('GET /login redirects to Discord authorize', loginRes.status === 302 && loginLoc.includes('discord.com/oauth2/authorize'));
-  check('login scope includes offline', loginLoc.includes('offline'));
+  check('login scope is exactly identify guilds, no offline', new URL(loginLoc).searchParams.get('scope') === 'identify guilds' && !loginLoc.includes('offline'));
 
   // 2. /callback exchanges the code, sets a 30-day cookie, redirects to /servers.
   const cbRes = await fetch(`${base}/callback?code=fakecode`, noRedirect);
