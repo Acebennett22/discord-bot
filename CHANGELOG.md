@@ -6,6 +6,11 @@ in `package.json` is the source of truth for the current release — every
 version below must match a `package.json` version, and the dashboard
 `/version` page renders from this file.
 
+## [1.15.6] - 2026-11-15
+
+### Changed
+- Rebrand "Ace Bot" → "Vikings Hall" (1.15.6) — pure string rename, no behavior changes. The shared embed footer is now `Vikings Hall • /utility help` (the `/help` pointer was stale since the 1.15.0 consolidation — help is now `/utility help`), the help title is `🤖 Vikings Hall — Help`, suggestion and announcement footers, and the dashboard title/brand/footer/home/version/setup/docs pages all read "Vikings Hall (Dashboard)". README, the dashboard preview page, and the nginx config comments updated to match. The npm package name, repo name, config keys, and the bot's Discord account username are unchanged (the account name is a Developer Portal change, not code).
+
 ## [1.15.5] - 2026-11-15
 
 ### Fixed

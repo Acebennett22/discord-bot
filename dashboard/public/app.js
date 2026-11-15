@@ -1,4 +1,4 @@
-// Ace Bot dashboard — shared client-side layer (vanilla JS, no dependencies).
+// Vikings Hall dashboard — shared client-side layer (vanilla JS, no dependencies).
 // Loaded on every page (see partials/header.ejs). Provides toasts, fetch
 // helpers, no-reload form saves, section refresh, and row removal.
 // Progressive enhancement: every form keeps its method/action, so with JS

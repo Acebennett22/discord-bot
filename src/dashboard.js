@@ -2463,7 +2463,7 @@ app.post('/api/staff/broadcast', requireOwner, async (req, res) => {
   if (confirm !== true && confirm !== 'true') return res.status(400).json({ error: 'Confirm the broadcast first.' });
   if (!title || !body) return res.status(400).json({ error: 'Title and message are required.' });
   if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
-  const embed = { title: title.slice(0, 256), description: body.slice(0, 4000), color: 0x5865f2, timestamp: new Date().toISOString(), footer: { text: 'Ace Bot announcement' } };
+  const embed = { title: title.slice(0, 256), description: body.slice(0, 4000), color: 0x5865f2, timestamp: new Date().toISOString(), footer: { text: 'Vikings Hall announcement' } };
   const targets = [];
   try {
     if (guildId) {

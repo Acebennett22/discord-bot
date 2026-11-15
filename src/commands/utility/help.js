@@ -99,7 +99,7 @@ module.exports = {
         .addOptions(Object.entries(GROUPS).map(([key, g]) => ({ label: g.label, value: key }))),
     );
     const response = await interaction.reply({ ephemeral: true,
-      embeds: [infoEmbed('🤖 Ace Bot — Help', `Pick a category below to see its commands.\n\n**${countCommands(interaction.client)} commands** loaded.`)],
+      embeds: [infoEmbed('🤖 Vikings Hall — Help', `Pick a category below to see its commands.\n\n**${countCommands(interaction.client)} commands** loaded.`)],
       components: [menu],
       withResponse: true,
     });

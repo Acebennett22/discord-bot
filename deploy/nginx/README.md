@@ -1,4 +1,4 @@
-# Nginx reverse proxy for the Ace Bot dashboard
+# Nginx reverse proxy for the Vikings Hall dashboard
 
 Serves the dashboard (localhost:3010) on a public domain over HTTPS, e.g. `https://bot.example.com`. This is also how the first-run setup wizard is reached through a domain.
 

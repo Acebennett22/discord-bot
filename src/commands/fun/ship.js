@@ -42,7 +42,7 @@ module.exports = {
       .setTitle('💘 Ship check!')
       .setDescription(`${userA} ❤️ ${userB}\n\n**Compatibility: ${score}%**\n${compatibilityBar(score)}\n\n*${compatibilityLabel(score)}*`)
       .setTimestamp()
-      .setFooter({ text: 'Ace Bot • /help' });
+      .setFooter({ text: 'Vikings Hall • /utility help' });
     // Public post: a ship result is meant to be seen in the channel.
     return interaction.reply({ embeds: [embed] });
   },

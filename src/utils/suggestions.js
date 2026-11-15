@@ -34,7 +34,7 @@ function suggestionEmbed(s) {
       { name: 'Status', value: STATUS_LABEL[s.status] || s.status, inline: true },
       { name: 'Votes', value: `👍 ${s.votes_up} · 👎 ${s.votes_down}`, inline: true },
     )
-    .setFooter({ text: `Suggestion #${s.id} • Ace Bot` })
+    .setFooter({ text: `Suggestion #${s.id} • Vikings Hall` })
     .setTimestamp(new Date(s.created_at));
 }
 

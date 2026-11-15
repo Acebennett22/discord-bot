@@ -1,6 +1,6 @@
 // THE single embed builder — every command reply must be an embed.
 // Styling: color from config.json embedColor (brand color), timestamp on
-// every embed, footer "Ace Bot • /help". Success = green, error = red,
+// every embed, footer "Vikings Hall • /utility help". Success = green, error = red,
 // info/stats = brand color. Never reply with plain text as the main response.
 const { EmbedBuilder } = require('discord.js');
 const config = require('./config');
@@ -9,7 +9,7 @@ function baseEmbed() {
   return new EmbedBuilder()
     .setColor(config.embedColor || '#5865F2')
     .setTimestamp()
-    .setFooter({ text: 'Ace Bot • /help' });
+    .setFooter({ text: 'Vikings Hall • /utility help' });
 }
 
 function successEmbed(title, description) {
