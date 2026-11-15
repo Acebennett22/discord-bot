@@ -8,6 +8,13 @@
 // e.g. DEPLOY_LIMIT=50 npm run deploy). A bulk PUT *replaces* the whole
 // command list in that scope, so only use slices in a test guild (guildId)
 // or when no commands are registered yet.
+//
+// DEPLOY_MODE=single registers commands one at a time (POST each — Discord
+// upserts by name) instead of one bulk PUT. Use it if the bulk request
+// itself is rejected for size: it bypasses the per-request array limit, but
+// it still counts toward Discord's 200 new-command creates per day and the
+// 100 CHAT_INPUT commands per scope, so it stops at the first failure and
+// names the command that failed.
 const { REST, Routes } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
@@ -27,11 +34,23 @@ for (const folder of fs.readdirSync(commandsPath)) {
 const offset = Math.max(0, parseInt(process.env.DEPLOY_OFFSET || '0', 10) || 0);
 const limit = parseInt(process.env.DEPLOY_LIMIT || '0', 10) || 0;
 const commands = limit > 0 ? allCommands.slice(offset, offset + limit) : allCommands.slice(offset);
-console.log(`[deploy] Sending ${commands.length} of ${allCommands.length} commands (offset ${offset})${commands.length ? ` — first: ${commands[0].name}, last: ${commands[commands.length - 1].name}` : ''}.`);
+const singleMode = process.env.DEPLOY_MODE === 'single';
+console.log(`[deploy] ${singleMode ? 'Single' : 'Bulk'} mode: sending ${commands.length} of ${allCommands.length} commands (offset ${offset})${commands.length ? ` — first: ${commands[0].name}, last: ${commands[commands.length - 1].name}` : ''}.`);
 
 (async () => {
   const rest = new REST({ version: '10' }).setToken(config.token);
   try {
+    if (singleMode) {
+      let done = 0;
+      for (const cmd of commands) {
+        if (config.guildId) await rest.post(Routes.applicationGuildCommands(config.clientId, config.guildId), { body: cmd });
+        else await rest.post(Routes.applicationCommands(config.clientId), { body: cmd });
+        done++;
+        if (done % 25 === 0 || done === commands.length) console.log(`[deploy] ${done}/${commands.length} registered (latest: ${cmd.name}).`);
+      }
+      console.log(`✅ Registered ${done} commands one at a time${config.guildId ? ` in guild ${config.guildId}` : ' globally (may take up to an hour to appear)'}.`);
+      return;
+    }
     if (config.guildId) {
       await rest.put(Routes.applicationGuildCommands(config.clientId, config.guildId), { body: commands });
       console.log(`✅ Registered ${commands.length} guild commands in ${config.guildId}.`);

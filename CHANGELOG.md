@@ -6,6 +6,11 @@ in `package.json` is the source of truth for the current release — every
 version below must match a `package.json` version, and the dashboard
 `/version` page renders from this file.
 
+## [1.14.14] - 2026-11-15
+
+### Fixed
+- Deploy bisect (1.14.14) — 50 commands deploy fine, 100 deploy fine, 130 fail, so the wall is between 100 and 130 commands in one bulk request, not any command's fields. Added `DEPLOY_MODE=single` to the deploy script: registers commands one at a time (POST each, Discord upserts by name), bypassing the per-request bulk array limit. It still counts toward Discord's 200 new-command creates per day and the 100 CHAT_INPUT per scope, and it stops at the first failure naming the command. Next test: `DEPLOY_LIMIT=129 npm run deploy` — if 129 works, the app cap is not 100 and single-mode can register all 266; if it fails with error 30032, the 100-command cap is real and consolidation into subcommand groups is required.
+
 ## [1.14.13] - 2026-11-15
 
 ### Fixed
