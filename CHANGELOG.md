@@ -6,6 +6,11 @@ in `package.json` is the source of truth for the current release — every
 version below must match a `package.json` version, and the dashboard
 `/version` page renders from this file.
 
+## [1.15.1] - 2026-11-15
+
+### Changed
+- Staff management page (1.15.1) — /staff/manage rows now show names as well as IDs: the staff member column shows "Name (ID)" and the added-by column shows "Name (ID)" of whoever added them, instead of raw IDs only. Names resolve via the bot REST API (GET /users/{id}; the dashboard is a separate process with no discord.js client), de-duplicated per page render. Unresolvable IDs fall back to "ID (unknown user)" and never crash the page; rows with a NULL added_by (added outside the dashboard) show "System / config". No schema change — staff_users is untouched.
+
 ## [1.15.0] - 2026-11-15
 
 ### Changed

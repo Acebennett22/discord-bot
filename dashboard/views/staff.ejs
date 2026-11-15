@@ -153,9 +153,9 @@
       <p><strong>Owner ID:</strong> <code><%= data.ownerId || 'not set in config.json' %></code></p>
       <h2>Current staff</h2>
       <div id="staff-list">
-      <table><tr><th>User ID</th><th>Role</th><th>Added by</th><th></th></tr>
+      <table><tr><th>Staff member</th><th>Role</th><th>Added by</th><th></th></tr>
       <% data.staff.forEach(s => { %>
-        <tr><td><%= s.user_id %></td><td><%= s.role %></td><td><%= s.added_by || '—' %></td>
+        <tr><td><%= s.user_label %></td><td><%= s.role %></td><td><%= s.added_by_label %></td>
         <td><button class="btn danger" data-remove-staff="<%= s.user_id %>">Remove</button></td></tr>
       <% }); %></table>
       </div>

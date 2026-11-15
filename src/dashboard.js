@@ -21,6 +21,7 @@ const config = require('./utils/config');
 const db = require('./utils/database');
 const { getGuildSettings, setGuildSettings } = require('./utils/guildSettings');
 const staffUtils = require('./utils/staff');
+const { resolveUserLabels } = require('./utils/userLabels');
 const errorLogger = require('./utils/errorLogger');
 const { runBackup, retentionDays, BACKUP_DIR } = require('../scripts/backup-db');
 const { FEATURES, setToggle } = require('./utils/featureToggles');
@@ -1976,7 +1977,18 @@ app.get('/staff/features', requireStaff, async (req, res) => {
 app.get('/staff/manage', requireOwner, async (req, res) => {
   const list = await staffUtils.listStaff();
   const auditRows = db.isEnabled() ? (await db.query('SELECT * FROM staff_audit ORDER BY id DESC LIMIT 50') || []) : [];
-  res.render('staff', { user: req.session.user, section: 'manage', data: { staff: list, audit: auditRows, ownerId: config.ownerId, bootstrap: config.staffUserIds || [] }, isStaff: true, inviteUrl: inviteUrl(), saved: req.query.saved === '1' });
+  // Show names next to IDs: resolve each staff member and each adder once
+  // per render (de-duplicated inside resolveUserLabels). Unresolvable IDs
+  // fall back to the raw ID with an "unknown user" note — never crash.
+  const labels = await resolveUserLabels(list.flatMap((s) => [s.user_id, s.added_by]));
+  const staff = list.map((s) => ({
+    ...s,
+    user_label: labels.get(String(s.user_id)),
+    // added_by is NULL for rows added outside the dashboard (manual SQL /
+    // old data): the dashboard's only add path always records the adder.
+    added_by_label: s.added_by ? labels.get(String(s.added_by)) : 'System / config',
+  }));
+  res.render('staff', { user: req.session.user, section: 'manage', data: { staff, audit: auditRows, ownerId: config.ownerId, bootstrap: config.staffUserIds || [] }, isStaff: true, inviteUrl: inviteUrl(), saved: req.query.saved === '1' });
 });
 
 app.get('/staff/backups', requireStaff, async (req, res) => {
