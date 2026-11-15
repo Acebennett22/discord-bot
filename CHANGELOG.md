@@ -6,6 +6,11 @@ in `package.json` is the source of truth for the current release — every
 version below must match a `package.json` version, and the dashboard
 `/version` page renders from this file.
 
+## [1.14.8] - 2026-11-15
+
+### Fixed
+- Setup wizard (1.14.8) — removed the setup-only rate limit (10 requests per 15 minutes). It counted every step load and submit, so normal setup use tripped "Too many setup attempts" — including on the MySQL step. The wizard is still gated by its one-time setup token, and the dashboard's general limit (300 requests per 15 minutes) still applies.
+
 ## [1.14.7] - 2026-11-15
 
 ### Fixed

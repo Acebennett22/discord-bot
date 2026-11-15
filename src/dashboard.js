@@ -137,8 +137,6 @@ function requireSetupAccess(req, res, next) {
   return res.status(404).send('Not found.');
 }
 
-const setupLimiter = rateLimit({ windowMs: 15 * 60_000, max: 10, message: 'Too many setup attempts — try again in 15 minutes.' });
-
 const SETUP_STEPS = [
   { n: 1, id: 'welcome', title: 'Welcome', optional: false },
   { n: 2, id: 'discord', title: 'Discord', optional: false },
@@ -214,7 +212,6 @@ async function guildChannelsRoles(guildId) {
 
 
 // --- First-run setup wizard routes -------------------------------------------
-app.use('/setup', setupLimiter);
 app.get('/setup', requireSetupAccess, (req, res) => res.redirect('/setup/1'));
 
 app.get('/setup/:step', requireSetupAccess, (req, res) => {
