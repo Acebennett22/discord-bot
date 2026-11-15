@@ -6,6 +6,13 @@ in `package.json` is the source of truth for the current release — every
 version below must match a `package.json` version, and the dashboard
 `/version` page renders from this file.
 
+## [1.14.12] - 2026-11-15
+
+### Fixed
+- Autoresponder SQL crash (1.14.12) — `trigger` is a reserved word in MySQL, so every autoresponder query failed with a syntax error near 'trigger' (and the wizard's auto-run had swallowed the matching CREATE TABLE failure, so the table may not exist yet). The column and all queries now use backticks: `` `trigger` `` in `sql/schema.sql`, `src/commands/utility/autoresponder.js` (INSERT/DELETE/UPDATE) and `src/utils/autoresponders.js` (ORDER BY). If the table is missing, re-run the `autoresponders` CREATE TABLE from `sql/schema.sql`.
+- Deploy failures (1.14.12) — two commands had a required option after an optional one, which Discord rejects: `/invite-reset` (`confirm` after `user`) and `/reactionroles-setup` (`title` after `channel`). Required options now come first in both. Added a pre-flight checker (`check-deploy.js`, run with `node check-deploy.js`) and full Discord error output on deploy failure.
+- Known deploy limit (1.14.12) — the bot now has 264 slash commands, but Discord allows at most 100 global CHAT_INPUT commands per app, so a global deploy cannot register all of them. Consolidating related commands into subcommand groups is the real fix and is still to be done.
+
 ## [1.14.11] - 2026-11-15
 
 ### Fixed

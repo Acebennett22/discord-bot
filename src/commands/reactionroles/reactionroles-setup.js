@@ -7,8 +7,8 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('reactionroles-setup')
     .setDescription('Admin only: post a reaction-role message with emoji -> role pairs.')
-    .addChannelOption((o) => o.setName('channel').setDescription('Channel to post in (defaults to this one)'))
     .addStringOption((o) => o.setName('title').setDescription('Message title').setRequired(true))
+    .addChannelOption((o) => o.setName('channel').setDescription('Channel to post in (defaults to this one)'))
     .addStringOption((o) => o.setName('pairs').setDescription('Comma-separated emoji:role pairs, e.g. 🎮:Gamer, 📣:Announcements — use role NAMES'))
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
   async execute(interaction) {

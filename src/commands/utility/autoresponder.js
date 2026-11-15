@@ -44,14 +44,14 @@ module.exports = {
       const response = interaction.options.getString('response').trim();
       const match = interaction.options.getString('match') || 'contains';
       await db.query(
-        `INSERT INTO autoresponders (guild_id, trigger, response, match_type, created_by)
+        `INSERT INTO autoresponders (guild_id, \`trigger\`, response, match_type, created_by)
          VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE response = VALUES(response), match_type = VALUES(match_type), enabled = 1, created_by = VALUES(created_by)`,
         [interaction.guildId, trigger, response, match, interaction.user.id],
       );
       return interaction.reply({ embeds: [successEmbed('Autoresponder added', `When a message ${match === 'exact' ? 'is exactly' : 'contains'} **${trigger}**, I'll reply:\n> ${response.slice(0, 500)}`)], ephemeral: true });
     }
     if (sub === 'remove') {
-      const result = await db.query('DELETE FROM autoresponders WHERE guild_id = ? AND trigger = ?', [interaction.guildId, trigger]);
+      const result = await db.query('DELETE FROM autoresponders WHERE guild_id = ? AND `trigger` = ?', [interaction.guildId, trigger]);
       if (!result || result.affectedRows === 0) {
         return interaction.reply({ embeds: [errorEmbed('Not found', `No autoresponder with trigger **${trigger}**.`)], ephemeral: true });
       }
@@ -59,7 +59,7 @@ module.exports = {
     }
     // toggle
     const enabled = interaction.options.getBoolean('enabled');
-    const result = await db.query('UPDATE autoresponders SET enabled = ? WHERE guild_id = ? AND trigger = ?', [enabled ? 1 : 0, interaction.guildId, trigger]);
+    const result = await db.query('UPDATE autoresponders SET enabled = ? WHERE guild_id = ? AND `trigger` = ?', [enabled ? 1 : 0, interaction.guildId, trigger]);
     if (!result || result.affectedRows === 0) {
       return interaction.reply({ embeds: [errorEmbed('Not found', `No autoresponder with trigger **${trigger}**.`)], ephemeral: true });
     }

@@ -1470,7 +1470,7 @@ CREATE TABLE IF NOT EXISTS logging_settings (
 CREATE TABLE IF NOT EXISTS autoresponders (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   guild_id VARCHAR(32) NOT NULL,
-  trigger VARCHAR(128) NOT NULL,
+  `trigger` VARCHAR(128) NOT NULL,
   response VARCHAR(2000) NOT NULL,
   match_type ENUM('contains','exact') NOT NULL DEFAULT 'contains',
   enabled TINYINT(1) NOT NULL DEFAULT 1,
@@ -1478,7 +1478,7 @@ CREATE TABLE IF NOT EXISTS autoresponders (
   created_by VARCHAR(32) NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
-  UNIQUE KEY uq_autoresponder (guild_id, trigger),
+  UNIQUE KEY uq_autoresponder (guild_id, `trigger`),
   INDEX idx_autoresponders_guild (guild_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

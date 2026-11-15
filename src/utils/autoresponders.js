@@ -11,7 +11,7 @@ const { isHandled, markHandled } = require('./messageHandled');
 
 async function getRules(guildId) {
   if (!db.isEnabled()) return [];
-  return (await db.query('SELECT * FROM autoresponders WHERE guild_id = ? ORDER BY trigger', [guildId])) || [];
+  return (await db.query('SELECT * FROM autoresponders WHERE guild_id = ? ORDER BY `trigger`', [guildId])) || [];
 }
 
 async function handleMessage(message) {

@@ -30,6 +30,9 @@ for (const folder of fs.readdirSync(commandsPath)) {
     }
   } catch (err) {
     console.error('❌ Failed to register commands:', err.message);
+    // Discord's 50035 carries a nested `errors` object naming the exact
+    // field — print it in full so the next failure is diagnosable.
+    if (err.errors) console.error(JSON.stringify(err.errors, null, 2));
     process.exit(1);
   }
 })();
