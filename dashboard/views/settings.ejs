@@ -6,7 +6,7 @@
       <strong><%= guild.name %></strong>
     </div>
     <nav>
-      <% const MODS = [['general','⚙️ General'],['moderation','🛡️ Moderation'],['tickets','🎫 Tickets'],['serverstats','📊 Server Stats'],['streams','📺 Streams'],['music','🎵 Music'],['leveling','🏆 Leveling'],['reactionroles','🎭 Reaction Roles'],['gameservers','🖥️ Game Servers'],['applications','📝 Applications'],['commands','⌨️ Commands'],['invites','📨 Invites'],['welcome','👋 Welcome'],['automod','🤖 Automod'],['suggestions','💡 Suggestions'],['economy','🪙 Economy'],['starboard','⭐ Starboard'],['customcommands','⌨️ Custom Commands'],['faq','💬 FAQ'],['scheduled','⏰ Scheduled'],['roles','🎭 Roles'],['verification','✅ Verification'],['counting','🔢 Counting'],['tempvc','🔊 Temp VC'],['birthdays','🎂 Birthdays'],['analytics','📈 Analytics'],['giveaways','🎉 Giveaways'],['ai','💬 AI Chat'],['modmail','📬 Modmail'],['games','🎲 Games'],['emojis','😀 Emojis'],['media','🧵 Media'],['threads','🧵 Threads'],['confessions','🤫 Confessions'],['events','📅 Events'],['embeds','🧩 Embeds'],['polls','📊 Polls'],['announcements','📣 Announcements']]; %>
+      <% const MODS = [['general','⚙️ General'],['moderation','🛡️ Moderation'],['tickets','🎫 Tickets'],['serverstats','📊 Server Stats'],['streams','📺 Streams'],['music','🎵 Music'],['leveling','🏆 Leveling'],['reactionroles','🎭 Reaction Roles'],['gameservers','🖥️ Game Servers'],['applications','📝 Applications'],['commands','⌨️ Commands'],['invites','📨 Invites'],['welcome','👋 Welcome'],['automod','🤖 Automod'],['suggestions','💡 Suggestions'],['economy','🪙 Economy'],['starboard','⭐ Starboard'],['customcommands','⌨️ Custom Commands'],['faq','💬 FAQ'],['scheduled','⏰ Scheduled'],['roles','🎭 Roles'],['verification','✅ Verification'],['counting','🔢 Counting'],['tempvc','🔊 Temp VC'],['birthdays','🎂 Birthdays'],['analytics','📈 Analytics'],['giveaways','🎉 Giveaways'],['ai','💬 AI Chat'],['modmail','📬 Modmail'],['games','🎲 Games'],['emojis','😀 Emojis'],['media','🧵 Media'],['threads','🧵 Threads'],['confessions','🤫 Confessions'],['events','📅 Events'],['embeds','🧩 Embeds'],['embed-creator','📝 Embed Creator'],['polls','📊 Polls'],['announcements','📣 Announcements']]; %>
       <% MODS.forEach(([m, label]) => { %>
         <a href="/guilds/<%= guild.id %>/<%= m %>" class="<%= module === m ? 'active' : '' %>"><%= label %></a>
       <% }); %>
@@ -1264,6 +1264,12 @@
     <% } %>
     <% } %>
 
+    <% if (module === 'embed-creator') { %>
+    <h1>📝 Embed Creator</h1>
+    <p class="muted">Compose a Discord embed and send it to a text channel in this server. The preview updates as you type and sends nothing — only the Send button posts to Discord, and every send is logged. This page is open to anyone with Manage Server permission in this server (the same check as every other page here) — the bot posts the embed, so it speaks as the bot, not as you.</p>
+    <%- include('partials/embed-creator-form', { showGuildPicker: false }) %>
+    <% } %>
+
     <% if (module === 'polls') { %>
     <h1>📊 Polls</h1>
     <p class="muted">Past polls with their results. When a poll ends, the bot posts a bar-chart image (canvas) with each option's votes and percentage, and stores the final tallies so results survive restarts. Same as /poll and /poll-results in Discord.</p>
@@ -1299,6 +1305,7 @@
 </div>
 
 <script>window.ACEBOT_PAGE = { page: 'settings', guildId: '<%= guild.id %>' };</script>
+<script src="/js/embed-creator.js" defer></script>
 <script src="/js/settings.js" defer></script>
 
 <%- include('partials/footer') %>

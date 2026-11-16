@@ -1,0 +1,63 @@
+<% // Shared Embed Creator form (1.15.31) — used by the staff page
+   // (dashboard/views/staff.ejs, section 'embed-creator') and by the
+   // per-server page (dashboard/views/settings.ejs, module
+   // 'embed-creator'). Same fields, same ids, same live preview on both
+   // pages; the client logic in dashboard/public/js/embed-creator.js
+   // binds to these ids. Locals: showGuildPicker (bool), guilds (staff
+   // page: the bot's guilds), channels (per-server page: this guild's
+   // channels, filtered to text channels below). %>
+<div class="embed-creator-wrap">
+  <form id="embed-form">
+    <% if (showGuildPicker) { %>
+    <label>Server</label>
+    <select name="guildId" id="embed-guild" required>
+      <option value="">— Pick a server —</option>
+      <% (guilds || []).forEach(g => { %><option value="<%= g.id %>"><%= g.name %></option><% }); %>
+    </select>
+    <label>Channel</label>
+    <select name="channelId" id="embed-channel" required disabled>
+      <option value="">— Pick a server first —</option>
+    </select>
+    <% } else { %>
+    <label>Channel</label>
+    <select name="channelId" id="embed-channel" required>
+      <% const textChannels = (channels || []).filter(c => c.type === 0).sort((a, b) => (a.position ?? 0) - (b.position ?? 0)); %>
+      <% if (!textChannels.length) { %><option value="">— No text channels —</option><% } else { %>
+      <option value="">— Pick a channel —</option>
+      <% textChannels.forEach(c => { %><option value="<%= c.id %>">#<%= c.name %></option><% }); %>
+      <% } %>
+    </select>
+    <% } %>
+    <label>Message content (optional, plain text above the embed)</label>
+    <textarea name="content" rows="2" maxlength="2000" placeholder="Optional text shown above the embed"></textarea>
+    <label>Title</label>
+    <input type="text" name="title" maxlength="256" placeholder="Embed title">
+    <label>Description</label>
+    <textarea name="description" rows="4" maxlength="4096" placeholder="Embed description"></textarea>
+    <label>Color</label>
+    <div style="display:flex;gap:8px;align-items:center">
+      <input type="color" name="color" value="#5865F2" style="width:48px;height:34px;padding:2px">
+      <input type="text" name="colorHex" value="#5865F2" maxlength="7" pattern="#?[0-9a-fA-F]{6}" title="Hex color like #5865F2" style="width:110px">
+    </div>
+    <label>Author name</label>
+    <input type="text" name="authorName" maxlength="256" placeholder="Shown at the top of the embed">
+    <label>Author icon URL</label>
+    <input type="url" name="authorIcon" placeholder="https://…">
+    <label>Footer text</label>
+    <input type="text" name="footerText" maxlength="2048" placeholder="Shown at the bottom of the embed">
+    <label>Footer icon URL</label>
+    <input type="url" name="footerIcon" placeholder="https://…">
+    <label>Thumbnail URL</label>
+    <input type="url" name="thumbnail" placeholder="https://… (small image, top right)">
+    <label>Image URL</label>
+    <input type="url" name="image" placeholder="https://… (large image below the text)">
+    <h2 style="margin-top:18px">Fields <span class="muted" style="font-size:13px">(up to 10)</span></h2>
+    <div id="embed-fields"></div>
+    <button class="btn ghost" type="button" id="embed-add-field">+ Add field</button>
+    <br><br>
+    <button class="btn" type="submit">Send embed</button>
+    <button class="btn ghost" type="button" id="embed-clear">Clear</button>
+    <p id="embed-result" class="muted"></p>
+  </form>
+  <div id="embed-preview" class="discord-preview" style="display:none"></div>
+</div>

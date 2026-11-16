@@ -509,7 +509,7 @@ app.get('/servers', requireAuth, async (req, res) => {
 });
 
 // --- Per-server settings pages (one per module) --------------------------------
-const MODULES = ['general', 'moderation', 'tickets', 'serverstats', 'streams', 'music', 'leveling', 'reactionroles', 'gameservers', 'commands', 'applications', 'invites', 'welcome', 'automod', 'suggestions', 'economy', 'starboard', 'customcommands', 'faq', 'scheduled', 'roles', 'verification', 'counting', 'tempvc', 'birthdays', 'analytics', 'giveaways', 'ai', 'modmail', 'games', 'emojis', 'media', 'threads', 'confessions', 'events', 'embeds', 'polls', 'announcements'];
+const MODULES = ['general', 'moderation', 'tickets', 'serverstats', 'streams', 'music', 'leveling', 'reactionroles', 'gameservers', 'commands', 'applications', 'invites', 'welcome', 'automod', 'suggestions', 'economy', 'starboard', 'customcommands', 'faq', 'scheduled', 'roles', 'verification', 'counting', 'tempvc', 'birthdays', 'analytics', 'giveaways', 'ai', 'modmail', 'games', 'emojis', 'media', 'threads', 'confessions', 'events', 'embeds', 'embed-creator', 'polls', 'announcements'];
 
 app.get('/guilds/:id', requireAuth, requireGuildAccess, (req, res) => res.redirect(`/guilds/${req.params.id}/general`));
 
@@ -1163,6 +1163,41 @@ app.post('/api/guilds/:id/embeds/:messageId/delete', requireAuth, requireGuildAc
   await deleteEmbed(row.id, req.params.id);
   await discordApi.delete(`/channels/${row.channel_id}/messages/${row.message_id}`, { headers: botHeaders() }).catch(() => {});
   res.json({ ok: true });
+});
+
+// Embed Creator for regular users (1.15.31): the same composer as the
+// staff version (same form, same live preview, same shared buildEmbed()
+// validation, same send path, same audit log with the sending user's
+// id) — but per-server under requireAuth + requireGuildAccess instead
+// of requireStaff. requireGuildAccess means: the user is a member of
+// the guild AND has Manage Server permission there, and the bot is in
+// the guild. So this is usable by server managers/admins, NOT by
+// every member — a regular member without Manage Server gets 403.
+// The guild comes from the URL (:id); a guildId in the body is ignored.
+app.post('/api/guilds/:id/embed-creator', requireAuth, requireGuildAccess, async (req, res) => {
+  const guildId = req.params.id;
+  const { channelId } = req.body || {};
+  if (!channelId || !/^\d{17,20}$/.test(String(channelId))) return res.status(400).json({ error: 'Pick a text channel.' });
+  let payload;
+  try {
+    payload = require('./utils/embedBuilder').buildEmbed(req.body || {});
+  } catch (e) {
+    return res.status(400).json({ error: e.message });
+  }
+  // The channel must be a real text channel in this guild — the picker
+  // only offers those, but the id comes from the client, so verify.
+  const { channels } = await guildChannelsRoles(guildId).catch(() => ({ channels: [] }));
+  const channel = channels.find((c) => c.id === channelId && c.type === 0);
+  if (!channel) return res.status(400).json({ error: 'That channel does not exist in this server (or is not a text channel).' });
+  try {
+    const msg = await discordApi.post(`/channels/${channelId}/messages`, payload, { headers: botHeaders() });
+    await staffUtils.audit(req.session.user.id, 'embed.send', channelId, `guild=${guildId} msg=${msg.data.id} title=${payload.embeds[0].title || '(no title)'}`);
+    res.json({ ok: true, messageId: msg.data.id, channelId, channelName: channel.name });
+  } catch (e) {
+    const detail = e.response?.data?.message || e.message;
+    const status = e.response?.status === 403 ? 403 : 400;
+    res.status(status).json({ error: `Discord refused the send: ${detail}` });
+  }
 });
 
 // --- Color roles API (1.4.4) ---------------------------------------------------
@@ -2665,7 +2700,7 @@ app.post('/api/staff/embed-creator', requireStaff, async (req, res) => {
   if (!channel) return res.status(400).json({ error: 'That channel does not exist in this server (or is not a text channel).' });
   try {
     const msg = await discordApi.post(`/channels/${channelId}/messages`, payload, { headers: botHeaders() });
-    await staffUtils.audit(req.session.user.id, 'embed.send', channelId, `guild=${guildId} msg=${msg.data.id} title=${payload.embed.title || '(no title)'}`);
+    await staffUtils.audit(req.session.user.id, 'embed.send', channelId, `guild=${guildId} msg=${msg.data.id} title=${payload.embeds[0].title || '(no title)'}`);
     res.json({ ok: true, messageId: msg.data.id, channelId, channelName: channel.name });
   } catch (e) {
     const detail = e.response?.data?.message || e.message;

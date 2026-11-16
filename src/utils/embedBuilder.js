@@ -40,7 +40,12 @@ function parseColor(v) {
 }
 
 // Validates the creator form input and returns the exact payload the
-// dashboard route POSTs to Discord: { content, embed }.
+// dashboard routes POST to Discord: { content, embeds: [embed] }.
+// (1.15.31: this was { content, embed } — Discord's create-message
+// endpoint only accepts `embeds` (array) and silently drops a singular
+// `embed`, so 1.15.26's sends posted the plain content with no embed
+// attached, or failed outright on an empty message. The routes post
+// this object as-is, so the shape here IS the wire shape.)
 // Throws an Error with a human-readable message on the first problem.
 function buildEmbed(input) {
   const data = input && typeof input === 'object' ? input : {};
@@ -97,7 +102,7 @@ function buildEmbed(input) {
     throw new Error('Nothing to send — add message content, a title, a description, or at least one field.');
   }
 
-  return { content: content || undefined, embed };
+  return { content: content || undefined, embeds: [embed] };
 }
 
 module.exports = { buildEmbed, LIMITS, DEFAULT_COLOR };

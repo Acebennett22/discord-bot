@@ -498,4 +498,11 @@
   initPreviews();
   initCommandsTab();
   bindRankcardPreview();
+
+  // --- Embed Creator (1.15.31): shared composer, per-server page. ---
+  // Same form + live preview as the staff page; the guild is fixed
+  // (this page) and the channel select is server-rendered.
+  if (window.AceBotEmbedCreator) {
+    window.AceBotEmbedCreator.init({ sendUrl: api('/embed-creator'), guildId });
+  }
 })();
