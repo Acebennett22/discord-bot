@@ -17,7 +17,7 @@ function prune(map) {
 }
 
 function recordDelete(message) {
-  if (!message?.guild || message.author?.bot) return;
+  if (!message?.guild || !message.author || message.author.bot) return;
   prune(deleted);
   deleted.set(message.channelId, {
     content: message.content || '',
@@ -30,7 +30,7 @@ function recordDelete(message) {
 }
 
 function recordEdit(oldMessage, newMessage) {
-  if (!oldMessage?.guild || oldMessage.author?.bot) return;
+  if (!oldMessage?.guild || !oldMessage.author || oldMessage.author.bot) return;
   if (oldMessage.content === newMessage.content) return;
   prune(edited);
   edited.set(oldMessage.channelId, {

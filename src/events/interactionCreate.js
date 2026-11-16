@@ -55,7 +55,11 @@ module.exports = {
       const why = toggle.reason === 'feature'
         ? `The **${toggle.feature}** feature is disabled${interaction.guildId ? ' in this server' : ''}.`
         : 'This command is disabled.';
-      return interaction.reply({ embeds: [errorEmbed('Disabled', why)] });
+      // Guarded: if the toggle lookup was slow the interaction may already
+      // be expired (10062 Unknown interaction) — there is nobody left to
+      // tell, so a dead reply must never throw out of the handler.
+      await interaction.reply({ embeds: [errorEmbed('Disabled', why)] }).catch(() => {});
+      return;
     }
     let success = true;
     let errorMessage = null;
