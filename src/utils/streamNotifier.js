@@ -149,6 +149,15 @@ async function fetchLatestClip(platform, channelIdOrName) {
   return null;
 }
 
+// Attach the latest clip / latest video field to a live embed (1.15.24).
+// Shared by the live notifier and the dashboard preview so the preview
+// cannot drift from the real announcement.
+function addClipField(embed, clip) {
+  if (!clip) return embed;
+  embed.addFields({ name: clip.type === 'clip' ? '🎬 Latest clip' : '📺 Latest video', value: `[${clip.title}](${clip.url})` });
+  return embed;
+}
+
 function liveEmbed(platform, name, data) {
   const colors = { twitch: 0x9146ff, youtube: 0xff0000, kick: 0x53fc18, facebook: 0x1877f2, tiktok: 0x25f4ee };
   const embed = new EmbedBuilder()
@@ -235,7 +244,7 @@ async function checkAllStreams(client) {
         // the streamer has clips enabled — never blocks the announcement.
         if (row.include_clip !== 0) {
           const clip = await fetchLatestClip(row.platform, row.channel_id_or_name).catch(() => null);
-          if (clip) embed.addFields({ name: clip.type === 'clip' ? '🎬 Latest clip' : '📺 Latest video', value: `[${clip.title}](${clip.url})` });
+          if (clip) addClipField(embed, clip);
         }
         await channel.send({ content: `${ping}🔴 **${row.channel_id_or_name}** just went live!`, embeds: [embed] }).catch(() => {});
       }
@@ -286,4 +295,4 @@ async function checkOneStreamer(client, streamerId) {
   return { live: status.live, title: status.title || null, game: status.game || null, viewers: status.viewers ?? null, url: status.url || null };
 }
 
-module.exports = { checkAllStreams, startStreamChecker, liveEmbed, CHECKERS, checkOneStreamer, applyLiveChannelRename, fetchLatestClip };
+module.exports = { checkAllStreams, startStreamChecker, liveEmbed, addClipField, CHECKERS, checkOneStreamer, applyLiveChannelRename, fetchLatestClip };

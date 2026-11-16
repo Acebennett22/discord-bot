@@ -234,3 +234,23 @@ tbody tr:hover{background:rgba(255,255,255,.03)}
 .toast-item.error{background:rgba(237,66,69,.14);border-color:rgba(237,66,69,.5);color:#ff6b6e}
 .toast-item.info{background:rgba(88,101,242,.14);border-color:rgba(88,101,242,.5);color:#aab2ff}
 .toast-item.toast-hide{opacity:0;transform:translateY(-6px);transition:opacity .3s,transform .3s}
+
+/* Discord-style live announcement preview (1.15.24) */
+.discord-preview{margin:16px 0;padding:14px;background:#313338;border:1px solid #3f4147;border-radius:8px}
+.discord-preview .dp-note{color:#b5bac1;font-size:13px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.discord-preview .dp-content{color:#dbdee1;font-size:15px;margin-bottom:8px;overflow-wrap:anywhere}
+.discord-preview .dp-content strong{color:#fff}
+.discord-preview .dp-embed{background:#2b2d31;border-left:4px solid #5865f2;border-radius:4px;padding:10px 12px;max-width:516px}
+.discord-preview .dp-title{font-size:15px;font-weight:700;margin-bottom:4px;overflow-wrap:anywhere}
+.discord-preview .dp-title a{color:#00a8fc;text-decoration:none}
+.discord-preview .dp-title a:hover{text-decoration:underline}
+.discord-preview .dp-desc{color:#dbdee1;font-size:14px;margin-bottom:8px;overflow-wrap:anywhere}
+.discord-preview .dp-fields{display:flex;flex-wrap:wrap;gap:8px 24px;margin-bottom:8px}
+.discord-preview .dp-field{min-width:0}
+.discord-preview .dp-field:not(.inline){flex:1 1 100%}
+.discord-preview .dp-field-name{color:#b5bac1;font-size:12px;font-weight:700;margin-bottom:2px}
+.discord-preview .dp-field-value{color:#dbdee1;font-size:14px;overflow-wrap:anywhere}
+.discord-preview .dp-field-value a{color:#00a8fc;text-decoration:none}
+.discord-preview .dp-field-value a:hover{text-decoration:underline}
+.discord-preview .dp-image{display:block;max-width:100%;border-radius:4px;margin-top:4px}
+.discord-preview .dp-footer{color:#949ba4;font-size:12px;margin-top:8px}

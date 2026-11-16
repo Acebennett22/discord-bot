@@ -241,6 +241,22 @@
       } catch (err) { AceBot.toast('Check failed: ' + err.message, 'error'); refStreamer.textContent = 'Refresh'; }
       return;
     }
+    const pvStreamer = e.target.closest('[data-preview-streamer]');
+    if (pvStreamer) {
+      pvStreamer.textContent = 'Loading…';
+      try {
+        const j = await AceBot.getJSON(api(`/streamers/${pvStreamer.dataset.previewStreamer}/preview`));
+        renderStreamPreview(j);
+      } catch (err) { AceBot.toast('Preview failed: ' + err.message, 'error'); }
+      finally { pvStreamer.textContent = 'Preview'; }
+      return;
+    }
+    const closePreview = e.target.closest('[data-close-stream-preview]');
+    if (closePreview) {
+      const box = document.getElementById('stream-preview');
+      if (box) { box.style.display = 'none'; box.innerHTML = ''; }
+      return;
+    }
     const appToggle = e.target.closest('[data-app-form-toggle]');
     if (appToggle) {
       try {
@@ -396,6 +412,46 @@
       AceBot.toast('Embed updated');
     } catch (err) { AceBot.toast('Failed: ' + err.message, 'error'); }
     finally { if (btn) { btn.textContent = original; btn.disabled = false; } }
+  }
+
+  // Stream announcement preview (1.15.24): renders the preview route's
+  // content + embed JSON as a Discord-style message. Preview only — the
+  // route never sends anything, and neither does this. All text from the
+  // server is escaped; only Discord's own **bold** and [text](url) markdown
+  // in embed field values is rendered.
+  function renderStreamPreview(data) {
+    const box = document.getElementById('stream-preview');
+    if (!box || !data || !data.embed) return;
+    const e = data.embed;
+    const esc = AceBot.esc;
+    const md = (s) => esc(s)
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    const color = '#' + (e.color ?? 0x5865f2).toString(16).padStart(6, '0');
+    const fields = (e.fields || []).map((f) => `<div class="dp-field${f.inline ? ' inline' : ''}"><div class="dp-field-name">${esc(f.name)}</div><div class="dp-field-value">${md(f.value)}</div></div>`).join('');
+    let when = '';
+    if (e.timestamp) {
+      const d = new Date(e.timestamp);
+      const today = new Date();
+      const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+      when = d.toDateString() === today.toDateString()
+        ? `Today at ${time}`
+        : `${d.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })} at ${time}`;
+    }
+    const title = e.url
+      ? `<a href="${esc(e.url)}" target="_blank" rel="noopener">${esc(e.title || '')}</a>`
+      : esc(e.title || '');
+    box.innerHTML = `<div class="dp-note"><span>🔍 Preview — nothing was sent to Discord.</span><button class="btn ghost" type="button" data-close-stream-preview>✕ Close</button></div>`
+      + `<div class="dp-message"><div class="dp-content">${md(data.content || '')}</div>`
+      + `<div class="dp-embed" style="border-left-color:${color}">`
+      + `<div class="dp-title">${title}</div>`
+      + (e.description ? `<div class="dp-desc">${md(e.description)}</div>` : '')
+      + (fields ? `<div class="dp-fields">${fields}</div>` : '')
+      + (e.image && e.image.url ? `<img class="dp-image" src="${esc(e.image.url)}" alt="Stream thumbnail">` : '')
+      + (when ? `<div class="dp-footer">${esc(when)}</div>` : '')
+      + '</div></div>';
+    box.style.display = '';
+    box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
   // Rank card preview (1.8.9): fetch the sample card PNG and show it.

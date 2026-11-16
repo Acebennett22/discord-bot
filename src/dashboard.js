@@ -1551,6 +1551,46 @@ app.post('/api/guilds/:id/streamers/:streamerId/refresh', requireAuth, requireGu
   res.json({ live: status.live, title: status.title || null, game: status.game || null, viewers: status.viewers ?? null, url: status.url || null });
 });
 
+// Preview a streamer's live announcement (1.15.24): returns the exact
+// message content + embed JSON the notifier would send, built by the same
+// liveEmbed/addClipField code path, with clearly-marked SAMPLE data.
+// Preview only — it never posts to Discord or touches the notify channel.
+app.get('/api/guilds/:id/streamers/:streamerId/preview', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  const rows = await db.query('SELECT * FROM streamers WHERE id = ? AND guild_id = ?', [req.params.streamerId, req.params.id]);
+  if (!rows?.length) return res.status(404).json({ error: 'Streamer not found.' });
+  const row = rows[0];
+  const { liveEmbed, addClipField } = require('./utils/streamNotifier');
+  const channelUrl = row.platform === 'twitch' ? `https://twitch.tv/${row.channel_id_or_name}`
+    : row.platform === 'kick' ? `https://kick.com/${row.channel_id_or_name}`
+    : row.platform === 'youtube' ? `https://www.youtube.com/channel/${row.channel_id_or_name}` : null;
+  // Sample thumbnail served by this dashboard (trust proxy is on, so the
+  // protocol is right behind nginx/Cloudflare). A data: URI is not an
+  // option — discord.js only accepts http(s)/attachment image URLs.
+  const sampleThumbnail = `${req.protocol}://${req.get('host')}/img/stream-preview-thumbnail.svg`;
+  const sample = {
+    title: 'Test stream — preview only',
+    game: 'Just Chatting',
+    viewers: 123,
+    url: channelUrl,
+    thumbnail: sampleThumbnail,
+  };
+  const embed = liveEmbed(row.platform, row.channel_id_or_name, sample);
+  // Same clip field the live notifier attaches: only Twitch (latest clip)
+  // and YouTube (latest video) ever get one — Kick/Facebook/TikTok never do.
+  if (row.include_clip !== 0 && (row.platform === 'twitch' || row.platform === 'youtube')) {
+    addClipField(embed, { title: 'Sample clip — preview only', url: channelUrl || 'https://example.invalid/', type: row.platform === 'youtube' ? 'latest video' : 'clip' });
+  }
+  // Ping role rendered as its name, on the notifier's content line.
+  let pingName = null;
+  if (row.ping_role_id) {
+    const { roles } = await guildChannelsRoles(req.params.id).catch(() => ({ channels: [], roles: [] }));
+    pingName = roles.find((r) => r.id === row.ping_role_id)?.name || row.ping_role_id;
+  }
+  const content = `${pingName ? `@${pingName} ` : ''}🔴 **${row.channel_id_or_name}** just went live!`;
+  res.json({ ok: true, content, embed: embed.toJSON(), platform: row.platform, streamer: row.channel_id_or_name });
+});
+
 app.delete('/api/guilds/:id/streamers/:streamerId', requireAuth, requireGuildAccess, async (req, res) => {
   if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
   const result = await db.query('DELETE FROM streamers WHERE id = ? AND guild_id = ?', [req.params.streamerId, req.params.id]);

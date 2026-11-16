@@ -307,6 +307,7 @@
         <td class="s-clips" title="Attach latest clip (Twitch) or latest video (YouTube) to live announcements"><label class="toggle"><input type="checkbox" data-clip-toggle="<%= s.id %>" <%= s.include_clip !== 0 ? 'checked' : '' %>><span class="track"></span></label></td>
         <td class="s-actions">
           <button class="btn ghost" data-refresh-streamer="<%= s.id %>">Refresh</button>
+          <button class="btn ghost" data-preview-streamer="<%= s.id %>">Preview</button>
           <button class="btn ghost" data-edit-streamer="<%= s.id %>">Edit</button>
           <button class="btn danger" data-remove-streamer="<%= s.id %>">Remove</button>
         </td>
@@ -325,6 +326,7 @@
     <% }); %></table>
     </div>
     </div>
+    <div id="stream-preview" class="discord-preview" style="display:none" aria-live="polite"></div>
 
     <h2>Add a streamer</h2>
     <form id="add-streamer-form">
