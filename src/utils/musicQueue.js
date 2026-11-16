@@ -9,6 +9,7 @@ const {
   createAudioResource,
   AudioPlayerStatus,
   VoiceConnectionStatus,
+  VoiceConnectionDisconnectReason,
   entersState,
 } = require('@discordjs/voice');
 const youtube = require('./youtube');
@@ -38,6 +39,32 @@ function hasVoicePerms(voiceChannel) {
 const JOIN_FAILED_REASON = 'Could not join the voice channel. Check my permissions and try again.';
 const NO_VOICE_PERMS_REASON = 'I need Connect and Speak permission in that voice channel.';
 
+// Voice-connection diagnostics (1.15.20): log every connection state
+// transition at warn level so a stalled join is diagnosable from
+// /staff/errors instead of leaving the console silent. Status + disconnect
+// reason/close code ONLY — never joinConfig.token or the voice server
+// endpoint token (the 1.15.19 scrubber is a backstop, not a reason to log
+// secrets). Disconnect reasons per @discordjs/voice: 0 WebSocketClose
+// (closeCode present), 1 AdapterUnavailable, 2 EndpointRemoved, 3 Manual.
+function describeVoiceState(state) {
+  if (!state || typeof state.status !== 'string') return 'unknown';
+  let desc = state.status;
+  if (state.status === VoiceConnectionStatus.Disconnected) {
+    const reasonName = VoiceConnectionDisconnectReason[state.reason] ?? state.reason;
+    desc += ` (reason=${reasonName}`;
+    if (typeof state.closeCode === 'number') desc += `, closeCode=${state.closeCode}`;
+    desc += ')';
+  }
+  return desc;
+}
+
+function logVoiceTransition(guildId, channelId, oldState, newState) {
+  errorLogger.log({
+    level: 'warn', guildId, commandName: 'play',
+    message: `Voice ${describeVoiceState(oldState)} -> ${describeVoiceState(newState)} in #${channelId}`,
+  });
+}
+
 async function createQueue(guildId, voiceChannel, textChannel) {
   if (!hasVoicePerms(voiceChannel)) {
     return { ok: false, reason: NO_VOICE_PERMS_REASON };
@@ -46,6 +73,13 @@ async function createQueue(guildId, voiceChannel, textChannel) {
     channelId: voiceChannel.id,
     guildId,
     adapterCreator: voiceChannel.guild.voiceAdapterCreator,
+  });
+  // Diagnostics (1.15.20): record every state transition so a join that
+  // stalls (e.g. stuck in Connecting) or drops (Disconnected + close code)
+  // leaves a trace in the error logs. Attached immediately — the first
+  // signalling -> connecting transition happens fast.
+  connection.on('stateChange', (oldState, newState) => {
+    logVoiceTransition(guildId, voiceChannel.id, oldState, newState);
   });
   const player = createAudioPlayer();
   connection.subscribe(player);
@@ -79,6 +113,12 @@ async function createQueue(guildId, voiceChannel, textChannel) {
   try {
     await entersState(connection, VoiceConnectionStatus.Ready, 10_000);
   } catch {
+    // Log where the connection stalled (1.15.20) — the 10s timeout with
+    // nothing in the console is exactly the blind spot Ace hit on 1.15.18.
+    errorLogger.log({
+      level: 'error', guildId, commandName: 'play',
+      message: `Voice join timed out after 10s — stuck in ${connection.state?.status ?? 'unknown'} (channel ${voiceChannel.id})`,
+    });
     destroyQueue(guildId);
     return { ok: false, reason: JOIN_FAILED_REASON };
   }
@@ -156,7 +196,7 @@ async function playNext(guildId) {
       // tell the text channel plainly, and destroy the dead queue — do not
       // post "Now playing", do not count the song, do not try the next track
       // (it would fail the same way).
-      errorLogger.log({ level: 'error', guildId, commandName: 'play', message: `Voice connection not ready for ${next.url} — join failed` });
+      errorLogger.log({ level: 'error', guildId, commandName: 'play', message: `Voice connection not ready for ${next.url} — join failed (stuck in ${queue.connection.state?.status ?? 'unknown'})` });
       queue.playing = null;
       if (queue.textChannel) queue.textChannel.send({ embeds: [errorEmbed('Could not join voice', `⚠️ ${JOIN_FAILED_REASON}`)] }).catch(() => {});
       destroyQueue(guildId);
