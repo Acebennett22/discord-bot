@@ -92,6 +92,23 @@ const fakeDb = {
     if (/^\s*SELECT/i.test(sql)) return [];
     return { affectedRows: 1 };
   },
+  // 1.15.39: insertMappingRow() now uses queryDetailed() (same SQL, but
+  // the real error is returned instead of swallowed). Mirrors the real
+  // implementation: a duplicate INSERT becomes { rows: null, error }.
+  queryDetailed: async (sql, params = []) => {
+    queriesSeen.push({ sql, params: [...params] });
+    const p = params.map((v) => (v === undefined ? null : v));
+    if (sql.startsWith('INSERT INTO reaction_roles (guild_id, channel_id, message_id, emoji, role_id)')) {
+      const [g, c, m, e, r] = p;
+      if (table.some((row) => eq(row.guild_id, g) && eq(row.message_id, m) && eq(row.emoji, e))) {
+        const msg = `Duplicate entry '${g}-${m}-${e}' for key 'uq_reaction_role'`;
+        return { rows: null, error: { code: 'ER_DUP_ENTRY', errno: 1062, sqlMessage: msg, message: msg } };
+      }
+      table.push({ id: nextId++, guild_id: g, channel_id: c, message_id: m, emoji: e, role_id: r, required_role_id: null, min_days_in_server: null, min_level: null, enabled: 1 });
+      return { rows: { affectedRows: 1, insertId: nextId - 1 }, error: null };
+    }
+    return { rows: await fakeDb.query(sql, params), error: null };
+  },
 };
 
 // --- Fake Discord REST (axios shape) ---------------------------------------

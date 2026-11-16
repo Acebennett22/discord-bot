@@ -72,6 +72,18 @@ db.query = async (sql, params = []) => {
   throw new Error(`unexpected query in fake db: ${sql}`);
 };
 
+// 1.15.39: insertMappingRow() now uses db.queryDetailed() (same SQL, but
+// the real error is returned instead of swallowed). The fake mirrors the
+// real implementation: a throwing query becomes { rows: null, error }.
+db.queryDetailed = async (sql, params = []) => {
+  try {
+    const rows = await db.query(sql, params);
+    return { rows, error: null };
+  } catch (err) {
+    return { rows: null, error: { code: err.code || null, errno: err.errno || null, sqlMessage: err.sqlMessage || null, message: err.message || String(err) } };
+  }
+};
+
 const rr = require('../src/utils/reactionRoles');
 
 const G = '1571439343976058970';

@@ -231,12 +231,22 @@ CREATE TABLE IF NOT EXISTS giveaway_entries (
   PRIMARY KEY (giveaway_id, user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 1.15.39: reaction_roles.emoji is utf8mb4_bin, NOT the table default
+-- utf8mb4_unicode_ci. Under utf8mb4_unicode_ci (UCA 4.0) every emoji added
+-- after Unicode 4.0 has the SAME collation weight, so the UNIQUE KEY
+-- (guild_id, message_id, emoji) rejects a second emoji for the same
+-- message with ER_DUP_ENTRY 1062 even though the emoji is different
+-- (verified on MariaDB 10.11: '💻' = '🟢' = '🔵' = '🍄' = '🎵' = '🔔';
+-- only ▶️, a pre-4.0 shape with a real DUCET weight, compares different —
+-- which is why the original 11-row bulk add stored only rows 1 and 6).
+-- utf8mb4_bin compares exact bytes, which is what a unique emoji key
+-- needs. Existing installs are migrated on startup (database.js).
 CREATE TABLE IF NOT EXISTS reaction_roles (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   guild_id VARCHAR(32) NOT NULL,
   channel_id VARCHAR(32) NOT NULL,
   message_id VARCHAR(32) NOT NULL,
-  emoji VARCHAR(64) NOT NULL,
+  emoji VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
   role_id VARCHAR(32) NOT NULL,
   required_role_id VARCHAR(32) NULL,
   min_days_in_server INT NULL,

@@ -1266,6 +1266,12 @@ app.post('/api/guilds/:id/reaction-roles', requireAuth, requireGuildAccess, asyn
     try {
       await addMapping({ guildId, channelId: row.channelId, messageId: row.messageId, emoji: row.emoji, roleId: row.roleId, botUserId: config.clientId }, discord);
     } catch (e) {
+      // 1.15.39: a failed save is recorded in the error log (Staff Errors
+      // page) as well as the dashboard console — before this, the live
+      // "could not be saved" failures left no row there at all.
+      if (/could not be saved/.test(e.message || '')) {
+        await errorLogger.log({ level: 'error', guildId, commandName: 'reactionroles-add', message: `Dashboard reaction-role add failed: ${e.message}`, context: { guildId, channelId: row.channelId, messageId: row.messageId, emoji: row.emoji, roleId: row.roleId } }).catch(() => {});
+      }
       return res.status(e.status || 400).json({ error: e.message });
     }
     await staffUtils.audit(req.session.user.id, 'reaction-role.add', row.messageId, `guild=${guildId} channel=${row.channelId} emoji=${row.emoji} role=${row.roleId}`).catch(() => {});
@@ -1283,6 +1289,17 @@ app.post('/api/guilds/:id/reaction-roles', requireAuth, requireGuildAccess, asyn
   });
   for (const r of results) {
     if (r.ok) await staffUtils.audit(req.session.user.id, 'reaction-role.add', r.messageId, `guild=${guildId} channel=${r.channelId} emoji=${r.emoji} role=${r.roleId}`).catch(() => {});
+  }
+  // 1.15.39: failed saves are recorded in the error log (Staff Errors
+  // page) — the live "could not be saved" failures previously left no row
+  // there at all. Validation failures are not logged (they are user input,
+  // not server errors).
+  for (let i = 0; i < results.length; i++) {
+    const r = results[i];
+    if (!r.ok && /could not be saved/.test(r.error || '')) {
+      const row = rows[i];
+      await errorLogger.log({ level: 'error', guildId, commandName: 'reactionroles-add', message: `Dashboard reaction-role add failed: ${r.error}`, context: { guildId, channelId: row?.channelId, messageId: row?.messageId, emoji: row?.emoji, roleId: row?.roleId } }).catch(() => {});
+    }
   }
   const saved = results.filter((r) => r.ok).length;
   res.json({ ok: true, results, saved, failed: results.length - saved });

@@ -187,27 +187,45 @@ async function validateMappingForInsert({ guildId, channelId, messageId, emoji, 
   }
 }
 
+// A database error, reduced to a diagnosable (non-secret) reason for the
+// API response: the MySQL code/number and the server's own message. The
+// params here are guild/channel/message/emoji/role IDs only — no secrets.
+function dbReason(error) {
+  if (!error) return 'please try adding it again';
+  const detail = error.sqlMessage || error.message || 'unknown error';
+  return `MySQL ${error.errno || '?'} (${error.code || 'unknown error'}): ${detail}`;
+}
+
+// 1.15.39: the real INSERT error, logged where a human can read it — the
+// dashboard console, with the SQL and the parameters. (The error-log
+// pipeline write happens in the dashboard route, which already owns
+// errorLogger; this module stays a pure DB helper.) Before this, the
+// error was swallowed by db.query() and nothing recorded it anywhere —
+// the Staff Errors page had no row at all for the live save failures.
+function logInsertError({ guildId, channelId, messageId, emoji, roleId }, error) {
+  const points = [...String(emoji || '')].map((c) => `U+${c.codePointAt(0).toString(16).toUpperCase()}`).join(' ');
+  console.error(`[reaction-roles] INSERT failed: guild=${guildId} channel=${channelId} message=${messageId} emoji=${emoji} (${points}) role=${roleId} — INSERT INTO reaction_roles (guild_id, channel_id, message_id, emoji, role_id) VALUES (?, ?, ?, ?, ?) [${guildId}, ${channelId}, ${messageId}, ${emoji}, ${roleId}] — ${dbReason(error)}`);
+}
+
 async function insertMappingRow({ guildId, channelId, messageId, emoji, roleId }) {
-  // Verify the row actually persisted (1.15.37). db.query() swallows every
-  // error and returns null, so the old code could never see an INSERT
-  // failure — a bulk add reported "11 added" while only 2 rows were
-  // stored, and its ER_DUP_ENTRY catch was dead code in production.
-  // mysql2's execute returns an OkPacket for INSERTs and db.query() passes
-  // it through, so affectedRows === 1 is the proof the row landed.
-  let result;
-  let threw = null;
-  try {
-    result = await db.query(
-      'INSERT INTO reaction_roles (guild_id, channel_id, message_id, emoji, role_id) VALUES (?, ?, ?, ?, ?)',
-      [guildId, channelId, messageId, emoji, roleId],
-    );
-  } catch (err) {
-    // db.query() never throws in production (it swallows); this only fires
-    // for a stubbed db.query — fall through to the lookup below instead of
-    // assuming the reason.
-    threw = err;
-  }
-  if (result?.affectedRows === 1) return;
+  // Verify the row actually persisted (1.15.37). The INSERT error is now
+  // surfaced through db.queryDetailed (1.15.39) instead of swallowed by
+  // db.query(): the old code could never see an INSERT failure, so its
+  // ER_DUP_ENTRY catch was dead code and a failed save could only report
+  // the generic "could not be saved" 500 with the real cause lost. The
+  // live cause, verified on MariaDB 10.11 against the exact schema:
+  // reaction_roles.emoji was utf8mb4_unicode_ci (UCA 4.0), under which
+  // every post-Unicode-4.0 emoji has the SAME collation weight, so the
+  // UNIQUE KEY rejected a second emoji for the same message with
+  // ER_DUP_ENTRY 1062 — only 💻 and ▶️ ever landed. The column is
+  // migrated to utf8mb4_bin on startup (see database.js); if a save still
+  // fails, the real MySQL error is logged and reported here.
+  const { rows: result, error } = await db.queryDetailed(
+    'INSERT INTO reaction_roles (guild_id, channel_id, message_id, emoji, role_id) VALUES (?, ?, ?, ?, ?)',
+    [guildId, channelId, messageId, emoji, roleId],
+  );
+  if (!error && result?.affectedRows === 1) return;
+  if (error) logInsertError({ guildId, channelId, messageId, emoji, roleId }, error);
   // The insert did not land. Look up what is actually stored for this
   // (guild, message, emoji) — the same guild-wide read the list shows
   // (1.15.38), so the lookup and the list cannot disagree. Deliberately
@@ -216,8 +234,7 @@ async function insertMappingRow({ guildId, channelId, messageId, emoji, roleId }
   const stored = await listGuildMappings(guildId).catch(() => null);
   const ex = stored?.find((m) => m.message_id === messageId && m.emoji === emoji);
   if (!ex) {
-    if (threw && threw.code !== 'ER_DUP_ENTRY') throw threw;
-    fail(500, `The mapping for ${emoji} could not be saved to the database — please try adding it again.`);
+    fail(500, `The mapping for ${emoji} could not be saved to the database — ${dbReason(error)}.`);
   }
   if (ex.role_id !== roleId) {
     logDuplicateCheck({ guildId, channelId, messageId, emoji }, ex);

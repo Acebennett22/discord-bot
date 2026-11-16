@@ -125,6 +125,36 @@ async function runMigrations(dbName) {
   } catch (err) {
     console.warn('[db] Migration: could not ensure sticky_messages table:', err.message);
   }
+  await ensureReactionRolesEmojiCollation(dbName);
+}
+
+// 1.15.39: reaction_roles.emoji is compared by the UNIQUE KEY
+// uq_reaction_role (guild_id, message_id, emoji). The table ships with
+// utf8mb4_unicode_ci (UCA 4.0), under which every emoji added after
+// Unicode 4.0 has the SAME collation weight — so inserting a second emoji
+// for the same message fails with ER_DUP_ENTRY 1062 even though the emoji
+// is different. Verified on MariaDB 10.11 against the exact schema:
+// '💻' = '🟢' = '🔵' = '🍄' = '🎵' = '🔔' under utf8mb4_unicode_ci, and
+// the 11-row bulk add stored exactly rows 1 (💻) and 6 (▶️ — a pre-4.0
+// geometric shape with a real DUCET weight, so it compares different).
+// utf8mb4_bin compares exact bytes, which is what a unique emoji key
+// needs. Existing installs get the ALTER here on startup; fresh installs
+// get it from sql/schema.sql. A failure here only warns — the add path
+// surfaces the real error instead (see reactionRoles.js).
+async function ensureReactionRolesEmojiCollation(dbName) {
+  try {
+    const [rows] = await pool.execute(
+      'SELECT COLLATION_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?',
+      [dbName, 'reaction_roles', 'emoji'],
+    );
+    const collation = rows?.[0]?.COLLATION_NAME;
+    if (!collation) return; // Table/column absent — nothing to fix.
+    if (collation === 'utf8mb4_bin') return;
+    await pool.execute('ALTER TABLE `reaction_roles` MODIFY `emoji` VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL');
+    console.log(`[db] Migration: reaction_roles.emoji collation ${collation} -> utf8mb4_bin (emoji unique key).`);
+  } catch (err) {
+    console.warn('[db] Migration: could not fix reaction_roles.emoji collation:', err.message);
+  }
 }
 
 function isEnabled() { return enabled; }
@@ -149,6 +179,21 @@ async function query(sql, params = []) {
   } catch (err) {
     if (!warned) { console.warn('[db] Query failed (logging skipped from here on):', err.message); warned = true; }
     return null;
+  }
+}
+
+// Same as query(), but the caller gets the real error instead of null:
+// { rows, error } where error is { code, errno, sqlMessage, message } or
+// null. Used by paths that must distinguish "no rows" from "the query
+// failed" (1.15.39: the reaction-role INSERT). query() keeps swallowing
+// for the logging/stats callers that treat any failure as "DB down".
+async function queryDetailed(sql, params = []) {
+  if (!enabled || !pool) return { rows: null, error: null };
+  try {
+    const [rows] = await pool.execute(sql, sanitizeParams(params));
+    return { rows, error: null };
+  } catch (err) {
+    return { rows: null, error: { code: err.code || null, errno: err.errno || null, sqlMessage: err.sqlMessage || null, message: err.message || String(err) } };
   }
 }
 
@@ -286,7 +331,7 @@ async function withTransaction(fn) {
 }
 
 module.exports = {
-  initDatabase, isEnabled, query, logCommand, withTransaction,
+  initDatabase, isEnabled, query, queryDetailed, runMigrations, logCommand, withTransaction,
   incrementSongsPlayed, incrementMembersJoined, incrementWarns,
   getGlobalStats, getGuildStats, getUserStats, getTopCommands, getTopUsers,
   closePool,
