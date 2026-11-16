@@ -65,6 +65,55 @@ function logVoiceTransition(guildId, channelId, oldState, newState) {
   });
 }
 
+// Voice gateway close codes (Discord voice docs). The two that matter most
+// for the live join failure: 4004/4006 = the server rejected the Identify,
+// 1006 = the transport dropped with no close frame at all.
+function describeVoiceCloseCode(code) {
+  const meanings = {
+    1000: 'normal closure',
+    1001: 'going away',
+    1006: 'abnormal closure — transport dropped, no close frame (network/middlebox killed the connection)',
+    1011: 'server error',
+    1012: 'service restart',
+    1015: 'TLS handshake failure',
+    4001: 'unknown opcode',
+    4002: 'failed to decode payload',
+    4003: 'not authenticated',
+    4004: 'authentication failed — server rejected the Identify',
+    4005: 'already authenticated',
+    4006: 'session no longer valid — server rejected the Identify',
+    4009: 'session timed out',
+    4011: 'server not found',
+    4012: 'unknown protocol',
+    4014: 'disconnected by server — do not reconnect',
+    4015: 'voice server crashed',
+    4016: 'unknown encryption mode',
+  };
+  return meanings[code] ?? 'unknown close code';
+}
+
+// Diagnostics (1.15.40): the Networking instance emits a 'close' event
+// carrying the voice WebSocket close code, but the library consumes it
+// internally (VoiceConnection.onNetworkingClose) and — except for 4014 —
+// the code is never stored on the connection state, so the stateChange
+// stream can show a join die (connecting -> signalling, then the 10s
+// timeout) without ever saying why. A second one-time listener on the same
+// instance is harmless (EventEmitter supports several) and fires alongside
+// the library's own `once`. Attach it once per Networking instance: a
+// rejoin creates a new one, and the old instance is destroyed without
+// emitting 'close', so the listener dies with it and never leaks. The log
+// line carries no token — a close code is just a number.
+function attachNetworkingCloseLogger(networking, previousNetworking, guildId, channelId) {
+  if (!networking || networking === previousNetworking) return;
+  if (typeof networking.once !== 'function') return;
+  networking.once('close', (code) => {
+    errorLogger.log({
+      level: 'warn', guildId, commandName: 'play',
+      message: `Voice WebSocket closed in #${channelId} — close code ${code} (${describeVoiceCloseCode(code)})`,
+    });
+  });
+}
+
 async function createQueue(guildId, voiceChannel, textChannel) {
   if (!hasVoicePerms(voiceChannel)) {
     return { ok: false, reason: NO_VOICE_PERMS_REASON };
@@ -83,6 +132,10 @@ async function createQueue(guildId, voiceChannel, textChannel) {
   // signalling -> connecting transition happens fast.
   connection.on('stateChange', (oldState, newState) => {
     logVoiceTransition(guildId, voiceChannel.id, oldState, newState);
+    // Diagnostics (1.15.40): a Networking instance appears on the new state
+    // when the lib configures one (fresh join or rejoin) — hook its 'close'
+    // event so the voice WebSocket close code is logged, not lost.
+    attachNetworkingCloseLogger(newState.networking, oldState.networking, guildId, voiceChannel.id);
   });
   // Diagnostics (1.15.22): the voice WebSocket opens, sends IDENTIFY and
   // dies ~30ms later with no close code visible in the stateChange stream,
