@@ -8,6 +8,7 @@ const sticky = require('../utils/sticky');
 const { recordMessage } = require('../utils/analytics');
 const { getGuildSettings } = require('../utils/guildSettings');
 const { askAI, isAiConfigured } = require('../utils/ai');
+const { isHandled } = require('../utils/messageHandled');
 const { handleTranslateMessage } = require('../utils/translate');
 const { infoEmbed } = require('../utils/embeds');
 
@@ -29,8 +30,11 @@ module.exports = {
     // when a new message pushed it up. Never fatal, never blocks XP.
     await sticky.handleMessage(message).catch(() => {});
     // AI chat channel (1.4.1): plain messages here are questions for the AI.
+    // Skipped when an auto-reply already claimed the message, so a message
+    // in the AI channel that also matched an autoresponder/FAQ/custom
+    // command doesn't get both the auto-reply and an AI answer.
     const settings = await getGuildSettings(message.guildId).catch(() => null);
-    if (settings?.aiEnabled && settings.aiChannelId === message.channelId && isAiConfigured() && !message.content.startsWith('!')) {
+    if (settings?.aiEnabled && settings.aiChannelId === message.channelId && isAiConfigured() && !message.content.startsWith('!') && !isHandled(message.id)) {
       const result = await askAI({
         guildId: message.guildId, guildName: message.guild.name, userId: message.author.id,
         channelId: message.channelId, question: message.content,

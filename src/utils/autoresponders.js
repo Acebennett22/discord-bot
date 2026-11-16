@@ -7,7 +7,7 @@
 // and respects the shared "handled" marker, so a message gets at most one
 // auto reply (custom command, FAQ, or autoresponder).
 const db = require('./database');
-const { isHandled, markHandled } = require('./messageHandled');
+const { isHandled, tryClaim } = require('./messageHandled');
 
 async function getRules(guildId) {
   if (!db.isEnabled()) return [];
@@ -29,7 +29,7 @@ async function handleMessage(message) {
       ? lower === trigger
       : lower.includes(trigger);
     if (!hit) continue;
-    markHandled(message.id);
+    if (!tryClaim(message.id)) return false; // another auto-reply won the race
     await message.reply({ content: rule.response }).catch(() => {});
     await db.query('UPDATE autoresponders SET use_count = use_count + 1 WHERE id = ?', [rule.id]).catch(() => {});
     return true;

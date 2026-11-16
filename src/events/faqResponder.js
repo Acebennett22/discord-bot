@@ -6,7 +6,7 @@
 // responses (bot messages are skipped, and handled messages are marked).
 const { Events } = require('discord.js');
 const { getFaqs, matchFaq, incrementFaqUse } = require('../utils/faq');
-const { isHandled, markHandled } = require('../utils/messageHandled');
+const { isHandled, tryClaim } = require('../utils/messageHandled');
 const { infoEmbed } = require('../utils/embeds');
 
 module.exports = {
@@ -20,7 +20,7 @@ module.exports = {
       if (!faqs.length) return;
       const hit = matchFaq(faqs, message.content);
       if (!hit) return;
-      markHandled(message.id);
+      if (!tryClaim(message.id)) return; // another auto-reply won the race
       await message.reply({ embeds: [infoEmbed('💬 FAQ', hit.response)] }).catch(() => {});
       await incrementFaqUse(hit.id).catch(() => {});
     } catch {}

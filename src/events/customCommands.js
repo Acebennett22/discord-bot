@@ -5,7 +5,7 @@
 // names can never be triggers (enforced in /custom-add).
 const { Events } = require('discord.js');
 const { findCustomCommand, incrementUse, sanitizeResponse } = require('../utils/customCommands');
-const { markHandled } = require('../utils/messageHandled');
+const { tryClaim } = require('../utils/messageHandled');
 
 module.exports = {
   name: Events.MessageCreate,
@@ -21,7 +21,7 @@ module.exports = {
         hit = await findCustomCommand(message.guild.id, content.toLowerCase());
       }
       if (!hit) return;
-      markHandled(message.id);
+      if (!tryClaim(message.id)) return; // another auto-reply won the race
       await message.reply({ content: sanitizeResponse(hit.response) }).catch(() => {});
       await incrementUse(message.guild.id, hit.trigger_word).catch(() => {});
     } catch {}
