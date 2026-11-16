@@ -18,6 +18,7 @@
 const fs = require('fs');
 const path = require('path');
 const { errorEmbed } = require('../utils/embeds');
+const { shouldAutoDeleteReply, armReplyAutoDelete } = require('../utils/replyAutoDelete');
 
 // folder -> parent command name. null = keep each file as its own top-level
 // command (those files already define subcommands of their own).
@@ -234,6 +235,11 @@ function buildConsolidated() {
         const key = group || sub;
         const child = key ? children.get(key) : null;
         if (!child) return interaction.reply({ embeds: [errorEmbed('Unknown subcommand', 'That subcommand does not exist.')] });
+        // Reply auto-delete (1.16.2): arm BEFORE the permission check, so
+        // the router's own "Missing permissions" error reply for an
+        // in-scope command fades too. Out-of-scope commands are never
+        // armed, so their reply behavior is unchanged.
+        if (shouldAutoDeleteReply(parentName, child, interaction)) armReplyAutoDelete(interaction);
         if (child.perms && interaction.memberPermissions && !interaction.memberPermissions.has(child.perms)) {
           const label = PERM_NAMES[child.perms] || 'the required permission';
           return interaction.reply({ embeds: [errorEmbed('Missing permissions', `You need the **${label}** permission to use this command.`)] });
