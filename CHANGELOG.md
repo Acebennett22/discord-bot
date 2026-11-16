@@ -6,6 +6,11 @@ in `package.json` is the source of truth for the current release — every
 version below must match a `package.json` version, and the dashboard
 `/version` page renders from this file.
 
+## [1.15.19] - 2026-11-15
+
+### Fixed
+- Error-log secret scrubbing (1.15.19). `redact()` only applied to the `context` field — `message` and `stack` were stored raw in the MySQL `error_logs` table and `logs/bot-errors.log`, so a secret embedded in an error message or stack trace (a URL carrying `?token=...`, an Authorization header in an HTTP error, a pasted token) would have landed in plain text. Nothing in the current call sites logs a secret today, so this closes the hole before it bites rather than cleaning up a leak. Fix (errorLogger.js only): `log()` now runs `message` and `stack` through a new `scrubText()` before the length caps — first every configured secret VALUE (bot token, Discord client secret, dashboard session secret, MySQL password, Twitch client secret, YouTube/Steam/OpenAI API keys, read lazily from config and used only as match strings, never logged; values under 8 chars are skipped), then tight shape patterns (Discord bot-token shape, `Authorization: Bearer/Basic` headers, `sk-`/`sk-proj-` keys, and `key=value` / `key: value` pairs including JSON and `%3D`-encoded params). Normal log content is untouched: YouTube URLs, Discord snowflake IDs, usernames/tags, channel names, and prose like "invalid token type" survive unchanged. The existing `context` redaction works as before, and the retry queue, file fallback, and purge behavior are untouched. Verified by `tmp/verify-1.15.19.js` (32/32: all eight configured fake values scrubbed from message/stack including raw pastes, Bearer/Basic/`?token=`/JSON/`%3D` cases, Discord-token and `sk-proj-` shapes, normal-content survival, context redaction intact, 4000/8000 caps intact, file line matches the returned entry), and `check-deploy.js` (38 top-level, 0 problems). This only affects NEW log entries — rows already in `error_logs` / `bot-errors.log` are NOT retroactively scrubbed; dashboard purge-all clears them. Server needs `git pull` + bot restart only — no `npm run deploy`, no `npm install`, no dashboard restart.
+
 ## [1.15.18] - 2026-11-15
 
 ### Fixed

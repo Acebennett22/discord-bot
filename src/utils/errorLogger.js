@@ -3,8 +3,14 @@
 // entry is ALSO written to logs/bot-errors.log (JSON lines, survives DB
 // outages) AND queued in memory for backfill: the queue is retried every
 // 60s and after every successful insert, so nothing is lost.
-// Secrets are redacted: any field whose name matches token/password/secret/
-// key/api key/auth is replaced with [REDACTED] before storage or file write.
+// Secrets are redacted before storage or file write, in two layers:
+//  1. `redact()` on the `context` object: any field whose name matches
+//     token/password/secret/key/api key/auth is replaced with [REDACTED].
+//  2. `scrubText()` on `message` and `stack` (free text, where a field-name
+//     check cannot help): every configured secret VALUE is replaced, plus
+//     common secret shapes (Discord bot tokens, Authorization headers,
+//     key=value pairs, OpenAI-style keys). The configured values are only
+//     ever used as match strings — they are never logged or written out.
 const fs = require('fs');
 const path = require('path');
 const db = require('./database');
@@ -21,6 +27,66 @@ const LOG_FILE = path.join(LOG_DIR, 'bot-errors.log');
 const PURGE_MARKER_FILE = path.join(LOG_DIR, '.error-logs-purged-at');
 const REDACT_KEYS = /token|password|passwd|secret|api[-_]?key|apikey|auth|credential|private[-_]?key/i;
 const MAX_QUEUE = 500;
+// Paths (from the project root) of every secret the config holds. Read
+// lazily at log time so tests can inject fake values via the config object.
+// Values shorter than 8 chars are skipped: scrubbing a tiny string would
+// mangle unrelated text, and real secrets are never that short.
+const SECRET_VALUE_PATHS = [
+  ['token'], // Discord bot token
+  ['dashboard', 'clientSecret'], // Discord OAuth client secret
+  ['dashboard', 'sessionSecret'], // dashboard session signing secret
+  ['database', 'password'], // MySQL password
+  ['streams', 'twitch', 'clientSecret'], // Twitch client secret
+  ['streams', 'youtube', 'apiKey'], // YouTube Data API key
+  ['steam', 'apiKey'], // Steam Web API key
+  ['ai', 'apiKey'], // OpenAI-compatible API key
+];
+// Secret shapes that can appear in free text even when the exact value is
+// unknown (e.g. a token from another source, or a header in an HTTP error).
+// Kept tight on purpose: YouTube URLs, Discord snowflake IDs, usernames,
+// channel names and ordinary prose must survive unchanged.
+const SECRET_TEXT_PATTERNS = [
+  // Discord bot token: 24 chars . 6 chars . 27+ chars.
+  { re: /[\w-]{24}\.[\w-]{6}\.[\w-]{27,}/g, replacement: '[REDACTED]' },
+  // Authorization: Bearer/Basic <credentials>
+  { re: /Authorization:\s*(Bearer|Basic)\s+[^\s'"]+/gi, replacement: 'Authorization: $1 [REDACTED]' },
+  // OpenAI-style API key: sk-... / sk-proj-...
+  { re: /\bsk-(?:proj-)?[A-Za-z0-9_-]{20,}/g, replacement: '[REDACTED]' },
+  // key=value / key: value pairs (query params, JSON, headers, prose):
+  // token=..., access_token=..., api_key=..., "client_secret": "...",
+  // password: ... — the value runs to the next delimiter, never past it.
+  // The word "token" in ordinary prose ("invalid token type") has no
+  // = or : after it, so it is left alone.
+  { re: /\b(access[_-]?token|refresh[_-]?token|api[_-]?key|apikey|client[_-]?secret|session[_-]?secret|password|passwd|token|secret)(["']?\s*(?:[:=]|%3D|%3A)\s*["']?)([^\s&"'<>,}\]; )]+)/gi, replacement: '$1$2[REDACTED]' },
+];
+
+function secretValues() {
+  let cfg;
+  try { cfg = require('./config'); } catch { return []; }
+  const out = [];
+  for (const p of SECRET_VALUE_PATHS) {
+    let v = cfg;
+    for (const k of p) v = v?.[k];
+    if (typeof v === 'string' && v.length >= 8) out.push(v);
+  }
+  return out;
+}
+
+// Scrub a free-text string (message or stack) of any secret it contains:
+// first every configured secret value (exact match, via split/join so
+// regex-special characters in the value cannot break the match), then the
+// secret-shape patterns above. Non-string input is returned as-is.
+function scrubText(value) {
+  if (typeof value !== 'string') return value;
+  let out = value;
+  for (const secret of secretValues()) {
+    if (out.includes(secret)) out = out.split(secret).join('[REDACTED]');
+  }
+  for (const { re, replacement } of SECRET_TEXT_PATTERNS) {
+    out = out.replace(re, replacement);
+  }
+  return out;
+}
 
 let currentShardId = null;
 const retryQueue = []; // entries awaiting DB backfill
@@ -151,8 +217,8 @@ async function log({ level = 'error', shardId, guildId, commandName, userId, mes
     guild_id: guildId || null,
     command_name: commandName || null,
     user_id: userId || null,
-    message: String(message || 'Unknown error').slice(0, 4000),
-    stack: stack ? String(stack).slice(0, 8000) : null,
+    message: scrubText(String(message || 'Unknown error')).slice(0, 4000),
+    stack: stack ? scrubText(String(stack)).slice(0, 8000) : null,
     context: context ? redact(context) : null,
     created_at: new Date().toISOString(),
   };
@@ -176,4 +242,4 @@ function logError(message, context) { return log({ level: 'error', message, cont
 function logWarn(message, context) { return log({ level: 'warn', message, context }); }
 function logInfo(message, context) { return log({ level: 'info', message, context }); }
 
-module.exports = { log, logError, logWarn, logInfo, setShardId, flushQueue, retryQueue, purgeErrorLogs };
+module.exports = { log, logError, logWarn, logInfo, setShardId, flushQueue, retryQueue, purgeErrorLogs, scrubText };
