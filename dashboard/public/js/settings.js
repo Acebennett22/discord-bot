@@ -127,6 +127,13 @@
         await AceBot.refreshSection('#invite-roles-list');
         form.reset();
       },
+      'add-reaction-role-form': async () => {
+        const fd = new FormData(form);
+        await AceBot.postJSON(api('/reaction-roles'), Object.fromEntries(fd));
+        AceBot.toast('Reaction role added');
+        await AceBot.refreshSection('#reaction-roles-list');
+        form.reset();
+      },
       'add-countdown-form': async () => {
         const fd = new FormData(form);
         await AceBot.postJSON(api('/countdowns'), Object.fromEntries(fd));
@@ -194,7 +201,7 @@
     if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
     try { await handlers[id](); }
     catch (err) {
-      const resultIds = { 'add-streamer-form': 'streamer-result', 'create-app-form': 'app-form-result', 'automod-form': 'automod-result', 'add-shop-form': 'shop-result', 'add-custom-form': 'custom-result', 'add-faq-form': 'faq-result', 'add-ticket-panel-form': 'ticket-panel-result', 'add-invite-role-form': 'invite-role-result', 'add-countdown-form': 'countdown-result', 'add-emoji-form': 'emoji-result', 'rules-form': 'rules-result', 'add-event-form': 'event-result', 'add-slowmode-form': 'slowmode-result', 'add-statusrole-form': 'statusrole-result', 'add-invitereward-form': 'invitereward-result' };
+      const resultIds = { 'add-streamer-form': 'streamer-result', 'create-app-form': 'app-form-result', 'automod-form': 'automod-result', 'add-shop-form': 'shop-result', 'add-custom-form': 'custom-result', 'add-faq-form': 'faq-result', 'add-ticket-panel-form': 'ticket-panel-result', 'add-invite-role-form': 'invite-role-result', 'add-reaction-role-form': 'reaction-role-result', 'add-countdown-form': 'countdown-result', 'add-emoji-form': 'emoji-result', 'rules-form': 'rules-result', 'add-event-form': 'event-result', 'add-slowmode-form': 'slowmode-result', 'add-statusrole-form': 'statusrole-result', 'add-invitereward-form': 'invitereward-result' };
       showResult(resultIds[id], '❌ ' + err.message, false);
       AceBot.toast('Failed: ' + err.message, 'error');
     } finally {

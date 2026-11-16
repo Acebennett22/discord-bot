@@ -694,7 +694,7 @@ app.get('/guilds/:id/:module', requireAuth, requireGuildAccess, async (req, res)
     if (module === 'scheduled') {
       countdowns = await db.query('SELECT * FROM countdowns WHERE guild_id = ? ORDER BY ends_at', [id]).catch(() => []) || [];
     }
-    if (module === 'emojis') {
+    if (module === 'emojis' || module === 'reactionroles') {
       const res = await discordApi.get(`/guilds/${id}/emojis`, { headers: botHeaders() }).catch(() => null);
       emojis = res?.data || [];
     }
@@ -1198,6 +1198,48 @@ app.post('/api/guilds/:id/embed-creator', requireAuth, requireGuildAccess, async
     const status = e.response?.status === 403 ? 403 : 400;
     res.status(status).json({ error: `Discord refused the send: ${detail}` });
   }
+});
+
+// --- Reaction roles API (1.15.32) -------------------------------------------
+// Add a reaction-role mapping from the dashboard, in the exact shape
+// /reactionroles-add writes. Same gating as the rest of the settings page
+// (requireAuth + requireGuildAccess = guild member with Manage Server).
+// The bot reads mappings from the DB per button click, so no bot restart
+// is needed — and the message's buttons are refreshed here via REST using
+// the same buildRows() the bot command uses.
+app.post('/api/guilds/:id/reaction-roles', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  const guildId = req.params.id;
+  const { channelId, messageId, roleId, emojiCustom, emojiUnicode } = req.body || {};
+  if (!channelId || !/^\d{17,20}$/.test(String(channelId))) return res.status(400).json({ error: 'Pick a text channel.' });
+  if (!messageId || !/^\d{17,20}$/.test(String(messageId))) return res.status(400).json({ error: 'Enter a message ID (17–20 digits).' });
+  if (!roleId || !/^\d{17,20}$/.test(String(roleId))) return res.status(400).json({ error: 'Pick a role.' });
+  const { resolveEmojiInput, addMapping } = require('./utils/reactionRoles');
+  let emoji;
+  try {
+    emoji = resolveEmojiInput(emojiCustom, emojiUnicode);
+  } catch (e) {
+    return res.status(400).json({ error: e.message });
+  }
+  // The channel and role must be real in this guild — the pickers only
+  // offer those, but the ids come from the client, so verify.
+  const { channels, roles } = await guildChannelsRoles(guildId).catch(() => ({ channels: [], roles: [] }));
+  const channel = channels.find((c) => c.id === channelId && c.type === 0);
+  if (!channel) return res.status(400).json({ error: 'That channel does not exist in this server (or is not a text channel).' });
+  const role = roles.find((r) => r.id === roleId);
+  if (!role) return res.status(400).json({ error: 'That role does not exist in this server.' });
+  if (role.id === guildId) return res.status(400).json({ error: 'The @everyone role cannot be a reaction role.' });
+  try {
+    await addMapping({ guildId, channelId, messageId, emoji, roleId, botUserId: config.clientId }, {
+      getMessage: async (chId, msgId) => (await discordApi.get(`/channels/${chId}/messages/${msgId}`, { headers: botHeaders() }).catch(() => null))?.data || null,
+      listGuildEmojis: async (gId) => (await discordApi.get(`/guilds/${gId}/emojis`, { headers: botHeaders() }).catch(() => null))?.data || [],
+      patchMessage: async (chId, msgId, body) => { await discordApi.patch(`/channels/${chId}/messages/${msgId}`, body, { headers: botHeaders() }); },
+    });
+  } catch (e) {
+    return res.status(e.status || 400).json({ error: e.message });
+  }
+  await staffUtils.audit(req.session.user.id, 'reaction-role.add', messageId, `guild=${guildId} channel=${channelId} emoji=${emoji} role=${roleId}`).catch(() => {});
+  res.json({ ok: true, messageId, channelId, channelName: channel.name, roleName: role.name, emoji });
 });
 
 // --- Color roles API (1.4.4) ---------------------------------------------------
