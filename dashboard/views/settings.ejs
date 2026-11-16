@@ -230,6 +230,9 @@
       <select name="ticketLogChannelId"><option value="">— none —</option>
         <% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>" <%= settings.ticketLogChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }); %>
       </select>
+      <label>Ticket button label</label>
+      <input type="text" name="ticketButtonLabel" value="<%= settings.ticketButtonLabel || '' %>" placeholder="Create Ticket" maxlength="80">
+      <p class="muted">The label on the button members click to open a ticket. Leave blank for the default ("Create Ticket"). Max 80 characters. Applies to panels posted after you save — already-posted panels keep their old label until re-posted.</p>
       <br><br><button class="btn" type="submit">Save ticket settings</button>
     </form>
     <h3>Recent tickets</h3>

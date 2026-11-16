@@ -13,6 +13,25 @@ const { infoEmbed, successEmbed } = require('./embeds');
 
 const pendingDeletions = new Map(); // channelId -> timeout
 
+// Ticket panel button label (1.15.27): per-guild, stored in guild_settings
+// as ticket_button_label. Empty/unset means the default below.
+const DEFAULT_TICKET_BUTTON_LABEL = 'Create Ticket';
+const MAX_TICKET_BUTTON_LABEL_LENGTH = 80;
+
+// Returns an error string, or null when the value is fine. Empty (after
+// trim) is valid — it resets the label to the default.
+function validateTicketButtonLabel(value) {
+  const label = String(value ?? '').trim();
+  if (label.length > MAX_TICKET_BUTTON_LABEL_LENGTH) return 'Ticket button label must be 80 characters or fewer.';
+  return null;
+}
+
+// Resolve the label to put on a panel button for this guild.
+function resolveTicketButtonLabel(settings) {
+  const label = String(settings?.ticketButtonLabel ?? '').trim();
+  return label || DEFAULT_TICKET_BUTTON_LABEL;
+}
+
 async function getTicketByChannel(channelId) {
   if (!db.isEnabled()) return null;
   const rows = await db.query('SELECT * FROM tickets WHERE channel_id = ? ORDER BY id DESC LIMIT 1', [channelId]);
@@ -88,16 +107,17 @@ function canManageTicket(member, ticket, settings) {
   return isSupport(member, ticket, settings);
 }
 
-function ticketPanelEmbed(title, description) {
+function ticketPanelEmbed(title, description, label) {
+  const buttonLabel = label || DEFAULT_TICKET_BUTTON_LABEL;
   return new EmbedBuilder()
     .setColor(0x5865f2)
     .setTitle(`🎫 ${title || 'Support Tickets'}`)
-    .setDescription(description || 'Need help? Click **Create Ticket** below and tell us what\'s going on.\n\nA private channel will be created just for you and the support team.');
+    .setDescription(description || `Need help? Click **${buttonLabel}** below and tell us what's going on.\n\nA private channel will be created just for you and the support team.`);
 }
 
-function ticketPanelRow(panelId) {
+function ticketPanelRow(panelId, label) {
   return new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(panelId ? `ticket_create:${panelId}` : 'ticket_create').setLabel('Create Ticket').setStyle(ButtonStyle.Primary).setEmoji('🎫'),
+    new ButtonBuilder().setCustomId(panelId ? `ticket_create:${panelId}` : 'ticket_create').setLabel(label || DEFAULT_TICKET_BUTTON_LABEL).setStyle(ButtonStyle.Primary).setEmoji('🎫'),
   );
 }
 
@@ -228,4 +248,6 @@ module.exports = {
   ticketPanelEmbed, ticketPanelRow, ticketControlRow, ticketOpenEmbed,
   createTicketChannel, closeTicket, reopenTicket, pendingDeletions,
   createPanel, listPanels, getPanel, deletePanel,
+  DEFAULT_TICKET_BUTTON_LABEL, MAX_TICKET_BUTTON_LABEL_LENGTH,
+  validateTicketButtonLabel, resolveTicketButtonLabel,
 };

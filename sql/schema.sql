@@ -81,6 +81,7 @@ CREATE TABLE IF NOT EXISTS guild_settings (
   ticket_category_id VARCHAR(32) NULL,
   ticket_log_channel_id VARCHAR(32) NULL,
   ticket_support_role_id VARCHAR(32) NULL,
+  ticket_button_label VARCHAR(80) NULL,
   warn_threshold INT NULL,
   warn_action VARCHAR(16) NULL,
   dj_role_id VARCHAR(32) NULL,
@@ -511,6 +512,11 @@ CREATE TABLE IF NOT EXISTS suggestion_votes (
 --     ADD COLUMN bot_threshold INT NULL,
 --     ADD COLUMN bot_auto_action ENUM('flag','kick','ban') NOT NULL DEFAULT 'flag',
 --     ADD COLUMN bot_suspect_role_id VARCHAR(32) NULL;
+--
+-- Ticket panel button label (added 1.15.27, 2026-11-15). Fresh installs get
+-- it from the CREATE TABLE above; existing installs get it from the
+-- MISSING_COLUMNS self-heal in src/utils/database.js on startup.
+--   ALTER TABLE guild_settings ADD COLUMN ticket_button_label VARCHAR(80) NULL;
 --
 -- Inventory/shop item types (added 2026-11-13): shop_items columns
 -- emoji/type/sell_price/crate_contents are in sql/premium.sql; on an

@@ -14,6 +14,7 @@ const DEFAULTS = {
   suggestionChannelId: '',
   logChannelId: '',
   ticketCategoryId: '', ticketLogChannelId: '', ticketSupportRoleId: '',
+  ticketButtonLabel: '',
   serverStatsEnabled: false, serverStatsChannels: {},
   warnThreshold: null, warnAction: null, djRoleId: '', embedColor: '',
   ticketPanelChannelId: '',
@@ -127,6 +128,7 @@ const COLUMNS = [
   'afk_autocreate_enabled', 'afk_channel_id', 'afk_max_users',
   'autopublish_channels',
   'reengage_enabled', 'reengage_days', 'reengage_channel_id',
+  'ticket_button_label',
 ];
 
 async function getGuildSettings(guildId) {
@@ -228,6 +230,7 @@ async function getGuildSettings(guildId) {
         reengageEnabled: r.reengage_enabled === 1,
         reengageDays: r.reengage_days ?? 30,
         reengageChannelId: r.reengage_channel_id || '',
+        ticketButtonLabel: r.ticket_button_label || '',
       };
     }
   }
@@ -320,6 +323,7 @@ async function setGuildSettings(guildId, patch) {
     next.reengageEnabled ? 1 : 0,
     next.reengageDays ?? 30,
     next.reengageChannelId || null,
+    next.ticketButtonLabel || null,
   ];
   // COLUMNS.length columns, values.length params — keep them in sync.
   if (values.length !== COLUMNS.length) throw new Error(`guildSettings column/param mismatch: ${COLUMNS.length} columns, ${values.length} values`);

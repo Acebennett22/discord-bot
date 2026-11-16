@@ -823,6 +823,12 @@ app.post('/api/guilds/:id/settings', requireAuth, requireGuildAccess, async (req
   if ('ticketCategoryId' in body) setChannel('ticketCategoryId', body.ticketCategoryId);
   if ('ticketLogChannelId' in body) setChannel('ticketLogChannelId', body.ticketLogChannelId);
   if ('ticketSupportRoleId' in body) setRole('ticketSupportRoleId', body.ticketSupportRoleId);
+  if ('ticketButtonLabel' in body) {
+    const { validateTicketButtonLabel } = require('./utils/tickets');
+    const err = validateTicketButtonLabel(body.ticketButtonLabel);
+    if (err) return res.status(400).json({ error: err });
+    patch.ticketButtonLabel = String(body.ticketButtonLabel ?? '').trim();
+  }
   if ('djRoleId' in body) setRole('djRoleId', body.djRoleId);
   // DJ mode (1.11.1): on/off + whether only the control commands are gated.
   if ('djEnabled' in body) {
@@ -1611,13 +1617,14 @@ app.post('/api/guilds/:id/ticket-panels', requireAuth, requireGuildAccess, async
   if (!channelId || !channelIds.has(channelId)) return res.status(400).json({ error: 'Pick a text channel for the panel.' });
   if (categoryId && !channels.some((c) => c.id === categoryId && c.type === 4)) return res.status(400).json({ error: 'Category does not exist in this server.' });
   if (staffRoleId && !roleIds.has(staffRoleId)) return res.status(400).json({ error: 'Staff role does not exist in this server.' });
-  const { createPanel } = require('./utils/tickets');
+  const { createPanel, resolveTicketButtonLabel } = require('./utils/tickets');
   const panel = await createPanel(req.params.id, { channelId, categoryId: categoryId || null, staffRoleId: staffRoleId || null, title, description: description || null, createdBy: req.session.user.id });
   if (!panel) return res.status(503).json({ error: 'Could not create the panel.' });
   try {
+    const buttonLabel = resolveTicketButtonLabel(await getGuildSettings(req.params.id));
     const msg = await discordApi.post(`/channels/${channelId}/messages`, {
-      embeds: [{ title: `🎫 ${title}`, description: description || 'Need help? Click **Create Ticket** below and tell us what\'s going on.\n\nA private channel will be created just for you and the support team.', color: 0x5865f2 }],
-      components: [{ type: 1, components: [{ type: 2, style: 1, label: 'Create Ticket', emoji: { name: '🎫' }, custom_id: `ticket_create:${panel.id}` }] }],
+      embeds: [{ title: `🎫 ${title}`, description: description || `Need help? Click **${buttonLabel}** below and tell us what's going on.\n\nA private channel will be created just for you and the support team.`, color: 0x5865f2 }],
+      components: [{ type: 1, components: [{ type: 2, style: 1, label: buttonLabel, emoji: { name: '🎫' }, custom_id: `ticket_create:${panel.id}` }] }],
     }, { headers: botHeaders() });
     await db.query('UPDATE ticket_panels SET message_id = ? WHERE id = ?', [msg.data.id, panel.id]).catch(() => {});
   } catch (e) { console.warn('[dashboard] ticket panel post failed:', e.message); }

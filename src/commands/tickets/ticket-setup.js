@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const tickets = require('../../utils/tickets');
+const { getGuildSettings } = require('../../utils/guildSettings');
 const { successEmbed, errorEmbed } = require('../../utils/embeds');
 
 module.exports = {
@@ -11,7 +12,8 @@ module.exports = {
   async execute(interaction) {
     const channel = interaction.options.getChannel('channel') || interaction.channel;
     if (!channel.isTextBased()) return interaction.reply({ embeds: [errorEmbed('Invalid channel', 'Pick a text channel for the ticket panel.')] });
-    await channel.send({ embeds: [tickets.ticketPanelEmbed()], components: [tickets.ticketPanelRow()] });
+    const label = tickets.resolveTicketButtonLabel(await getGuildSettings(interaction.guildId));
+    await channel.send({ embeds: [tickets.ticketPanelEmbed(null, null, label)], components: [tickets.ticketPanelRow(null, label)] });
     return interaction.reply({  embeds: [successEmbed('Ticket panel posted', `The ticket panel is live in <#${channel.id}>. Configure the category, support role, and log channel with /setup first if you haven't yet.`)] });
   },
 };

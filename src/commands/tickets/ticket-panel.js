@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, PermissionFlagsBits, ChannelType } = require('discord.js');
 const tickets = require('../../utils/tickets');
+const { getGuildSettings } = require('../../utils/guildSettings');
 const { successEmbed, errorEmbed, infoEmbed } = require('../../utils/embeds');
 
 module.exports = {
@@ -51,7 +52,8 @@ module.exports = {
       createdBy: interaction.user.id,
     });
     if (!panel) return interaction.reply({ embeds: [errorEmbed('Database unavailable', 'Ticket panels need MySQL — connect the database first.')] });
-    const message = await channel.send({ embeds: [tickets.ticketPanelEmbed(title, description)], components: [tickets.ticketPanelRow(panel.id)] }).catch(() => null);
+    const label = tickets.resolveTicketButtonLabel(await getGuildSettings(interaction.guildId));
+    const message = await channel.send({ embeds: [tickets.ticketPanelEmbed(title, description, label)], components: [tickets.ticketPanelRow(panel.id, label)] }).catch(() => null);
     if (message) {
       const db = require('../../utils/database');
       await db.query('UPDATE ticket_panels SET message_id = ? WHERE id = ?', [message.id, panel.id]).catch(() => {});

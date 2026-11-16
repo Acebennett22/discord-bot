@@ -62,6 +62,7 @@ const MISSING_COLUMNS = [
   ['giveaways', 'bonus_role_id', 'VARCHAR(32) NULL'],
   ['giveaways', 'bonus_entries', 'INT NULL'],
   ['polls', 'final_counts', 'JSON NULL'],
+  ['guild_settings', 'ticket_button_label', 'VARCHAR(80) NULL'],
 ];
 
 // The autoresponders table failed to create on installs whose wizard ran
