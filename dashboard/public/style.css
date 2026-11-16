@@ -254,3 +254,12 @@ tbody tr:hover{background:rgba(255,255,255,.03)}
 .discord-preview .dp-field-value a:hover{text-decoration:underline}
 .discord-preview .dp-image{display:block;max-width:100%;border-radius:4px;margin-top:4px}
 .discord-preview .dp-footer{color:#949ba4;font-size:12px;margin-top:8px}
+.discord-preview .dp-footer img{width:20px;height:20px;border-radius:50%;vertical-align:-5px;margin-right:4px}
+.discord-preview .dp-author{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:#fff;margin-bottom:4px}
+.discord-preview .dp-author img{width:20px;height:20px;border-radius:50%}
+.discord-preview .dp-embed-body{display:flex;gap:12px}
+.discord-preview .dp-embed-main{flex:1;min-width:0}
+.discord-preview .dp-thumb{width:80px;height:80px;object-fit:cover;border-radius:4px;flex:none}
+.embed-creator-wrap{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap}
+.embed-creator-wrap form{flex:1 1 420px;min-width:0}
+.embed-creator-wrap .discord-preview{flex:1 1 360px;max-width:516px;margin:0}

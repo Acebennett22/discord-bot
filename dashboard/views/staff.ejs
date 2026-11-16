@@ -8,6 +8,7 @@
       <a href="/staff/features" class="<%= section === 'features' ? 'active' : '' %>">🧩 Feature Management</a>
       <a href="/staff/manage" class="<%= section === 'manage' ? 'active' : '' %>">👥 Staff Management</a>
       <a href="/staff/broadcast" class="<%= section === 'broadcast' ? 'active' : '' %>">📣 Broadcast</a>
+      <a href="/staff/embed-creator" class="<%= section === 'embed-creator' ? 'active' : '' %>">📝 Embed Creator</a>
       <a href="/staff/errors" class="<%= section === 'errors' || section === 'error-detail' ? 'active' : '' %>">🐛 Errors</a>
       <a href="/staff/backups" class="<%= section === 'backups' ? 'active' : '' %>">💾 Backups</a>
       <a href="/staff/bottracking" class="<%= section === 'bottracking' ? 'active' : '' %>">🤖 Bot Tracking</a>
@@ -204,6 +205,55 @@
         <p data-preview-body style="margin:0;white-space:pre-wrap"></p>
       </div>
       <p id="broadcast-result" class="muted"></p>
+    <% } %>
+
+    <% if (section === 'embed-creator') { %>
+      <h1>Embed Creator</h1>
+      <p class="muted">Staff only. Compose a Discord embed and send it to one text channel. The preview on the right updates as you type and sends nothing — only the Send button posts to Discord, and every send is logged in the staff audit log.</p>
+      <div class="embed-creator-wrap">
+        <form id="embed-form">
+          <label>Server</label>
+          <select name="guildId" id="embed-guild" required>
+            <option value="">— Pick a server —</option>
+            <% data.guilds.forEach(g => { %><option value="<%= g.id %>"><%= g.name %></option><% }); %>
+          </select>
+          <label>Channel</label>
+          <select name="channelId" id="embed-channel" required disabled>
+            <option value="">— Pick a server first —</option>
+          </select>
+          <label>Message content (optional, plain text above the embed)</label>
+          <textarea name="content" rows="2" maxlength="2000" placeholder="Optional text shown above the embed"></textarea>
+          <label>Title</label>
+          <input type="text" name="title" maxlength="256" placeholder="Embed title">
+          <label>Description</label>
+          <textarea name="description" rows="4" maxlength="4096" placeholder="Embed description"></textarea>
+          <label>Color</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="color" name="color" value="#5865F2" style="width:48px;height:34px;padding:2px">
+            <input type="text" name="colorHex" value="#5865F2" maxlength="7" pattern="#?[0-9a-fA-F]{6}" title="Hex color like #5865F2" style="width:110px">
+          </div>
+          <label>Author name</label>
+          <input type="text" name="authorName" maxlength="256" placeholder="Shown at the top of the embed">
+          <label>Author icon URL</label>
+          <input type="url" name="authorIcon" placeholder="https://…">
+          <label>Footer text</label>
+          <input type="text" name="footerText" maxlength="2048" placeholder="Shown at the bottom of the embed">
+          <label>Footer icon URL</label>
+          <input type="url" name="footerIcon" placeholder="https://…">
+          <label>Thumbnail URL</label>
+          <input type="url" name="thumbnail" placeholder="https://… (small image, top right)">
+          <label>Image URL</label>
+          <input type="url" name="image" placeholder="https://… (large image below the text)">
+          <h2 style="margin-top:18px">Fields <span class="muted" style="font-size:13px">(up to 10)</span></h2>
+          <div id="embed-fields"></div>
+          <button class="btn ghost" type="button" id="embed-add-field">+ Add field</button>
+          <br><br>
+          <button class="btn" type="submit">Send embed</button>
+          <button class="btn ghost" type="button" id="embed-clear">Clear</button>
+          <p id="embed-result" class="muted"></p>
+        </form>
+        <div id="embed-preview" class="discord-preview" style="display:none"></div>
+      </div>
     <% } %>
 
     <% if (section === 'bottracking') { %>

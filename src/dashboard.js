@@ -2590,6 +2590,55 @@ app.post('/api/staff/broadcast', requireOwner, async (req, res) => {
   }
 });
 
+// Embed Creator (1.15.26, staff-only): compose a Discord embed in the
+// dashboard and send it to one text channel. Same gating as the other
+// staff APIs (requireStaff = owner + approved staff). Sends through the
+// dashboard's own axios client + bot token — no second bot client.
+app.get('/staff/embed-creator', requireStaff, async (req, res) => {
+  let guilds = [];
+  try {
+    const r = await discordApi.get('/users/@me/guilds', { headers: botHeaders() });
+    guilds = r.data;
+  } catch { guilds = []; }
+  res.render('staff', { user: req.session.user, section: 'embed-creator', data: { guilds }, isStaff: true, inviteUrl: inviteUrl(), saved: req.query.saved === '1' });
+});
+
+// Text channels of one guild, for the creator's channel picker.
+app.get('/api/staff/guilds/:id/channels', requireStaff, async (req, res) => {
+  const { channels } = await guildChannelsRoles(req.params.id).catch(() => ({ channels: [] }));
+  const text = channels
+    .filter((c) => c.type === 0)
+    .map((c) => ({ id: c.id, name: c.name, position: c.position ?? 0 }))
+    .sort((a, b) => a.position - b.position);
+  res.json({ channels: text });
+});
+
+app.post('/api/staff/embed-creator', requireStaff, async (req, res) => {
+  const { guildId, channelId } = req.body || {};
+  if (!guildId || !/^\d{17,20}$/.test(String(guildId))) return res.status(400).json({ error: 'Pick a server.' });
+  if (!channelId || !/^\d{17,20}$/.test(String(channelId))) return res.status(400).json({ error: 'Pick a text channel.' });
+  let payload;
+  try {
+    payload = require('./utils/embedBuilder').buildEmbed(req.body || {});
+  } catch (e) {
+    return res.status(400).json({ error: e.message });
+  }
+  // The channel must be a real text channel in the chosen guild — the
+  // picker only offers those, but the id comes from the client, so verify.
+  const { channels } = await guildChannelsRoles(guildId).catch(() => ({ channels: [] }));
+  const channel = channels.find((c) => c.id === channelId && c.type === 0);
+  if (!channel) return res.status(400).json({ error: 'That channel does not exist in this server (or is not a text channel).' });
+  try {
+    const msg = await discordApi.post(`/channels/${channelId}/messages`, payload, { headers: botHeaders() });
+    await staffUtils.audit(req.session.user.id, 'embed.send', channelId, `guild=${guildId} msg=${msg.data.id} title=${payload.embed.title || '(no title)'}`);
+    res.json({ ok: true, messageId: msg.data.id, channelId, channelName: channel.name });
+  } catch (e) {
+    const detail = e.response?.data?.message || e.message;
+    const status = e.response?.status === 403 ? 403 : 400;
+    res.status(status).json({ error: `Discord refused the send: ${detail}` });
+  }
+});
+
 // Error handler: log 500s through the central error logger.
 app.use((err, req, res, next) => {
   errorLogger.log({ level: 'error', message: `Dashboard ${req.method} ${req.path} failed: ${err.message}`, stack: err.stack, context: { path: req.path, method: req.method } });
