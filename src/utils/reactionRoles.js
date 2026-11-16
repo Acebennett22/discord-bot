@@ -86,20 +86,37 @@ function validateEmojiAgainstGuild(emoji, guildEmojis) {
   }
 }
 
-// Insert one mapping in the exact shape /reactionroles-add writes, then
-// refresh the message's buttons through the same buildRows() the bot uses
-// — so a dashboard-added mapping works and looks identical to a
-// command-added one, with no bot restart (handlers read the DB per event).
-// Throws a user-facing Error (with .status: 400 validation, 502 Discord).
-async function addMapping({ guildId, channelId, messageId, emoji, roleId, botUserId }, discord) {
-  const fail = (status, message) => { const e = new Error(message); e.status = status; throw e; };
-  const guildEmojis = await discord.listGuildEmojis(guildId).catch(() => []);
+function fail(status, message) { const e = new Error(message); e.status = status; throw e; }
+
+// Shared per-batch context (1.15.33): caches the guild emoji list and the
+// message fetches, so a batch touching one message N times hits Discord
+// once per message instead of once per row.
+function batchContext(discord, guildId) {
+  let emojisPromise = null;
+  const messages = new Map();
+  return {
+    listGuildEmojis: () => (emojisPromise ||= discord.listGuildEmojis(guildId).catch(() => [])),
+    getMessage: (channelId, messageId) => {
+      const key = `${channelId}:${messageId}`;
+      if (!messages.has(key)) messages.set(key, discord.getMessage(channelId, messageId).catch(() => null));
+      return messages.get(key);
+    },
+  };
+}
+
+// Read-only checks shared by the single add and the bulk add. Throws a
+// user-facing Error (with .status: 400 validation) when anything is wrong.
+async function validateMappingForInsert({ guildId, channelId, messageId, emoji, botUserId }, ctx) {
+  const guildEmojis = await ctx.listGuildEmojis();
   validateEmojiAgainstGuild(emoji, guildEmojis);
-  const message = await discord.getMessage(channelId, messageId).catch(() => null);
+  const message = await ctx.getMessage(channelId, messageId);
   if (!message) fail(400, 'That message does not exist in this channel.');
   if (message.author?.id !== botUserId) fail(400, "That message wasn't posted by the bot — reaction roles can only be added to the bot's own messages.");
   const existing = await db.query('SELECT id FROM reaction_roles WHERE guild_id = ? AND message_id = ? AND emoji = ?', [guildId, messageId, emoji]);
   if (existing?.length) fail(400, 'That emoji is already mapped on this message.');
+}
+
+async function insertMappingRow({ guildId, channelId, messageId, emoji, roleId }) {
   try {
     await db.query(
       'INSERT INTO reaction_roles (guild_id, channel_id, message_id, emoji, role_id) VALUES (?, ?, ?, ?, ?)',
@@ -109,17 +126,147 @@ async function addMapping({ guildId, channelId, messageId, emoji, roleId, botUse
     if (err.code === 'ER_DUP_ENTRY') fail(400, 'That emoji is already mapped on this message.');
     throw err;
   }
+}
+
+async function deleteMappingRow({ guildId, messageId, emoji }) {
+  await db.query('DELETE FROM reaction_roles WHERE guild_id = ? AND message_id = ? AND emoji = ?', [guildId, messageId, emoji]).catch(() => {});
+}
+
+// Refresh one message's buttons through the same buildRows() the bot uses.
+async function refreshMessageButtons(channelId, messageId, discord) {
+  const components = (await buildRows(messageId)).map((row) => row.toJSON());
+  await discord.patchMessage(channelId, messageId, { components });
+}
+
+// Insert one mapping in the exact shape /reactionroles-add writes, then
+// refresh the message's buttons through the same buildRows() the bot uses
+// — so a dashboard-added mapping works and looks identical to a
+// command-added one, with no bot restart (handlers read the DB per event).
+// Throws a user-facing Error (with .status: 400 validation, 502 Discord).
+async function addMapping({ guildId, channelId, messageId, emoji, roleId, botUserId }, discord) {
+  const ctx = batchContext(discord, guildId);
+  await validateMappingForInsert({ guildId, channelId, messageId, emoji, botUserId }, ctx);
+  await insertMappingRow({ guildId, channelId, messageId, emoji, roleId });
   try {
-    const components = (await buildRows(messageId)).map((row) => row.toJSON());
-    await discord.patchMessage(channelId, messageId, { components });
+    await refreshMessageButtons(channelId, messageId, discord);
   } catch (err) {
     // The buttons are the whole interface — a mapping without them is
     // useless, so roll the row back instead of leaving an orphan.
-    await db.query('DELETE FROM reaction_roles WHERE guild_id = ? AND message_id = ? AND emoji = ?', [guildId, messageId, emoji]).catch(() => {});
+    await deleteMappingRow({ guildId, messageId, emoji });
     const detail = err.response?.data?.message || err.message || 'unknown error';
     fail(502, `Discord refused the button update (${detail}) — the mapping was not kept.`);
   }
   return { messageId, channelId };
 }
 
-module.exports = { emojiLabel, emojiButton, getMappings, isMessageEnabled, buildRows, resolveEmojiInput, validateEmojiAgainstGuild, addMapping };
+// Bulk add (1.15.33). `rows` are already normalized ({channelId, messageId,
+// emoji, roleId}) with the route-level checks (channel/role exist, emoji
+// resolved) done. Every row is validated first, then the valid ones are
+// inserted; each affected message's buttons are refreshed exactly once.
+// Returns per-row results aligned with `rows`: { ok: true } or
+// { ok: false, error }. A bad row never blocks the others, and a refused
+// button refresh rolls back only this batch's rows on that message.
+async function addMappingsBatch({ guildId, botUserId, rows }, discord) {
+  const ctx = batchContext(discord, guildId);
+  const results = rows.map(() => null);
+  const seen = new Set();
+  const valid = [];
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const key = `${row.messageId}:${row.emoji}`;
+    if (seen.has(key)) {
+      results[i] = { ok: false, error: 'The same emoji is used twice for this message in this batch.' };
+      continue;
+    }
+    seen.add(key);
+    try {
+      await validateMappingForInsert({ guildId, ...row, botUserId }, ctx);
+      valid.push({ ...row, index: i });
+    } catch (e) {
+      results[i] = { ok: false, error: e.message };
+    }
+  }
+  // Insert the valid rows. A race duplicate surfaces as ER_DUP_ENTRY here.
+  const inserted = [];
+  for (const row of valid) {
+    try {
+      await insertMappingRow({ guildId, ...row });
+      inserted.push(row);
+    } catch (e) {
+      results[row.index] = { ok: false, error: e.message };
+    }
+  }
+  // Refresh each affected message once, grouped by channel + message.
+  const byMessage = new Map();
+  for (const row of inserted) {
+    const key = `${row.channelId}:${row.messageId}`;
+    if (!byMessage.has(key)) byMessage.set(key, []);
+    byMessage.get(key).push(row);
+  }
+  for (const group of byMessage.values()) {
+    const { channelId, messageId } = group[0];
+    try {
+      await refreshMessageButtons(channelId, messageId, discord);
+      for (const row of group) results[row.index] = { ok: true };
+    } catch (err) {
+      for (const row of group) await deleteMappingRow({ guildId, messageId, emoji: row.emoji });
+      const detail = err.response?.data?.message || err.message || 'unknown error';
+      for (const row of group) results[row.index] = { ok: false, error: `Discord refused the button update (${detail}) — the mapping was not kept.` };
+    }
+  }
+  return results;
+}
+
+// Bulk remove (1.15.33). `rows` are mapping rows already fetched by the
+// route ({channelId, messageId, emoji}). Deletes every row, then refreshes
+// each affected message's buttons exactly once (grouped by message, same
+// buildRows() path). Returns per-row results aligned with `rows`:
+// { ok: true, messageGone } or { ok: false, error }. A message already gone
+// from Discord (404 / Unknown Message) still counts as removed — the mapping
+// is gone either way. Any other button-update failure leaves the row deleted
+// but reports a warning (the stale button clears on the message's next
+// refresh) instead of pretending the removal failed.
+async function removeMappingsBatch({ guildId, rows }, discord) {
+  const results = rows.map(() => null);
+  const deleted = [];
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    await db.query('DELETE FROM reaction_roles WHERE guild_id = ? AND message_id = ? AND emoji = ?', [guildId, row.messageId, row.emoji]);
+    deleted.push({ ...row, index: i });
+  }
+  const byMessage = new Map();
+  for (const row of deleted) {
+    const key = `${row.channelId}:${row.messageId}`;
+    if (!byMessage.has(key)) byMessage.set(key, []);
+    byMessage.get(key).push(row);
+  }
+  for (const group of byMessage.values()) {
+    const { channelId, messageId } = group[0];
+    try {
+      await refreshMessageButtons(channelId, messageId, discord);
+      for (const row of group) results[row.index] = { ok: true, messageGone: false };
+    } catch (err) {
+      const status = err.response?.status;
+      const code = err.response?.data?.code;
+      if (status === 404 || code === 10008) {
+        for (const row of group) results[row.index] = { ok: true, messageGone: true };
+      } else {
+        const detail = err.response?.data?.message || err.message || 'unknown error';
+        for (const row of group) results[row.index] = { ok: true, messageGone: false, warning: `Button update failed (${detail}) — the button may linger until the message's buttons are next refreshed.` };
+      }
+    }
+  }
+  return results;
+}
+
+// Remove one mapping (1.15.33): delete the row, then refresh the message's
+// buttons through the same buildRows() the bot uses, so the removed button
+// disappears from the message. If the message itself is already gone from
+// Discord (404 / Unknown Message), the delete still succeeds — the mapping
+// is gone either way.
+async function removeMapping({ guildId, channelId, messageId, emoji }, discord) {
+  const [result] = await removeMappingsBatch({ guildId, rows: [{ channelId, messageId, emoji }] }, discord);
+  return result;
+}
+
+module.exports = { emojiLabel, emojiButton, getMappings, isMessageEnabled, buildRows, resolveEmojiInput, validateEmojiAgainstGuild, addMapping, addMappingsBatch, removeMapping, removeMappingsBatch };

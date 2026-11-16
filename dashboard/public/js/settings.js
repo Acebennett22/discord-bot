@@ -16,6 +16,29 @@
     if (ok) AceBot.toast(msg.replace(/^❌ /, ''));
   }
 
+  // --- Reaction-role multi-row form (1.15.33) ---
+  function updateRrRemoveButtons() {
+    const container = document.getElementById('rr-rows');
+    if (!container) return;
+    const rows = container.querySelectorAll('[data-rr-row]');
+    rows.forEach((row) => { const b = row.querySelector('[data-rr-remove]'); if (b) b.style.display = rows.length > 1 ? '' : 'none'; });
+    const addBtn = document.getElementById('rr-add-row');
+    if (addBtn) addBtn.disabled = rows.length >= 25;
+  }
+  function updateRrSelectedButton() {
+    const btn = document.getElementById('rr-remove-selected');
+    if (!btn) return;
+    btn.disabled = !document.querySelector('.rr-select:checked');
+  }
+  function resetReactionRoleRows() {
+    const container = document.getElementById('rr-rows');
+    const form = document.getElementById('add-reaction-role-form');
+    if (!container || !form) return;
+    form.reset();
+    container.querySelectorAll('[data-rr-row]').forEach((row, i) => { if (i > 0) row.remove(); });
+    updateRrRemoveButtons();
+  }
+
   // --- Live previews (update as you type) ---
   function initPreviews() {
     const tplInput = document.getElementById('template-input');
@@ -127,12 +150,31 @@
         await AceBot.refreshSection('#invite-roles-list');
         form.reset();
       },
+      // 1.15.33: one row posts the single shape (unchanged 1.15.32
+      // behavior); several rows post { mappings: [...] } and the per-row
+      // results are rendered into #reaction-role-result.
       'add-reaction-role-form': async () => {
-        const fd = new FormData(form);
-        await AceBot.postJSON(api('/reaction-roles'), Object.fromEntries(fd));
-        AceBot.toast('Reaction role added');
+        const rows = [...form.querySelectorAll('[data-rr-row]')].map((row) => ({
+          channelId: row.querySelector('[name=channelId]').value,
+          messageId: row.querySelector('[name=messageId]').value.trim(),
+          emojiCustom: row.querySelector('[name=emojiCustom]').value,
+          emojiUnicode: row.querySelector('[name=emojiUnicode]').value.trim(),
+          roleId: row.querySelector('[name=roleId]').value,
+        }));
+        if (rows.length === 1) {
+          await AceBot.postJSON(api('/reaction-roles'), rows[0]);
+          AceBot.toast('Reaction role added');
+        } else {
+          const j = await AceBot.postJSON(api('/reaction-roles'), { mappings: rows });
+          const lines = j.results.map((r, i) => (r.ok
+            ? `✅ Row ${i + 1}: ${r.emoji} → ${r.roleName}`
+            : `❌ Row ${i + 1}: ${r.error}`));
+          const el = document.getElementById('reaction-role-result');
+          if (el) el.innerHTML = lines.map((l) => AceBot.esc(l)).join('<br>');
+          AceBot.toast(`${j.saved} added${j.failed ? `, ${j.failed} failed` : ''}`, j.failed ? 'error' : 'success');
+        }
         await AceBot.refreshSection('#reaction-roles-list');
-        form.reset();
+        resetReactionRoleRows();
       },
       'add-countdown-form': async () => {
         const fd = new FormData(form);
@@ -262,6 +304,61 @@
     if (closePreview) {
       const box = document.getElementById('stream-preview');
       if (box) { box.style.display = 'none'; box.innerHTML = ''; }
+      return;
+    }
+    // Reaction roles (1.15.33): multi-row add form + remove (single/bulk).
+    const rrAddRow = e.target.closest('#rr-add-row');
+    if (rrAddRow) {
+      const container = document.getElementById('rr-rows');
+      if (!container) return;
+      const rows = container.querySelectorAll('[data-rr-row]');
+      if (rows.length >= 25) { AceBot.toast('At most 25 mappings at once', 'error'); return; }
+      const clone = rows[0].cloneNode(true);
+      clone.querySelectorAll('input[type=text]').forEach((i) => { i.value = ''; });
+      clone.querySelectorAll('select').forEach((s) => { s.selectedIndex = 0; });
+      container.appendChild(clone);
+      updateRrRemoveButtons();
+      return;
+    }
+    const rrRemoveRow = e.target.closest('[data-rr-remove]');
+    if (rrRemoveRow) {
+      const container = document.getElementById('rr-rows');
+      if (!container || container.querySelectorAll('[data-rr-row]').length <= 1) return;
+      rrRemoveRow.closest('[data-rr-row]').remove();
+      updateRrRemoveButtons();
+      return;
+    }
+    const rrRemoveOne = e.target.closest('[data-remove-reaction-role]');
+    if (rrRemoveOne) {
+      if (!AceBot.confirmAction('Remove this reaction role?')) return;
+      try {
+        const j = await AceBot.del(api(`/reaction-roles/${rrRemoveOne.dataset.removeReactionRole}`));
+        AceBot.toast(j.messageGone ? 'Reaction role removed (its message is already gone)' : 'Reaction role removed');
+        await AceBot.refreshSection('#reaction-roles-list');
+      } catch (err) { AceBot.toast('Failed: ' + err.message, 'error'); }
+      return;
+    }
+    const rrSelectAll = e.target.closest('#rr-select-all');
+    if (rrSelectAll) {
+      document.querySelectorAll('.rr-select').forEach((cb) => { cb.checked = rrSelectAll.checked; });
+      updateRrSelectedButton();
+      return;
+    }
+    const rrSelect = e.target.closest('.rr-select');
+    if (rrSelect) { updateRrSelectedButton(); return; }
+    const rrRemoveSelected = e.target.closest('#rr-remove-selected');
+    if (rrRemoveSelected) {
+      const ids = [...document.querySelectorAll('.rr-select:checked')].map((cb) => cb.value);
+      if (!ids.length) return;
+      if (!AceBot.confirmAction(`Remove ${ids.length} reaction role${ids.length === 1 ? '' : 's'}?`)) return;
+      rrRemoveSelected.disabled = true;
+      try {
+        const j = await AceBot.postJSON(api('/reaction-roles/bulk-delete'), { ids });
+        const notFound = j.results.filter((r) => !r.ok).length;
+        AceBot.toast(`${j.removed} removed${notFound ? `, ${notFound} already gone` : ''}`, notFound ? 'error' : 'success');
+        await AceBot.refreshSection('#reaction-roles-list');
+      } catch (err) { AceBot.toast('Failed: ' + err.message, 'error'); }
+      finally { updateRrSelectedButton(); }
       return;
     }
     const appToggle = e.target.closest('[data-app-form-toggle]');

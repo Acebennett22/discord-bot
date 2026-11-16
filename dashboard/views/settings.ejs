@@ -538,16 +538,22 @@
     <p class="muted">Mappings live in the <code>reaction_roles</code> MySQL table. Add one below, or with <code>/reactionroles-setup</code>, <code>/reactionroles-add</code>, <code>/reactionroles-remove</code> and <code>/reactionroles-list</code> in Discord. Requirements (required role, minimum days in server, minimum leveling level) are set with <code>/reactionroles-add</code> — members who miss one get an ephemeral message naming exactly what they missed.</p>
     <div id="reaction-roles-list">
     <% if (reactionRoleMappings.length) { %>
+      <p><label><input type="checkbox" id="rr-select-all"> Select all</label>
+      <button class="btn btn-sm" type="button" id="rr-remove-selected" disabled>Remove selected</button></p>
       <% reactionRoleMappings.forEach(m => { %>
         <div class="card card-block" style="margin-bottom:8px">
-          <%= m.emoji %> → <code>&lt;@&amp;<%= m.role_id %>&gt;</code> · message <code><%= m.message_id %></code><br>
+          <label><input type="checkbox" class="rr-select" value="<%= m.id %>"></label>
+          <%= m.emoji %> → <code>&lt;@&amp;<%= m.role_id %>&gt;</code> · message <code><%= m.message_id %></code>
+          <button class="btn btn-sm" type="button" data-remove-reaction-role="<%= m.id %>">Remove</button><br>
           <span class="muted">Requirements: <%= m.required_role_id ? `needs <@&${m.required_role_id}> · ` : '' %><%= (m.min_days_in_server !== null && m.min_days_in_server !== undefined) ? `${m.min_days_in_server}d+ in server · ` : '' %><%= (m.min_level !== null && m.min_level !== undefined) ? `level ${m.min_level}+` : '' %><%= (!m.required_role_id && m.min_days_in_server === null && m.min_level === null) ? 'none' : '' %></span>
         </div>
       <% }); %>
     <% } else { %><p class="muted">No reaction-role mappings yet.</p><% } %>
     </div>
-    <h2>Add a reaction role</h2>
+    <h2>Add reaction roles</h2>
     <form id="add-reaction-role-form">
+      <div id="rr-rows">
+      <div class="rr-row" data-rr-row>
       <label>Channel (where the message lives)</label>
       <select name="channelId" required>
         <% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>">#<%= c.name %></option><% }); %>
@@ -567,7 +573,12 @@
       <select name="roleId" required>
         <% roles.filter(r => r.id !== guild.id).forEach(r => { %><option value="<%= r.id %>"><%= r.name %></option><% }); %>
       </select>
-      <br><br><button class="btn" type="submit">Add reaction role</button>
+      <button class="btn btn-sm" type="button" data-rr-remove style="display:none">Remove this row</button>
+      </div>
+      </div>
+      <br><button class="btn btn-sm" type="button" id="rr-add-row">＋ Add another</button>
+      <p class="muted">Add up to 25 mappings at once — each row is saved separately, so one bad row won't block the others.</p>
+      <br><button class="btn" type="submit">Add reaction role(s)</button>
     </form>
     <p id="reaction-role-result" class="muted"></p>
     <% } %>

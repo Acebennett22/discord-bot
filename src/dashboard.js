@@ -603,7 +603,7 @@ app.get('/guilds/:id/:module', requireAuth, requireGuildAccess, async (req, res)
     const countingRows = await db.query('SELECT * FROM counting_settings WHERE guild_id = ?', [id]) || [];
     countingSettings = countingRows[0] || null;
     birthdays = await db.query('SELECT user_id, month, day, year FROM birthdays WHERE guild_id = ? ORDER BY month, day LIMIT 50', [id]) || [];
-    reactionRoleMappings = await db.query('SELECT message_id, channel_id, emoji, role_id, required_role_id, min_days_in_server, min_level FROM reaction_roles WHERE guild_id = ? ORDER BY message_id', [id]) || [];
+    reactionRoleMappings = await db.query('SELECT id, message_id, channel_id, emoji, role_id, required_role_id, min_days_in_server, min_level FROM reaction_roles WHERE guild_id = ? ORDER BY message_id', [id]) || [];
     // Analytics (1.3.4) + giveaways (1.3.1) — only queried for their tabs.
     if (module === 'analytics') {
       const analytics = require('./utils/analytics');
@@ -1200,46 +1200,138 @@ app.post('/api/guilds/:id/embed-creator', requireAuth, requireGuildAccess, async
   }
 });
 
-// --- Reaction roles API (1.15.32) -------------------------------------------
-// Add a reaction-role mapping from the dashboard, in the exact shape
+// Discord REST adapter for the reaction-roles routes (the dashboard has no
+// bot client, so routes go through discordApi with the bot token).
+function reactionRolesDiscord() {
+  return {
+    getMessage: async (chId, msgId) => (await discordApi.get(`/channels/${chId}/messages/${msgId}`, { headers: botHeaders() }).catch(() => null))?.data || null,
+    listGuildEmojis: async (gId) => (await discordApi.get(`/guilds/${gId}/emojis`, { headers: botHeaders() }).catch(() => null))?.data || [],
+    patchMessage: async (chId, msgId, body) => { await discordApi.patch(`/channels/${chId}/messages/${msgId}`, body, { headers: botHeaders() }); },
+  };
+}
+
+// --- Reaction roles API (1.15.32, bulk add 1.15.33) ---------------------------
+// Add reaction-role mapping(s) from the dashboard, in the exact shape
 // /reactionroles-add writes. Same gating as the rest of the settings page
 // (requireAuth + requireGuildAccess = guild member with Manage Server).
 // The bot reads mappings from the DB per button click, so no bot restart
 // is needed — and the message's buttons are refreshed here via REST using
 // the same buildRows() the bot command uses.
+// Accepts either one mapping ({channelId, messageId, roleId, emojiCustom,
+// emojiUnicode}) — same response shape as 1.15.32 — or a batch
+// ({mappings: [...]}, at most 25 rows), which returns per-row results:
+// { ok: true, results: [{index, ok, error?, ...}], saved, failed }.
+// A bad row never blocks the others.
 app.post('/api/guilds/:id/reaction-roles', requireAuth, requireGuildAccess, async (req, res) => {
   if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
   const guildId = req.params.id;
-  const { channelId, messageId, roleId, emojiCustom, emojiUnicode } = req.body || {};
-  if (!channelId || !/^\d{17,20}$/.test(String(channelId))) return res.status(400).json({ error: 'Pick a text channel.' });
-  if (!messageId || !/^\d{17,20}$/.test(String(messageId))) return res.status(400).json({ error: 'Enter a message ID (17–20 digits).' });
-  if (!roleId || !/^\d{17,20}$/.test(String(roleId))) return res.status(400).json({ error: 'Pick a role.' });
-  const { resolveEmojiInput, addMapping } = require('./utils/reactionRoles');
-  let emoji;
-  try {
-    emoji = resolveEmojiInput(emojiCustom, emojiUnicode);
-  } catch (e) {
-    return res.status(400).json({ error: e.message });
-  }
-  // The channel and role must be real in this guild — the pickers only
-  // offer those, but the ids come from the client, so verify.
+  const body = req.body || {};
+  const isBatch = Array.isArray(body.mappings);
+  const rawRows = isBatch ? body.mappings : [body];
+  if (!rawRows.length) return res.status(400).json({ error: 'Add at least one reaction role.' });
+  if (rawRows.length > 25) return res.status(400).json({ error: 'Add at most 25 reaction roles at once.' });
+  const { resolveEmojiInput, addMapping, addMappingsBatch } = require('./utils/reactionRoles');
+  // Route-level checks, per row (same as the 1.15.32 single checks): id
+  // shapes, emoji resolution, and the channel/role must be real in this
+  // guild — the pickers only offer those, but the ids come from the client.
   const { channels, roles } = await guildChannelsRoles(guildId).catch(() => ({ channels: [], roles: [] }));
-  const channel = channels.find((c) => c.id === channelId && c.type === 0);
-  if (!channel) return res.status(400).json({ error: 'That channel does not exist in this server (or is not a text channel).' });
-  const role = roles.find((r) => r.id === roleId);
-  if (!role) return res.status(400).json({ error: 'That role does not exist in this server.' });
-  if (role.id === guildId) return res.status(400).json({ error: 'The @everyone role cannot be a reaction role.' });
-  try {
-    await addMapping({ guildId, channelId, messageId, emoji, roleId, botUserId: config.clientId }, {
-      getMessage: async (chId, msgId) => (await discordApi.get(`/channels/${chId}/messages/${msgId}`, { headers: botHeaders() }).catch(() => null))?.data || null,
-      listGuildEmojis: async (gId) => (await discordApi.get(`/guilds/${gId}/emojis`, { headers: botHeaders() }).catch(() => null))?.data || [],
-      patchMessage: async (chId, msgId, body) => { await discordApi.patch(`/channels/${chId}/messages/${msgId}`, body, { headers: botHeaders() }); },
-    });
-  } catch (e) {
-    return res.status(e.status || 400).json({ error: e.message });
+  const rows = rawRows.map((raw) => {
+    const { channelId, messageId, roleId, emojiCustom, emojiUnicode } = raw || {};
+    if (!channelId || !/^\d{17,20}$/.test(String(channelId))) return { error: 'Pick a text channel.' };
+    if (!messageId || !/^\d{17,20}$/.test(String(messageId))) return { error: 'Enter a message ID (17–20 digits).' };
+    if (!roleId || !/^\d{17,20}$/.test(String(roleId))) return { error: 'Pick a role.' };
+    let emoji;
+    try {
+      emoji = resolveEmojiInput(emojiCustom, emojiUnicode);
+    } catch (e) {
+      return { error: e.message };
+    }
+    const channel = channels.find((c) => c.id === channelId && c.type === 0);
+    if (!channel) return { error: 'That channel does not exist in this server (or is not a text channel).' };
+    const role = roles.find((r) => r.id === roleId);
+    if (!role) return { error: 'That role does not exist in this server.' };
+    if (role.id === guildId) return { error: 'The @everyone role cannot be a reaction role.' };
+    return { channelId, messageId, roleId, emoji, channelName: channel.name, roleName: role.name };
+  });
+  const discord = reactionRolesDiscord();
+  if (!isBatch) {
+    // Single: identical behavior to 1.15.32.
+    const row = rows[0];
+    if (row.error) return res.status(400).json({ error: row.error });
+    try {
+      await addMapping({ guildId, channelId: row.channelId, messageId: row.messageId, emoji: row.emoji, roleId: row.roleId, botUserId: config.clientId }, discord);
+    } catch (e) {
+      return res.status(e.status || 400).json({ error: e.message });
+    }
+    await staffUtils.audit(req.session.user.id, 'reaction-role.add', row.messageId, `guild=${guildId} channel=${row.channelId} emoji=${row.emoji} role=${row.roleId}`).catch(() => {});
+    return res.json({ ok: true, messageId: row.messageId, channelId: row.channelId, channelName: row.channelName, roleName: row.roleName, emoji: row.emoji });
   }
-  await staffUtils.audit(req.session.user.id, 'reaction-role.add', messageId, `guild=${guildId} channel=${channelId} emoji=${emoji} role=${roleId}`).catch(() => {});
-  res.json({ ok: true, messageId, channelId, channelName: channel.name, roleName: role.name, emoji });
+  const validIdx = new Map();
+  const helperRows = [];
+  rows.forEach((row, i) => { if (!row.error) { validIdx.set(i, helperRows.length); helperRows.push(row); } });
+  const helperResults = await addMappingsBatch({ guildId, botUserId: config.clientId, rows: helperRows }, discord);
+  const results = rows.map((row, i) => {
+    if (row.error) return { index: i, ok: false, error: row.error };
+    const hr = helperResults[validIdx.get(i)];
+    if (!hr || !hr.ok) return { index: i, ok: false, error: hr?.error || 'Failed.' };
+    return { index: i, ok: true, messageId: row.messageId, channelId: row.channelId, channelName: row.channelName, roleName: row.roleName, roleId: row.roleId, emoji: row.emoji };
+  });
+  for (const r of results) {
+    if (r.ok) await staffUtils.audit(req.session.user.id, 'reaction-role.add', r.messageId, `guild=${guildId} channel=${r.channelId} emoji=${r.emoji} role=${r.roleId}`).catch(() => {});
+  }
+  const saved = results.filter((r) => r.ok).length;
+  res.json({ ok: true, results, saved, failed: results.length - saved });
+});
+
+// Remove one reaction-role mapping (1.15.33). Deletes the row, then refreshes
+// that message's buttons via REST using the same buildRows() path, so the
+// removed button disappears from the message. If the message itself is
+// already gone from Discord, the mapping is still deleted and the removal
+// reports success.
+app.delete('/api/guilds/:id/reaction-roles/:mappingId', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  const guildId = req.params.id;
+  const mappingId = req.params.mappingId;
+  if (!/^\d+$/.test(String(mappingId))) return res.status(400).json({ error: 'Unknown mapping.' });
+  const found = await db.query('SELECT * FROM reaction_roles WHERE id = ? AND guild_id = ?', [mappingId, guildId]);
+  const mapping = found?.[0];
+  if (!mapping) return res.status(404).json({ error: 'That mapping no longer exists.' });
+  const { removeMapping } = require('./utils/reactionRoles');
+  const result = await removeMapping({ guildId, channelId: mapping.channel_id, messageId: mapping.message_id, emoji: mapping.emoji }, reactionRolesDiscord());
+  await staffUtils.audit(req.session.user.id, 'reaction-role.remove', mapping.message_id, `guild=${guildId} mapping=${mappingId} emoji=${mapping.emoji} role=${mapping.role_id}`).catch(() => {});
+  res.json({ ok: true, messageId: mapping.message_id, messageGone: result.messageGone, warning: result.warning });
+});
+
+// Remove several reaction-role mappings at once (1.15.33). Accepts
+// { ids: [...] }; deletes every listed mapping, refreshes each affected
+// message's buttons once (grouped by message, same buildRows() path), and
+// returns per-id results: { id, ok: true, ... } or { id, ok: false, error:
+// 'not-found' }. A mapping whose message is already gone from Discord is
+// still deleted and reported removed.
+app.post('/api/guilds/:id/reaction-roles/bulk-delete', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  const guildId = req.params.id;
+  const ids = [...new Set((Array.isArray(req.body?.ids) ? req.body.ids : []).map(String))].filter((id) => /^\d+$/.test(id));
+  if (!ids.length) return res.status(400).json({ error: 'Pick at least one mapping to remove.' });
+  if (ids.length > 100) return res.status(400).json({ error: 'Remove at most 100 mappings at once.' });
+  const placeholders = ids.map(() => '?').join(',');
+  const found = await db.query(`SELECT * FROM reaction_roles WHERE guild_id = ? AND id IN (${placeholders})`, [guildId, ...ids]);
+  const rowsById = new Map((found || []).map((row) => [String(row.id), row]));
+  const helperRows = ids.filter((id) => rowsById.has(id)).map((id) => rowsById.get(id));
+  const { removeMappingsBatch } = require('./utils/reactionRoles');
+  const helperResults = await removeMappingsBatch({ guildId, rows: helperRows }, reactionRolesDiscord());
+  const resultById = new Map();
+  helperRows.forEach((row, i) => resultById.set(String(row.id), helperResults[i]));
+  const results = ids.map((id) => {
+    if (!rowsById.has(id)) return { id, ok: false, error: 'not-found' };
+    const hr = resultById.get(id) || {};
+    return { id, ok: true, messageId: rowsById.get(id).message_id, messageGone: !!hr.messageGone, warning: hr.warning };
+  });
+  for (const r of results) {
+    if (r.ok) await staffUtils.audit(req.session.user.id, 'reaction-role.remove', r.messageId, `guild=${guildId} mapping=${r.id}`).catch(() => {});
+  }
+  const removed = results.filter((r) => r.ok).length;
+  res.json({ ok: true, results, removed, notFound: results.length - removed });
 });
 
 // --- Color roles API (1.4.4) ---------------------------------------------------
