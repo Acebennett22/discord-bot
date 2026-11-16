@@ -6,6 +6,11 @@ in `package.json` is the source of truth for the current release — every
 version below must match a `package.json` version, and the dashboard
 `/version` page renders from this file.
 
+## [1.15.35] - 2026-11-15
+
+### Changed
+- Reaction-role mappings in the dashboard now display as channel name, role name, and emoji (1.15.35). Each row in Settings → Reaction Roles previously read `💻 → <@&333> · message 999`; it now reads `#choose-your-rank · PC Warrior · 💻` — the channel name and role name resolved from the live guild channel/role lists the page already loads (same `find(...)?.name || id` lookup pattern the ticket-panels table already uses in the same template), with fallbacks of `#<channel_id>` when the channel is gone and the raw role ID when the role is gone. Display-only change to `dashboard/views/settings.ejs`: the per-row Remove button, selection checkbox, Requirements line, select-all / Remove selected bulk controls, "No reaction-role mappings yet." empty state, and the add form are all untouched, and no API route, database shape, or Discord button rendering (`buildRows`/`emojiButton`) changed. Verified by `tmp/verify-1.15.35.js` (28/28: renders the real template with sample locals — rows show channel/role/emoji in the exact `#channel · Role · emoji` format, no `<@&` mention syntax or message ID in any display line, channel/role fallbacks, Remove button + checkbox + Requirements line still present per row, bulk controls and add form untouched, empty state) and `check-deploy.js` (38 top-level, 269 flat, 0 problems — unchanged). Server needs `git pull` + dashboard restart only — no bot restart, no `npm run deploy`, no `npm install`.
+
 ## [1.15.34] - 2026-11-15
 
 ### Fixed

@@ -543,7 +543,7 @@
       <% reactionRoleMappings.forEach(m => { %>
         <div class="card card-block" style="margin-bottom:8px">
           <label><input type="checkbox" class="rr-select" value="<%= m.id %>"></label>
-          <%= m.emoji %> → <code>&lt;@&amp;<%= m.role_id %>&gt;</code> · message <code><%= m.message_id %></code>
+          #<%= channels.find(c => c.id === m.channel_id)?.name || m.channel_id %> · <%= roles.find(r => r.id === m.role_id)?.name || m.role_id %> · <%= m.emoji %>
           <button class="btn btn-sm" type="button" data-remove-reaction-role="<%= m.id %>">Remove</button><br>
           <span class="muted">Requirements: <%= m.required_role_id ? `needs <@&${m.required_role_id}> · ` : '' %><%= (m.min_days_in_server !== null && m.min_days_in_server !== undefined) ? `${m.min_days_in_server}d+ in server · ` : '' %><%= (m.min_level !== null && m.min_level !== undefined) ? `level ${m.min_level}+` : '' %><%= (!m.required_role_id && m.min_days_in_server === null && m.min_level === null) ? 'none' : '' %></span>
         </div>
