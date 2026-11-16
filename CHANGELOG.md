@@ -6,6 +6,11 @@ in `package.json` is the source of truth for the current release — every
 version below must match a `package.json` version, and the dashboard
 `/version` page renders from this file.
 
+## [1.16.1] - 2026-11-16
+
+### Added
+- The member/moderation log now names the moderator who did it, like Discord's audit log (1.16.1). Kicks already showed a `**By:**` line (resolved from the audit log in `guildMemberRemove.js`); bans, unbans, timeouts, and role changes only named the target. All four now carry a `**By:** <tag> (<@id>)` line too: bans via `AuditLogEvent.MemberBanAdd`, unbans via `MemberBanRemove`, timeouts via `MemberUpdate`, role changes via `MemberRoleUpdate` — resolved by a new `resolveActor()` helper in `src/events/memberLogEvents.js` using the same pattern as the kick check (needs View Audit Log, matches a fresh entry <10s old for the target, falls back to `unknown` when there is no matching entry, no permission, or the fetch fails). A failed lookup never breaks the log post. The existing `**User:**`, `**Reason:**`, `**Until:**`, `**Added:**`/`**Removed:**` lines are unchanged, and kick handling, log channels/toggles, and all slash commands are untouched. Verified by `tmp/verify-1.16.1.js` (37/37: each event type names the moderator on a fresh matching entry and falls back to `unknown` for another target, a stale entry, no permission, a throwing fetch, and a missing executor; timeout-ending and bot updates still log nothing; a combined timeout + role change posts both lines with the moderator; a throwing logEvent still resolves) and `check-deploy.js` (38 top-level, 0 problems — unchanged). Server needs `git pull` + bot restart (required — the fix lives in the bot's event handlers); no `npm run deploy`, no `npm install`, no dashboard restart. After the restart, the next ban, unban, timeout, or role change in the log channel will show who did it; if a line reads `unknown`, the audit entry was older than 10s or the bot lacks View Audit Log.
+
 ## [1.16.0] - 2026-11-16
 
 ### Fixed

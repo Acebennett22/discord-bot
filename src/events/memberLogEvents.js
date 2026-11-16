@@ -3,8 +3,26 @@
 // (kicks are detected there via the audit log). Every handler checks the
 // per-event toggle in src/utils/memberLog — nothing posts unless logging
 // is set up, and a failure here never breaks the event itself.
-const { Events } = require('discord.js');
+// (1.16.1) Bans, unbans, timeouts, and role changes now name the
+// moderator, like Discord's audit log: the executor is resolved from the
+// guild audit log, falling back to 'unknown' when it can't be resolved.
+const { Events, AuditLogEvent } = require('discord.js');
 const { logEvent } = require('../utils/memberLog');
+
+// Resolve "who did it" from the guild audit log — same pattern as the
+// kick check in guildMemberRemove.js: needs View Audit Log, matches a
+// fresh (<10s) entry for the target, falls back to 'unknown'. Never
+// throws, so a failed lookup never breaks the log post.
+async function resolveActor(guild, auditType, targetId) {
+  try {
+    if (!guild.members.me?.permissions?.has('ViewAuditLog')) return 'unknown';
+    const logs = await guild.fetchAuditLogs({ type: auditType, limit: 3 });
+    const entry = logs.entries.find((e) => e.target?.id === targetId && Date.now() - e.createdAt.getTime() < 10_000);
+    return entry?.executor ? `${entry.executor.tag} (<@${entry.executor.id}>)` : 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
 
 function roleDiff(oldMember, newMember) {
   const oldRoles = new Set(oldMember.roles.cache.keys());
@@ -18,15 +36,17 @@ module.exports = [
   {
     name: Events.GuildBanAdd,
     async execute(ban) {
+      const by = await resolveActor(ban.guild, AuditLogEvent.MemberBanAdd, ban.user.id);
       await logEvent(ban.guild, 'bans', '🔨 Member banned',
-        `**User:** ${ban.user.tag} (<@${ban.user.id}>)\n**Reason:** ${ban.reason || 'no reason given'}`).catch(() => {});
+        `**User:** ${ban.user.tag} (<@${ban.user.id}>)\n**By:** ${by}\n**Reason:** ${ban.reason || 'no reason given'}`).catch(() => {});
     },
   },
   {
     name: Events.GuildBanRemove,
     async execute(ban) {
+      const by = await resolveActor(ban.guild, AuditLogEvent.MemberBanRemove, ban.user.id);
       await logEvent(ban.guild, 'bans', '🔓 Member unbanned',
-        `**User:** ${ban.user.tag} (<@${ban.user.id}>)`).catch(() => {});
+        `**User:** ${ban.user.tag} (<@${ban.user.id}>)\n**By:** ${by}`).catch(() => {});
     },
   },
   {
@@ -39,14 +59,16 @@ module.exports = [
       const isTimedOut = Boolean(newMember.communicationDisabledUntil && newMember.communicationDisabledUntil > Date.now());
       if (!wasTimedOut && isTimedOut) {
         const until = newMember.communicationDisabledUntil;
+        const by = await resolveActor(newMember.guild, AuditLogEvent.MemberUpdate, newMember.id);
         await logEvent(newMember.guild, 'timeouts', '⏱️ Member timed out',
-          `**User:** ${newMember.user.tag} (<@${newMember.id}>)\n**Until:** <t:${Math.floor(until.getTime() / 1000)}:F>`).catch(() => {});
+          `**User:** ${newMember.user.tag} (<@${newMember.id}>)\n**By:** ${by}\n**Until:** <t:${Math.floor(until.getTime() / 1000)}:F>`).catch(() => {});
       }
       // Role changes (booster-role syncs also pass through here; that's
       // fine — a role change is a role change).
       const { added, removed } = roleDiff(oldMember, newMember);
       if (added.length || removed.length) {
-        const lines = [`**User:** ${newMember.user.tag} (<@${newMember.id}>)`];
+        const by = await resolveActor(newMember.guild, AuditLogEvent.MemberRoleUpdate, newMember.id);
+        const lines = [`**User:** ${newMember.user.tag} (<@${newMember.id}>)`, `**By:** ${by}`];
         if (added.length) lines.push(`**Added:** ${added.map((r) => `\`${r}\``).join(', ')}`);
         if (removed.length) lines.push(`**Removed:** ${removed.map((r) => `\`${r}\``).join(', ')}`);
         await logEvent(newMember.guild, 'roleChanges', '🎭 Roles changed', lines.join('\n')).catch(() => {});
