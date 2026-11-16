@@ -45,13 +45,32 @@ async function fakeExecute(sql, params = []) {
   if (/SELECT \* FROM reaction_roles WHERE message_id/.test(sql)) {
     return [table.filter((r) => r.message_id === p[0]), undefined];
   }
+  if (/SELECT emoji FROM reaction_roles WHERE guild_id/.test(sql)) {
+    return [table.filter((r) => r.guild_id === p[0] && r.message_id === p[1]).map((r) => ({ emoji: r.emoji })), undefined];
+  }
   if (/SELECT id FROM reaction_roles WHERE guild_id/.test(sql)) {
-    return [table.filter((r) => r.guild_id === p[0] && r.message_id === p[1] && r.emoji === p[2]).map((r) => ({ id: r.id })), undefined];
+    // 1.15.37: the duplicate check is scoped by channel too — params are
+    // [guild, channel, message, emoji].
+    return [table.filter((r) => r.guild_id === p[0] && r.channel_id === p[1] && r.message_id === p[2] && r.emoji === p[3]).map((r) => ({ id: r.id })), undefined];
+  }
+  if (/SELECT channel_id, role_id FROM reaction_roles WHERE guild_id/.test(sql)) {
+    // 1.15.37: insertMappingRow's lookup — deliberately NOT channel-scoped.
+    return [table.filter((r) => r.guild_id === p[0] && r.message_id === p[1] && r.emoji === p[2]).map((r) => ({ channel_id: r.channel_id, role_id: r.role_id })), undefined];
+  }
+  if (/UPDATE reaction_roles SET channel_id/.test(sql)) {
+    // 1.15.37: channel re-key repair.
+    let changed = 0;
+    for (const r of table) {
+      if (r.guild_id === p[1] && r.message_id === p[2] && r.emoji === p[3] && r.channel_id !== p[0]) { r.channel_id = p[0]; changed++; }
+    }
+    return [{ affectedRows: changed }, undefined];
   }
   if (/INSERT INTO reaction_roles/.test(sql)) {
     const row = { id: nextId++, guild_id: p[0], channel_id: p[1], message_id: p[2], emoji: p[3], role_id: p[4], enabled: 1 };
     table.push(row);
-    return [[{ insertId: row.id }], undefined];
+    // 1.15.37: insertMappingRow() verifies affectedRows === 1 — real mysql2
+    // returns the OkPacket as a plain object (not an array) for INSERTs.
+    return [{ insertId: row.id, affectedRows: 1 }, undefined];
   }
   if (/DELETE FROM reaction_roles/.test(sql)) {
     const before = table.length;

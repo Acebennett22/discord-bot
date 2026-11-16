@@ -148,20 +148,67 @@ async function validateMappingForInsert({ guildId, channelId, messageId, emoji, 
   const message = await ctx.getMessage(channelId, messageId);
   if (!message) fail(400, 'That message does not exist in this channel.');
   if (message.author?.id !== botUserId) fail(400, "That message wasn't posted by the bot — reaction roles can only be added to the bot's own messages.");
-  const existing = await db.query('SELECT id FROM reaction_roles WHERE guild_id = ? AND message_id = ? AND emoji = ?', [guildId, messageId, emoji]);
+  // Duplicate check (1.15.37): scoped by guild + channel + message +
+  // emoji — exactly the rows the list groups by (channel, message) and the
+  // refresh count checks. The old check ignored channel_id, so it read a
+  // different truth than the list: a row stored under the same message but
+  // a different channel looked like a duplicate here while the list showed
+  // it under another group (and the refresh count missed it). A row under
+  // the same message with a wrong channel is NOT a duplicate at this
+  // stage — the insert path repairs its channel instead (see
+  // insertMappingRow); only an exact (channel, role) match is rejected.
+  const existing = await db.query('SELECT id FROM reaction_roles WHERE guild_id = ? AND channel_id = ? AND message_id = ? AND emoji = ?', [guildId, channelId, messageId, emoji]);
   if (existing?.length) fail(400, 'That emoji is already mapped on this message.');
 }
 
 async function insertMappingRow({ guildId, channelId, messageId, emoji, roleId }) {
+  // Verify the row actually persisted (1.15.37). db.query() swallows every
+  // error and returns null, so the old code could never see an INSERT
+  // failure — a bulk add reported "11 added" while only 2 rows were
+  // stored, and its ER_DUP_ENTRY catch was dead code in production.
+  // mysql2's execute returns an OkPacket for INSERTs and db.query() passes
+  // it through, so affectedRows === 1 is the proof the row landed.
+  let result;
+  let threw = null;
   try {
-    await db.query(
+    result = await db.query(
       'INSERT INTO reaction_roles (guild_id, channel_id, message_id, emoji, role_id) VALUES (?, ?, ?, ?, ?)',
       [guildId, channelId, messageId, emoji, roleId],
     );
   } catch (err) {
-    if (err.code === 'ER_DUP_ENTRY') fail(400, 'That emoji is already mapped on this message.');
-    throw err;
+    // db.query() never throws in production (it swallows); this only fires
+    // for a stubbed db.query — fall through to the lookup below instead of
+    // assuming the reason.
+    threw = err;
   }
+  if (result?.affectedRows === 1) return;
+  // The insert did not land. Look up what is actually stored for this
+  // (guild, message, emoji) — deliberately WITHOUT the channel filter, so
+  // a row stored under the same message but a wrong channel is found
+  // instead of reported as a mystery failure.
+  const existing = await db.query(
+    'SELECT channel_id, role_id FROM reaction_roles WHERE guild_id = ? AND message_id = ? AND emoji = ?',
+    [guildId, messageId, emoji],
+  ).catch(() => null);
+  if (!existing?.length) {
+    if (threw && threw.code !== 'ER_DUP_ENTRY') throw threw;
+    fail(500, `The mapping for ${emoji} could not be saved to the database — please try adding it again.`);
+  }
+  const ex = existing[0];
+  if (ex.role_id !== roleId) fail(400, 'That emoji is already mapped on this message.');
+  if (ex.channel_id !== channelId) {
+    // Same message, emoji and role, but the stored channel is wrong (the
+    // add form carries a channel per row, and the duplicate check is
+    // scoped by channel) — repair the stored channel instead of blocking
+    // the re-add with a duplicate error. A message lives in exactly one
+    // channel, so this re-key is always correct.
+    const repaired = await db.query(
+      'UPDATE reaction_roles SET channel_id = ? WHERE guild_id = ? AND message_id = ? AND emoji = ?',
+      [channelId, guildId, messageId, emoji],
+    ).catch(() => null);
+    if (repaired?.affectedRows === 1) return;
+  }
+  fail(400, 'That emoji is already mapped on this message.');
 }
 
 async function deleteMappingRow({ guildId, messageId, emoji }) {
@@ -249,11 +296,32 @@ async function addMappingsBatch({ guildId, botUserId, rows }, discord) {
     const { channelId, messageId } = group[0];
     try {
       await refreshMessageButtons(channelId, messageId, discord, guildId);
-      for (const row of group) results[row.index] = { ok: true };
     } catch (err) {
       for (const row of group) await deleteMappingRow({ guildId, messageId, emoji: row.emoji });
       const detail = err.response?.data?.message || err.message || 'unknown error';
       for (const row of group) results[row.index] = { ok: false, error: `Discord refused the button update (${detail}) — the mapping was not kept.` };
+      continue;
+    }
+    // 1.15.37: the refresh built buttons from the DB — verify every row in
+    // this group actually persisted before reporting it saved. The insert
+    // check above should already guarantee it; this catches anything that
+    // slipped through, so a batch can never again report "11 added" when
+    // only 2 rows are stored. A row missing here is marked failed (the
+    // good rows stay ok — nothing is rolled back over a mismatch). A null
+    // read means the verification itself failed, which is reported as
+    // unconfirmed rather than claimed either way.
+    const readBack = await db.query(
+      'SELECT emoji FROM reaction_roles WHERE guild_id = ? AND message_id = ?',
+      [guildId, messageId],
+    );
+    if (readBack === null) {
+      for (const row of group) results[row.index] = { ok: false, error: `The mapping for ${row.emoji} may have saved, but the result could not be confirmed — check the Reaction Roles list and try adding it again if it is missing.` };
+      continue;
+    }
+    const persisted = new Set(readBack.map((r) => r.emoji));
+    for (const row of group) {
+      if (persisted.has(row.emoji)) results[row.index] = { ok: true };
+      else results[row.index] = { ok: false, error: `The mapping for ${row.emoji} did not save to the database — please try adding it again.` };
     }
   }
   return results;

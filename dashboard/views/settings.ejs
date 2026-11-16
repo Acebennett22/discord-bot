@@ -542,16 +542,17 @@
       <button class="btn btn-sm" type="button" id="rr-remove-selected" disabled>Remove selected</button></p>
       <% const rrGroups = [...new Map(reactionRoleMappings.map(m => [`${m.channel_id}:${m.message_id}`, m])).values()]; %>
       <% rrGroups.forEach(g => { %>
-      <p><strong>#<%= channels.find(c => c.id === g.channel_id)?.name || g.channel_id %></strong> · message <code><%= g.message_id %></code> · <%= reactionRoleMappings.filter(m => m.message_id === g.message_id).length %> role(s)
+      <% const groupRows = reactionRoleMappings.filter(m => m.channel_id === g.channel_id && m.message_id === g.message_id); %>
+      <p><strong>#<%= channels.find(c => c.id === g.channel_id)?.name || g.channel_id %></strong> · message <code><%= g.message_id %></code> · <%= groupRows.length %> role(s)
       <button class="btn btn-sm" type="button" data-refresh-reaction-roles data-rr-channel="<%= g.channel_id %>" data-rr-message="<%= g.message_id %>">Refresh buttons</button></p>
-      <% }); %>
-      <% reactionRoleMappings.forEach(m => { %>
+      <% groupRows.forEach(m => { %>
         <div class="card card-block" style="margin-bottom:8px">
           <label><input type="checkbox" class="rr-select" value="<%= m.id %>"></label>
           #<%= channels.find(c => c.id === m.channel_id)?.name || m.channel_id %> · <%= roles.find(r => r.id === m.role_id)?.name || m.role_id %> · <%= m.emoji %>
           <button class="btn btn-sm" type="button" data-remove-reaction-role="<%= m.id %>">Remove</button><br>
           <span class="muted">Requirements: <%= m.required_role_id ? `needs <@&${m.required_role_id}> · ` : '' %><%= (m.min_days_in_server !== null && m.min_days_in_server !== undefined) ? `${m.min_days_in_server}d+ in server · ` : '' %><%= (m.min_level !== null && m.min_level !== undefined) ? `level ${m.min_level}+` : '' %><%= (!m.required_role_id && m.min_days_in_server === null && m.min_level === null) ? 'none' : '' %></span>
         </div>
+      <% }); %>
       <% }); %>
     <% } else { %><p class="muted">No reaction-role mappings yet.</p><% } %>
     </div>
