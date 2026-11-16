@@ -331,6 +331,15 @@
       catch (err) { AceBot.toast('Failed: ' + err.message, 'error'); }
       return;
     }
+    // Ticket panel repost (1.15.28): deletes the old panel message and posts
+    // a fresh one in the same channel with the current settings.
+    const repostBtn = e.target.closest('[data-repost-panel]');
+    if (repostBtn) {
+      if (!AceBot.confirmAction('Repost this ticket panel? The old panel message will be deleted and a fresh one posted in the same channel.')) return;
+      try { await AceBot.postJSON(repostBtn.dataset.repostPanel); await AceBot.refreshSection('#ticket-panels-list'); AceBot.toast('Ticket panel reposted'); }
+      catch (err) { AceBot.toast('Failed: ' + err.message, 'error'); }
+      return;
+    }
     const postBtn = e.target.closest('[data-post]');
     if (postBtn) {
       if (!AceBot.confirmAction('Are you sure?')) return;

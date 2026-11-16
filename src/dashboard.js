@@ -1617,18 +1617,46 @@ app.post('/api/guilds/:id/ticket-panels', requireAuth, requireGuildAccess, async
   if (!channelId || !channelIds.has(channelId)) return res.status(400).json({ error: 'Pick a text channel for the panel.' });
   if (categoryId && !channels.some((c) => c.id === categoryId && c.type === 4)) return res.status(400).json({ error: 'Category does not exist in this server.' });
   if (staffRoleId && !roleIds.has(staffRoleId)) return res.status(400).json({ error: 'Staff role does not exist in this server.' });
-  const { createPanel, resolveTicketButtonLabel } = require('./utils/tickets');
+  const { createPanel, ticketPanelEmbed, ticketPanelRow, resolveTicketButtonLabel } = require('./utils/tickets');
   const panel = await createPanel(req.params.id, { channelId, categoryId: categoryId || null, staffRoleId: staffRoleId || null, title, description: description || null, createdBy: req.session.user.id });
   if (!panel) return res.status(503).json({ error: 'Could not create the panel.' });
   try {
     const buttonLabel = resolveTicketButtonLabel(await getGuildSettings(req.params.id));
     const msg = await discordApi.post(`/channels/${channelId}/messages`, {
-      embeds: [{ title: `🎫 ${title}`, description: description || `Need help? Click **${buttonLabel}** below and tell us what's going on.\n\nA private channel will be created just for you and the support team.`, color: 0x5865f2 }],
-      components: [{ type: 1, components: [{ type: 2, style: 1, label: buttonLabel, emoji: { name: '🎫' }, custom_id: `ticket_create:${panel.id}` }] }],
+      embeds: [ticketPanelEmbed(title, description, buttonLabel).toJSON()],
+      components: [ticketPanelRow(panel.id, buttonLabel).toJSON()],
     }, { headers: botHeaders() });
     await db.query('UPDATE ticket_panels SET message_id = ? WHERE id = ?', [msg.data.id, panel.id]).catch(() => {});
   } catch (e) { console.warn('[dashboard] ticket panel post failed:', e.message); }
   res.json({ ok: true, id: panel.id });
+});
+
+// Repost a panel (1.15.28): deletes the old panel message and posts a fresh
+// one in the same channel, built with the current settings (button label,
+// description). This is how already-posted panels pick up a renamed button
+// label from 1.15.27 — there was no refresh path before.
+app.post('/api/guilds/:id/ticket-panels/:panelId/repost', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  const { getPanel, ticketPanelEmbed, ticketPanelRow, resolveTicketButtonLabel } = require('./utils/tickets');
+  const panel = await getPanel(req.params.id, req.params.panelId);
+  if (!panel) return res.status(404).json({ error: 'Panel not found.' });
+  const label = resolveTicketButtonLabel(await getGuildSettings(req.params.id));
+  // Delete the old panel message (best effort — it may already be gone).
+  if (panel.message_id) {
+    await discordApi.delete(`/channels/${panel.channel_id}/messages/${panel.message_id}`, { headers: botHeaders() }).catch(() => {});
+  }
+  try {
+    const msg = await discordApi.post(`/channels/${panel.channel_id}/messages`, {
+      embeds: [ticketPanelEmbed(panel.title, panel.description, label).toJSON()],
+      components: [ticketPanelRow(panel.id, label).toJSON()],
+    }, { headers: botHeaders() });
+    await db.query('UPDATE ticket_panels SET message_id = ? WHERE id = ?', [msg.data.id, panel.id]).catch(() => {});
+    await staffUtils.audit(req.session.user.id, 'ticket.repost', String(panel.id), `panel #${panel.id} "${panel.title}" reposted in #${panel.channel_id}, msg=${msg.data.id}`).catch(() => {});
+    res.json({ ok: true, id: panel.id, messageId: msg.data.id });
+  } catch (e) {
+    console.warn('[dashboard] ticket panel repost failed:', e.message);
+    return res.status(502).json({ error: 'Could not post the new panel message — check the bot can see and send in that channel.' });
+  }
 });
 
 app.delete('/api/guilds/:id/ticket-panels/:panelId', requireAuth, requireGuildAccess, async (req, res) => {

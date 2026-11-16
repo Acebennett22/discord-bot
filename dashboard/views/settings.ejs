@@ -232,7 +232,7 @@
       </select>
       <label>Ticket button label</label>
       <input type="text" name="ticketButtonLabel" value="<%= settings.ticketButtonLabel || '' %>" placeholder="Create Ticket" maxlength="80">
-      <p class="muted">The label on the button members click to open a ticket. Leave blank for the default ("Create Ticket"). Max 80 characters. Applies to panels posted after you save — already-posted panels keep their old label until re-posted.</p>
+      <p class="muted">The label on the button members click to open a ticket. Leave blank for the default ("Create Ticket"). Max 80 characters. Applies to panels posted after you save — use the Repost button on an existing panel below to refresh it with the new label. (The default panel from /ticket-setup isn't listed here — delete its message and re-run /ticket-setup to refresh it.)</p>
       <br><br><button class="btn" type="submit">Save ticket settings</button>
     </form>
     <h3>Recent tickets</h3>
@@ -243,7 +243,7 @@
     <div id="ticket-panels-list">
     <% if (!ticketPanels.length) { %><p class="muted">No extra panels yet.</p><% } else { %>
       <table><tr><th>ID</th><th>Title</th><th>Category</th><th>Staff role</th><th>Channel</th><th></th></tr>
-      <% ticketPanels.forEach(p => { %><tr><td>#<%= p.id %></td><td><%= p.title %></td><td><%= p.category_id ? (channels.find(c => c.id === p.category_id)?.name || p.category_id) : 'default' %></td><td><%= p.staff_role_id ? '@' + (roles.find(r => r.id === p.staff_role_id)?.name || p.staff_role_id) : 'default' %></td><td>#<%= (channels.find(c => c.id === p.channel_id)?.name || p.channel_id) %></td><td><button class="btn danger" data-delete="/api/guilds/<%= guild.id %>/ticket-panels/<%= p.id %>">Delete</button></td></tr><% }); %></table>
+      <% ticketPanels.forEach(p => { %><tr><td>#<%= p.id %></td><td><%= p.title %></td><td><%= p.category_id ? (channels.find(c => c.id === p.category_id)?.name || p.category_id) : 'default' %></td><td><%= p.staff_role_id ? '@' + (roles.find(r => r.id === p.staff_role_id)?.name || p.staff_role_id) : 'default' %></td><td>#<%= (channels.find(c => c.id === p.channel_id)?.name || p.channel_id) %></td><td><button class="btn" data-repost-panel="/api/guilds/<%= guild.id %>/ticket-panels/<%= p.id %>/repost">Repost</button> <button class="btn danger" data-delete="/api/guilds/<%= guild.id %>/ticket-panels/<%= p.id %>">Delete</button></td></tr><% }); %></table>
     <% } %>
     </div>
     <h3>Add a panel</h3>
