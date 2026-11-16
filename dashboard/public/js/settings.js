@@ -361,6 +361,18 @@
       finally { updateRrSelectedButton(); }
       return;
     }
+    const rrRefresh = e.target.closest('[data-refresh-reaction-roles]');
+    if (rrRefresh) {
+      const channelId = rrRefresh.dataset.rrChannel;
+      const messageId = rrRefresh.dataset.rrMessage;
+      rrRefresh.disabled = true;
+      try {
+        const j = await AceBot.postJSON(api('/reaction-roles/refresh'), { channelId, messageId });
+        AceBot.toast(`Buttons refreshed — ${j.count} role${j.count === 1 ? '' : 's'} re-applied`);
+      } catch (err) { AceBot.toast('Refresh failed: ' + err.message, 'error'); }
+      finally { rrRefresh.disabled = false; }
+      return;
+    }
     const appToggle = e.target.closest('[data-app-form-toggle]');
     if (appToggle) {
       try {

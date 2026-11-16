@@ -10,8 +10,13 @@ function emojiLabel(emoji) {
   return m ? m[1] : emoji;
 }
 
-function emojiButton(emoji, roleId) {
-  const btn = new ButtonBuilder().setCustomId(`rr:${roleId}`).setLabel(emojiLabel(emoji)).setStyle(ButtonStyle.Secondary);
+function emojiButton(emoji, roleId, roleName) {
+  // 1.15.36: the label is the ROLE NAME (truncated to Discord's 80-char
+  // button-label limit), with the emoji rendered beside it via setEmoji —
+  // so a button reads "💻 PC Warrior". Falls back to the role ID when the
+  // name could not be resolved, so a refresh never fails over a name.
+  const label = String(roleName || roleId).slice(0, 80);
+  const btn = new ButtonBuilder().setCustomId(`rr:${roleId}`).setLabel(label).setStyle(ButtonStyle.Secondary);
   // Custom emoji need the raw <...:...> form; unicode emoji go in directly.
   if (/^<a?:\w+:\d+>$/.test(emoji)) {
     const [,, id] = emoji.replace(/[<>]/g, '').split(':');
@@ -35,14 +40,45 @@ async function isMessageEnabled(messageId) {
   return mappings.every((m) => m.enabled !== 0);
 }
 
-async function buildRows(messageId) {
+// Role-name resolvers (1.15.36): buildRows() labels buttons with role
+// names, but only sees role IDs. Both factories return an async
+// (roleId) => name | null; a null means "unresolvable" and the caller
+// falls back to the role ID as the label — never throws.
+function roleNameResolverFromGuild(guild) {
+  let allPromise = null;
+  return async (roleId) => {
+    const cached = guild?.roles?.cache?.get(roleId);
+    if (cached) return cached.name;
+    if (!allPromise) allPromise = guild?.roles?.fetch().catch(() => null);
+    const all = await allPromise;
+    return all?.get(roleId)?.name || null;
+  };
+}
+function roleNameResolverFromRest(discord, guildId) {
+  let rolesPromise = null;
+  return async (roleId) => {
+    if (!rolesPromise) rolesPromise = discord.listGuildRoles(guildId).catch(() => []);
+    const roles = (await rolesPromise) || [];
+    return roles.find((r) => String(r.id) === String(roleId))?.name || null;
+  };
+}
+
+async function buildRows(messageId, roleNameResolver) {
   const mappings = await getMappings(messageId);
   const enabled = mappings.length > 0 && mappings.every((m) => m.enabled !== 0);
+  // Resolve each distinct role's name once, so every button can show it.
+  // No resolver (or an unresolvable role) falls back to the role ID label.
+  const names = new Map();
+  if (roleNameResolver) {
+    await Promise.all([...new Set(mappings.map((m) => m.role_id))].map(async (id) => {
+      try { names.set(id, await roleNameResolver(id)); } catch { names.set(id, null); }
+    }));
+  }
   const rows = [];
   for (let i = 0; i < mappings.length; i += 5) {
     rows.push(new ActionRowBuilder().addComponents(
       ...mappings.slice(i, i + 5).map((m) => {
-        const btn = emojiButton(m.emoji, m.role_id);
+        const btn = emojiButton(m.emoji, m.role_id, names.get(m.role_id) || null);
         if (!enabled) btn.setDisabled(true);
         return btn;
       }),
@@ -133,8 +169,14 @@ async function deleteMappingRow({ guildId, messageId, emoji }) {
 }
 
 // Refresh one message's buttons through the same buildRows() the bot uses.
-async function refreshMessageButtons(channelId, messageId, discord) {
-  const components = (await buildRows(messageId)).map((row) => row.toJSON());
+// `guildId` lets the dashboard's REST adapter resolve role names for the
+// labels (1.15.36); without it (or without listGuildRoles on the adapter)
+// buttons fall back to role-ID labels instead of failing.
+async function refreshMessageButtons(channelId, messageId, discord, guildId) {
+  const resolver = (guildId && discord?.listGuildRoles)
+    ? roleNameResolverFromRest(discord, guildId)
+    : null;
+  const components = (await buildRows(messageId, resolver)).map((row) => row.toJSON());
   await discord.patchMessage(channelId, messageId, { components });
 }
 
@@ -148,7 +190,7 @@ async function addMapping({ guildId, channelId, messageId, emoji, roleId, botUse
   await validateMappingForInsert({ guildId, channelId, messageId, emoji, botUserId }, ctx);
   await insertMappingRow({ guildId, channelId, messageId, emoji, roleId });
   try {
-    await refreshMessageButtons(channelId, messageId, discord);
+    await refreshMessageButtons(channelId, messageId, discord, guildId);
   } catch (err) {
     // The buttons are the whole interface — a mapping without them is
     // useless, so roll the row back instead of leaving an orphan.
@@ -206,7 +248,7 @@ async function addMappingsBatch({ guildId, botUserId, rows }, discord) {
   for (const group of byMessage.values()) {
     const { channelId, messageId } = group[0];
     try {
-      await refreshMessageButtons(channelId, messageId, discord);
+      await refreshMessageButtons(channelId, messageId, discord, guildId);
       for (const row of group) results[row.index] = { ok: true };
     } catch (err) {
       for (const row of group) await deleteMappingRow({ guildId, messageId, emoji: row.emoji });
@@ -256,7 +298,7 @@ async function removeMappingsBatch({ guildId, rows }, discord) {
   for (const group of byMessage.values()) {
     const { channelId, messageId } = group[0];
     try {
-      await refreshMessageButtons(channelId, messageId, discord);
+      await refreshMessageButtons(channelId, messageId, discord, guildId);
       for (const row of group) results[row.index] = { ok: true, messageGone: false };
     } catch (err) {
       const status = err.response?.status;
@@ -282,4 +324,4 @@ async function removeMapping({ guildId, channelId, messageId, emoji }, discord) 
   return result;
 }
 
-module.exports = { emojiLabel, emojiButton, getMappings, isMessageEnabled, buildRows, resolveEmojiInput, validateEmojiAgainstGuild, addMapping, addMappingsBatch, removeMapping, removeMappingsBatch };
+module.exports = { emojiLabel, emojiButton, getMappings, isMessageEnabled, buildRows, resolveEmojiInput, validateEmojiAgainstGuild, addMapping, addMappingsBatch, removeMapping, removeMappingsBatch, refreshMessageButtons, roleNameResolverFromGuild, roleNameResolverFromRest };

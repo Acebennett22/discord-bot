@@ -60,7 +60,14 @@ async function main() {
     check(`row ${i + 1}: no message ID in display line`, !lines[i].includes('999'));
     check(`row ${i + 1}: no "message" label in display line`, !/message/i.test(lines[i]));
   }
-  check('message ID appears nowhere in rendered page', !html.includes('999'));
+  // 1.15.36: the message ID now appears in the per-message-group Refresh
+  // headers only (once as text + once in the button's data-rr-message per
+  // group — the fixture has 2 groups sharing message 999, so 4 hits) — and
+  // never in a mapping row's display line (checked per-row above).
+  check('message ID appears only in group Refresh headers, never in a mapping row',
+    (html.match(/999/g) || []).length === 4
+    && (html.match(/data-rr-message="999"/g) || []).length === 2
+    && (html.match(/message <code>999<\/code>/g) || []).length === 2);
 
   check('row 3: channel fallback is #<channel_id>', lines[2] && lines[2].includes('#000-missing'), lines[2]?.trim());
   check('row 3: role fallback is raw role id', lines[2] && lines[2].includes('000-missing-role'), lines[2]?.trim());

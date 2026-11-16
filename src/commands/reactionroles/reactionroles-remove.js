@@ -1,7 +1,7 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const { successEmbed, errorEmbed } = require('../../utils/embeds');
 const db = require('../../utils/database');
-const { buildRows } = require('../../utils/reactionRoles');
+const { buildRows, roleNameResolverFromGuild } = require('../../utils/reactionRoles');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -19,7 +19,7 @@ module.exports = {
     const rows = await db.query('SELECT channel_id FROM reaction_roles WHERE message_id = ? LIMIT 1', [messageId]);
     const channel = rows?.[0] ? await interaction.guild.channels.fetch(rows[0].channel_id).catch(() => null) : null;
     const msg = channel ? await channel.messages.fetch(messageId).catch(() => null) : null;
-    if (msg) await msg.edit({ components: await buildRows(messageId) }).catch(() => {});
+    if (msg) await msg.edit({ components: await buildRows(messageId, roleNameResolverFromGuild(interaction.guild)) }).catch(() => {});
     return interaction.reply({ embeds: [successEmbed('Pair removed', `${emoji} was removed from message ${messageId}.`)] });
   },
 };

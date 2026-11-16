@@ -1,7 +1,7 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const { successEmbed, errorEmbed, infoEmbed } = require('../../utils/embeds');
 const db = require('../../utils/database');
-const { buildRows } = require('../../utils/reactionRoles');
+const { buildRows, roleNameResolverFromGuild } = require('../../utils/reactionRoles');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -30,7 +30,7 @@ module.exports = {
       added.push(`${emoji} → ${role.name}`);
     }
     if (added.length) {
-      await msg.edit({ embeds: [infoEmbed(title, `${added.join('\n')}\n\nClick a button below to toggle a role.`)], components: await buildRows(msg.id) });
+      await msg.edit({ embeds: [infoEmbed(title, `${added.join('\n')}\n\nClick a button below to toggle a role.`)], components: await buildRows(msg.id, roleNameResolverFromGuild(interaction.guild)) });
     }
     return interaction.reply({ embeds: [successEmbed('Reaction roles posted', `Message is live in <#${channel.id}> (ID: ${msg.id}).\n${added.length ? added.join('\n') : 'No pairs added yet — use /reactionroles-add to add emoji → role pairs.'}`)] });
   },

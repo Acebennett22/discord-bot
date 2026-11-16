@@ -1,7 +1,7 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const { successEmbed, errorEmbed } = require('../../utils/embeds');
 const db = require('../../utils/database');
-const { buildRows } = require('../../utils/reactionRoles');
+const { buildRows, roleNameResolverFromGuild } = require('../../utils/reactionRoles');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -30,7 +30,7 @@ module.exports = {
     );
     const channel = interaction.guild.channels.cache.get(channelId) || await interaction.guild.channels.fetch(channelId).catch(() => null);
     const msg = channel ? await channel.messages.fetch(messageId).catch(() => null) : null;
-    if (msg) await msg.edit({ components: await buildRows(messageId) }).catch(() => {});
+    if (msg) await msg.edit({ components: await buildRows(messageId, roleNameResolverFromGuild(interaction.guild)) }).catch(() => {});
     const reqs = [
       requiredRole ? `requires <@&${requiredRole.id}>` : null,
       minDays !== null && minDays !== undefined ? `requires ${minDays}+ days in server` : null,

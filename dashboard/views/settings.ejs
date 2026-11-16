@@ -540,6 +540,11 @@
     <% if (reactionRoleMappings.length) { %>
       <p><label><input type="checkbox" id="rr-select-all"> Select all</label>
       <button class="btn btn-sm" type="button" id="rr-remove-selected" disabled>Remove selected</button></p>
+      <% const rrGroups = [...new Map(reactionRoleMappings.map(m => [`${m.channel_id}:${m.message_id}`, m])).values()]; %>
+      <% rrGroups.forEach(g => { %>
+      <p><strong>#<%= channels.find(c => c.id === g.channel_id)?.name || g.channel_id %></strong> · message <code><%= g.message_id %></code> · <%= reactionRoleMappings.filter(m => m.message_id === g.message_id).length %> role(s)
+      <button class="btn btn-sm" type="button" data-refresh-reaction-roles data-rr-channel="<%= g.channel_id %>" data-rr-message="<%= g.message_id %>">Refresh buttons</button></p>
+      <% }); %>
       <% reactionRoleMappings.forEach(m => { %>
         <div class="card card-block" style="margin-bottom:8px">
           <label><input type="checkbox" class="rr-select" value="<%= m.id %>"></label>

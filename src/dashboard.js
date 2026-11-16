@@ -1206,6 +1206,7 @@ function reactionRolesDiscord() {
   return {
     getMessage: async (chId, msgId) => (await discordApi.get(`/channels/${chId}/messages/${msgId}`, { headers: botHeaders() }).catch(() => null))?.data || null,
     listGuildEmojis: async (gId) => (await discordApi.get(`/guilds/${gId}/emojis`, { headers: botHeaders() }).catch(() => null))?.data || [],
+    listGuildRoles: async (gId) => (await discordApi.get(`/guilds/${gId}/roles`, { headers: botHeaders() }).catch(() => null))?.data || [],
     patchMessage: async (chId, msgId, body) => { await discordApi.patch(`/channels/${chId}/messages/${msgId}`, body, { headers: botHeaders() }); },
   };
 }
@@ -1332,6 +1333,33 @@ app.post('/api/guilds/:id/reaction-roles/bulk-delete', requireAuth, requireGuild
   }
   const removed = results.filter((r) => r.ok).length;
   res.json({ ok: true, results, removed, notFound: results.length - removed });
+});
+
+// Re-apply a message's reaction-role buttons from the current DB mappings
+// (1.15.36). Same buildRows() path as add/remove, so the buttons come back
+// in the new emoji + role-name style. Works even when nothing changed — it
+// just re-patches. A message that no longer exists in Discord is reported
+// clearly (404) instead of failing silently; the mappings stay saved.
+app.post('/api/guilds/:id/reaction-roles/refresh', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  const guildId = req.params.id;
+  const { channelId, messageId } = req.body || {};
+  if (!channelId || !/^\d{17,20}$/.test(String(channelId))) return res.status(400).json({ error: 'Pick a text channel.' });
+  if (!messageId || !/^\d{17,20}$/.test(String(messageId))) return res.status(400).json({ error: 'Enter a message ID (17–20 digits).' });
+  const mappings = await db.query('SELECT id FROM reaction_roles WHERE guild_id = ? AND channel_id = ? AND message_id = ?', [guildId, channelId, messageId]);
+  if (!mappings?.length) return res.status(404).json({ error: 'No reaction-role mappings for that message in this server.' });
+  const { refreshMessageButtons } = require('./utils/reactionRoles');
+  try {
+    await refreshMessageButtons(channelId, messageId, reactionRolesDiscord(), guildId);
+  } catch (err) {
+    const status = err.response?.status;
+    const code = err.response?.data?.code;
+    if (status === 404 || code === 10008) return res.status(404).json({ error: 'That message no longer exists in Discord — the mappings are still saved.' });
+    const detail = err.response?.data?.message || err.message || 'unknown error';
+    return res.status(502).json({ error: `Discord refused the button update (${detail}).` });
+  }
+  await staffUtils.audit(req.session.user.id, 'reaction-role.refresh', messageId, `guild=${guildId} channel=${channelId} count=${mappings.length}`).catch(() => {});
+  res.json({ ok: true, count: mappings.length, messageId });
 });
 
 // --- Color roles API (1.4.4) ---------------------------------------------------

@@ -206,7 +206,10 @@ const row = (channelId, messageId, emoji, roleId) => ({ channelId, messageId, em
   check('single remove: row deleted, other kept', fakeRows.length === 1 && fakeRows[0].emoji === '🎲');
   check('single remove: one PATCH with only the remaining button',
     d.calls.patch.length === 1 && d.calls.patch[0].body.components[0].components.length === 1
-    && d.calls.patch[0].body.components[0].components[0].label === '🎲');
+    // 1.15.36: button labels are role names (or the role ID when the name
+    // cannot be resolved — this mock adapter has no role list, so the
+    // fallback label is the role ID, not the emoji).
+    && d.calls.patch[0].body.components[0].components[0].label === '555555555555555556');
   reset();
   fakeRows.push({ id: nextId++, guild_id: G, channel_id: CH, message_id: MSG, emoji: '🎮', role_id: '555555555555555555', required_role_id: null, min_days_in_server: null, min_level: null, enabled: 1 });
   d = makeDiscord({ patchFailFor: { [MSG]: discordErr(404, 10008, 'Unknown Message') } });

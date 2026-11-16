@@ -5,7 +5,7 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const { successEmbed, errorEmbed } = require('../../utils/embeds');
 const db = require('../../utils/database');
-const { buildRows } = require('../../utils/reactionRoles');
+const { buildRows, roleNameResolverFromGuild } = require('../../utils/reactionRoles');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -38,7 +38,7 @@ module.exports = {
       || await interaction.guild.channels.fetch(rows[0].channel_id).catch(() => null);
     const message = channel?.isTextBased() ? await channel.messages.fetch(messageId).catch(() => null) : null;
     if (message) {
-      await message.edit({ components: await buildRows(messageId) }).catch(() => {});
+      await message.edit({ components: await buildRows(messageId, roleNameResolverFromGuild(interaction.guild)) }).catch(() => {});
     }
     const pairs = rows.map((r) => `${r.emoji} → <@&${r.role_id}>`).join('\n');
     return interaction.reply({ embeds: [successEmbed(
