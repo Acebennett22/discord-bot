@@ -294,23 +294,24 @@
     <h2>Watched streamers <button class="btn ghost" type="button" data-refresh-section="#streamers-list">🔄 Refresh</button></h2>
     <div id="streamers-list">
     <% if (!streamers.length) { %><p class="muted">None yet — add one below.</p><% } %>
-    <table><tr><th></th><th>Streamer</th><th>Platform</th><th>Announcements</th><th>Ping role</th><th>Live channel</th><th>Clips</th><th></th></tr>
+    <div class="table-scroll">
+    <table class="streams-table"><colgroup><col class="c-live"><col class="c-streamer"><col class="c-platform"><col class="c-notify"><col class="c-ping"><col class="c-livechan"><col class="c-clips"><col class="c-actions"></colgroup><tr><th></th><th>Streamer</th><th>Platform</th><th>Announcements</th><th>Ping role</th><th>Live channel</th><th>Clips</th><th></th></tr>
     <% streamers.forEach(s => { %>
       <tr>
-        <td><%= s.is_live ? '🔴' : '⚫' %></td>
-        <td><strong><%= s.channel_id_or_name %></strong></td>
-        <td><%= s.platform %></td>
-        <td><%= s.notify_channel_id ? '#' + (channels.find(c => c.id === s.notify_channel_id)?.name || s.notify_channel_id) : '—' %></td>
-        <td><%= s.ping_role_id ? '@' + (roles.find(r => r.id === s.ping_role_id)?.name || s.ping_role_id) : '—' %></td>
-        <td><%= s.live_channel_id ? '#' + (channels.find(c => c.id === s.live_channel_id)?.name || s.live_channel_id) : 'none' %></td>
-        <td title="Attach latest clip (Twitch) or latest video (YouTube) to live announcements"><label class="toggle"><input type="checkbox" data-clip-toggle="<%= s.id %>" <%= s.include_clip !== 0 ? 'checked' : '' %>><span class="track"></span></label></td>
-        <td>
+        <td class="s-live" title="<%= s.is_live ? 'Live' : 'Offline' %>"><%= s.is_live ? '🔴' : '⚫' %></td>
+        <td class="s-name" title="<%= s.channel_id_or_name %>"><strong><%= s.channel_id_or_name %></strong></td>
+        <td class="s-platform"><span class="badge platform-<%= s.platform %>"><%= s.platform %></span></td>
+        <td class="s-notify" title="<%= s.notify_channel_id ? '#' + (channels.find(c => c.id === s.notify_channel_id)?.name || s.notify_channel_id) : '—' %>"><%= s.notify_channel_id ? '#' + (channels.find(c => c.id === s.notify_channel_id)?.name || s.notify_channel_id) : '—' %></td>
+        <td class="s-ping" title="<%= s.ping_role_id ? '@' + (roles.find(r => r.id === s.ping_role_id)?.name || s.ping_role_id) : '—' %>"><%= s.ping_role_id ? '@' + (roles.find(r => r.id === s.ping_role_id)?.name || s.ping_role_id) : '—' %></td>
+        <td class="s-livechan" title="<%= s.live_channel_id ? '#' + (channels.find(c => c.id === s.live_channel_id)?.name || s.live_channel_id) : 'none' %>"><%= s.live_channel_id ? '#' + (channels.find(c => c.id === s.live_channel_id)?.name || s.live_channel_id) : 'none' %></td>
+        <td class="s-clips" title="Attach latest clip (Twitch) or latest video (YouTube) to live announcements"><label class="toggle"><input type="checkbox" data-clip-toggle="<%= s.id %>" <%= s.include_clip !== 0 ? 'checked' : '' %>><span class="track"></span></label></td>
+        <td class="s-actions">
           <button class="btn ghost" data-refresh-streamer="<%= s.id %>">Refresh</button>
           <button class="btn ghost" data-edit-streamer="<%= s.id %>">Edit</button>
           <button class="btn danger" data-remove-streamer="<%= s.id %>">Remove</button>
         </td>
       </tr>
-      <tr id="edit-row-<%= s.id %>" style="display:none"><td colspan="7">
+      <tr id="edit-row-<%= s.id %>" style="display:none"><td colspan="8">
         <form class="edit-streamer-form" data-streamer-id="<%= s.id %>">
           <label>Notify channel</label>
           <select name="notifyChannelId"><% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>" <%= s.notify_channel_id === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }); %></select>
@@ -322,6 +323,7 @@
         </form>
       </td></tr>
     <% }); %></table>
+    </div>
     </div>
 
     <h2>Add a streamer</h2>

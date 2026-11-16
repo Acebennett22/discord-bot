@@ -224,6 +224,9 @@
       try {
         await AceBot.del(api(`/streamers/${rmStreamer.dataset.removeStreamer}`));
         AceBot.removeRow(rmStreamer);
+        // The hidden edit row is a separate <tr> — remove it too, or it
+        // lingers in the DOM after its streamer row is gone.
+        document.getElementById('edit-row-' + rmStreamer.dataset.removeStreamer)?.remove();
         AceBot.toast('Streamer removed');
       } catch (err) { AceBot.toast('Failed: ' + err.message, 'error'); }
       return;

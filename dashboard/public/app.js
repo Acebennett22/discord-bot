@@ -36,21 +36,32 @@
     try { const t = await res.text(); return t.slice(0, 200) || `Request failed (${res.status})`; } catch { return `Request failed (${res.status})`; }
   }
 
+  // A 200 that is not JSON is never a successful API answer — it is the
+  // login page (or another HTML page) that fetch followed a redirect to.
+  // Refuse it so a silent "success" can never again hide a failed delete.
+  function assertJson(res) {
+    const type = res.headers.get('content-type') || '';
+    if (!type.includes('application/json')) throw new Error('Unexpected response from the server — your session may have expired, please log in again.');
+  }
+
   async function postJSON(url, data) {
     const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
     if (!res.ok) throw new Error(await readError(res));
+    assertJson(res);
     return res.json().catch(() => ({}));
   }
 
   async function getJSON(url) {
     const res = await fetch(url, { headers: { Accept: 'application/json' } });
     if (!res.ok) throw new Error(await readError(res));
+    assertJson(res);
     return res.json();
   }
 
   async function del(url) {
     const res = await fetch(url, { method: 'DELETE' });
     if (!res.ok) throw new Error(await readError(res));
+    assertJson(res);
     return res.json().catch(() => ({}));
   }
 

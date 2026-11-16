@@ -178,7 +178,13 @@ app.use((req, res, next) => {
 });
 
 function requireAuth(req, res, next) {
-  if (!req.session.user) return res.redirect('/login');
+  if (!req.session.user) {
+    // API calls (fetch) follow a redirect to /login as a GET and read the
+    // 200 HTML login page as success — a delete "worked" while nothing was
+    // deleted. Answer 401 JSON for /api/* so the client reports the failure.
+    if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Not signed in — log in again.' });
+    return res.redirect('/login');
+  }
   next();
 }
 
@@ -1547,7 +1553,9 @@ app.post('/api/guilds/:id/streamers/:streamerId/refresh', requireAuth, requireGu
 
 app.delete('/api/guilds/:id/streamers/:streamerId', requireAuth, requireGuildAccess, async (req, res) => {
   if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
-  await db.query('DELETE FROM streamers WHERE id = ? AND guild_id = ?', [req.params.streamerId, req.params.id]);
+  const result = await db.query('DELETE FROM streamers WHERE id = ? AND guild_id = ?', [req.params.streamerId, req.params.id]);
+  if (!result) return res.status(503).json({ error: 'Database unavailable.' });
+  if (!result.affectedRows) return res.status(404).json({ error: 'Streamer not found.' });
   res.json({ ok: true });
 });
 

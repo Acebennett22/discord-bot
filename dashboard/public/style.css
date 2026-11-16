@@ -166,6 +166,13 @@ tbody tr:hover{background:rgba(255,255,255,.03)}
 .badge.ok{color:#7ee2a8;background:rgba(87,242,135,.13);border-color:rgba(87,242,135,.4)}
 .badge.muted{color:var(--muted);background:rgba(255,255,255,.05)}
 
+/* Platform badges (Streams table) — same .badge language as the level badges */
+.badge.platform-twitch{color:#c9a6ff;background:rgba(145,70,255,.15);border-color:rgba(145,70,255,.45)}
+.badge.platform-youtube{color:#ff8589;background:rgba(255,0,0,.14);border-color:rgba(255,0,0,.45)}
+.badge.platform-kick{color:#7ee2a0;background:rgba(0,231,82,.13);border-color:rgba(0,231,82,.4)}
+.badge.platform-facebook{color:#9db8ff;background:rgba(24,119,242,.15);border-color:rgba(24,119,242,.45)}
+.badge.platform-tiktok{color:#8ff5ec;background:rgba(37,244,238,.12);border-color:rgba(37,244,238,.4)}
+
 /* Error logs table (staff /errors) — fixed layout so the table never forces
    a page-level horizontal scrollbar; long messages ellipsize, timestamps stay on one line. */
 .table-scroll{overflow-x:auto;margin-top:16px}
@@ -189,6 +196,26 @@ tbody tr:hover{background:rgba(255,255,255,.03)}
 .errors-filters .f-level{flex:0 0 140px}
 .errors-filters .f-command{flex:1 1 220px}
 .errors-filters .f-shard{flex:0 0 110px}
+
+/* Streams table (settings /streams) — the same treatment as the errors
+   table: fixed layout inside the shared .table-scroll wrapper, platform as
+   a badge, long cells ellipsize with the full text in a title tooltip,
+   compact rows, action buttons wrap instead of forcing the page wider.
+   Column widths (758px content width): fixed 26+88+52+190 = 356px,
+   flexible 19+14+10+10 = 53% ≈ 402px. */
+.streams-table{table-layout:fixed;width:100%}
+.streams-table col.c-live{width:26px}
+.streams-table col.c-streamer{width:19%}
+.streams-table col.c-platform{width:88px}
+.streams-table col.c-notify{width:14%}
+.streams-table col.c-ping{width:10%}
+.streams-table col.c-livechan{width:10%}
+.streams-table col.c-clips{width:52px}
+.streams-table col.c-actions{width:190px}
+.streams-table th,.streams-table td{padding:6px 8px;vertical-align:middle}
+.streams-table td.s-live,.streams-table td.s-clips{text-align:center}
+.streams-table td.s-name,.streams-table td.s-notify,.streams-table td.s-ping,.streams-table td.s-livechan{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.streams-table td.s-actions .btn{margin:2px 2px 2px 0}
 
 /* Responsive */
 @media (max-width:820px){
