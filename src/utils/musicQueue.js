@@ -73,6 +73,9 @@ async function createQueue(guildId, voiceChannel, textChannel) {
     channelId: voiceChannel.id,
     guildId,
     adapterCreator: voiceChannel.guild.voiceAdapterCreator,
+    // Diagnostics (1.15.22): debug:true makes the lib emit 'debug' events
+    // (incoming WS packets, networking state changes) on the connection.
+    debug: true,
   });
   // Diagnostics (1.15.20): record every state transition so a join that
   // stalls (e.g. stuck in Connecting) or drops (Disconnected + close code)
@@ -80,6 +83,37 @@ async function createQueue(guildId, voiceChannel, textChannel) {
   // signalling -> connecting transition happens fast.
   connection.on('stateChange', (oldState, newState) => {
     logVoiceTransition(guildId, voiceChannel.id, oldState, newState);
+  });
+  // Diagnostics (1.15.22): the voice WebSocket opens, sends IDENTIFY and
+  // dies ~30ms later with no close code visible in the stateChange stream,
+  // so capture the next best evidence — the lib's debug stream. It shows
+  // incoming packets (`<< {...}`: HELLO op 8 = identify accepted, READY
+  // op 2) and networking state changes. Outgoing packets (`>>`) are
+  // dropped outright: the identify carries the voice session token.
+  // Incoming packets carry no token (verified against the installed
+  // @discordjs/voice source: HELLO/READY contain heartbeat interval,
+  // ssrc, ip, port and modes only), and every line still passes through
+  // the 1.15.19 scrubText() inside errorLogger.log(). Capped at 500 chars
+  // so the logs don't balloon.
+  connection.on('debug', (message) => {
+    if (typeof message !== 'string' || message.includes('>>')) return;
+    errorLogger.log({
+      level: 'warn', guildId, commandName: 'play',
+      message: `Voice debug in #${voiceChannel.id}: ${message.slice(0, 500)}`,
+    });
+  });
+  // Crash guard + diagnostics (1.15.22): the connection re-emits
+  // networking errors as 'error', and an EventEmitter 'error' with no
+  // listener throws. Log the error code explicitly (ECONNRESET/EPIPE/
+  // ETIMEDOUT) so a network RST is distinguishable from a clean server
+  // close (a clean close emits no error event at all).
+  connection.on('error', (err) => {
+    const code = err && typeof err.code === 'string' ? ` [${err.code}]` : '';
+    errorLogger.log({
+      level: 'error', guildId, commandName: 'play',
+      message: `Voice connection error${code}: ${err?.message ?? 'Unknown voice error'}`,
+      stack: err?.stack,
+    });
   });
   const player = createAudioPlayer();
   connection.subscribe(player);
