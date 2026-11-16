@@ -227,10 +227,23 @@ async function addMappingsBatch({ guildId, botUserId, rows }, discord) {
 // but reports a warning (the stale button clears on the message's next
 // refresh) instead of pretending the removal failed.
 async function removeMappingsBatch({ guildId, rows }, discord) {
-  const results = rows.map(() => null);
+  // Rows arrive in either shape: the bulk-delete route passes raw mysql2
+  // rows (snake_case: message_id, channel_id), while the single remove
+  // normalizes to camelCase first. The helper used to read only camelCase,
+  // so a raw row made the DELETE run with message_id = undefined — mysql2
+  // threw, db.query() swallowed it, and the route reported success while
+  // nothing was deleted (1.15.34). Normalize here, at the choke point, so
+  // no caller can hit that mismatch again.
+  const normalized = (rows || []).map((row) => ({
+    id: row.id,
+    channelId: row.channelId ?? row.channel_id,
+    messageId: row.messageId ?? row.message_id,
+    emoji: row.emoji,
+  }));
+  const results = normalized.map(() => null);
   const deleted = [];
-  for (let i = 0; i < rows.length; i++) {
-    const row = rows[i];
+  for (let i = 0; i < normalized.length; i++) {
+    const row = normalized[i];
     await db.query('DELETE FROM reaction_roles WHERE guild_id = ? AND message_id = ? AND emoji = ?', [guildId, row.messageId, row.emoji]);
     deleted.push({ ...row, index: i });
   }

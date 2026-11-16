@@ -129,10 +129,22 @@ async function runMigrations(dbName) {
 
 function isEnabled() { return enabled; }
 
+// mysql2 throws on an undefined bind param ("Bind parameters must not
+// contain undefined") — one bad value used to fail the query and warn once
+// as if logging had stopped. Coerce undefined to SQL NULL here, at the one
+// choke point every query passes through, so no caller can break DB logging
+// (or any other query) that way again. Callers whose columns are NOT NULL
+// must still supply a real fallback themselves — a NULL into a NOT NULL
+// column fails in MySQL instead, which query() catches and returns null
+// for, exactly as before.
+function sanitizeParams(params) {
+  return Array.isArray(params) ? params.map((p) => (p === undefined ? null : p)) : params;
+}
+
 async function query(sql, params = []) {
   if (!enabled || !pool) return null;
   try {
-    const [rows] = await pool.execute(sql, params);
+    const [rows] = await pool.execute(sql, sanitizeParams(params));
     return rows;
   } catch (err) {
     if (!warned) { console.warn('[db] Query failed (logging skipped from here on):', err.message); warned = true; }
@@ -144,9 +156,17 @@ async function query(sql, params = []) {
 
 async function logCommand({ guildId, userId, username, commandName, channelId, success, errorMessage }) {
   if (!enabled) return;
+  // command_logs.user_id / command_name are NOT NULL in the schema, and
+  // user_stats keys on (user_id, guild_id) — so a missing identity cannot
+  // be written as NULL (that would only turn the mysql2 undefined error
+  // into a NOT NULL violation). Use a sentinel instead, so the row still
+  // lands and both counters still run. The caller (interactionCreate.js)
+  // already guards these; this is the backstop for any future caller.
+  const safeUserId = userId ?? 'unknown';
+  const safeCommand = commandName ?? 'unknown';
   await query(
     'INSERT INTO command_logs (guild_id, user_id, username, command_name, channel_id, success, error_message) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    [guildId || null, userId, username || null, commandName, channelId || null, success ? 1 : 0, errorMessage || null],
+    [guildId || null, safeUserId, username || null, safeCommand, channelId || null, success ? 1 : 0, errorMessage || null],
   );
   // Counters: one upsert per guild + per user.
   await query(
@@ -155,7 +175,7 @@ async function logCommand({ guildId, userId, username, commandName, channelId, s
   );
   await query(
     'INSERT INTO user_stats (user_id, guild_id, commands_used, last_seen) VALUES (?, ?, 1, CURRENT_TIMESTAMP) ON DUPLICATE KEY UPDATE commands_used = commands_used + 1, last_seen = CURRENT_TIMESTAMP',
-    [userId, guildId || 'DM'],
+    [safeUserId, guildId || 'DM'],
   );
 }
 
@@ -251,7 +271,7 @@ async function withTransaction(fn) {
   try {
     await conn.beginTransaction();
     const txQuery = async (sql, params = []) => {
-      const [rows] = await conn.execute(sql, params);
+      const [rows] = await conn.execute(sql, sanitizeParams(params));
       return rows;
     };
     const result = await fn(txQuery);

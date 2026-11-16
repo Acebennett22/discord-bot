@@ -75,11 +75,14 @@ module.exports = {
     }
     // Log every slash command execution (success/failure) + update counters.
     // No-ops when the DB is unavailable — commands still work.
+    // userId/commandName used to go in raw: logCommand() now coerces a
+    // missing identity to a sentinel, but never pass undefined in the first
+    // place — a missing user object must not throw here either.
     await db.logCommand({
       guildId: interaction.guildId,
-      userId: interaction.user.id,
-      username: interaction.user.tag,
-      commandName: effectiveName,
+      userId: interaction.user?.id ?? 'unknown',
+      username: interaction.user?.tag,
+      commandName: effectiveName ?? 'unknown',
       channelId: interaction.channelId,
       success,
       errorMessage,
