@@ -1,3 +1,12 @@
+// IPv4-first DNS (1.15.21): this box has broken IPv6 DNS — `curl -6`
+// fails with exit 6 (could not resolve host) while `curl -4` works. Node's
+// default DNS order is `verbatim` (OS order), so a Discord voice endpoint
+// that resolves IPv6-first hands the voice WebSocket an unreachable IPv6
+// address and the join dies (connecting -> signalling, 10s timeout). Forcing
+// IPv4-first keeps every lookup on the working stack. Must run before any
+// other require that could trigger a DNS lookup.
+require('node:dns').setDefaultResultOrder('ipv4first');
+
 // Entry point — Ace's multi-file Discord bot (discord.js v14, CommonJS).
 // Config lives in config.json at the project root (see config.example.json).
 const { Client, Collection, Events, GatewayIntentBits, Partials } = require('discord.js');

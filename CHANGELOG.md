@@ -6,6 +6,11 @@ in `package.json` is the source of truth for the current release — every
 version below must match a `package.json` version, and the dashboard
 `/version` page renders from this file.
 
+## [1.15.21] - 2026-11-15
+
+### Fixed
+- Force IPv4-first DNS for the bot process (1.15.21). Live diagnosis: Ace's server has broken IPv6 DNS — `curl -6 https://discord.com` fails with exit 6 (could not resolve host) while `curl -4` returns HTTP/2 200 — and `/music join` fails deterministically: the voice connection reaches Connecting, the voice WebSocket opens then closes ~30ms later (connecting -> signalling), it sits in Signalling for the 10s timeout and is destroyed, identical across attempts including after killing two duplicate bot processes. Node's default DNS order is `verbatim` (OS order), so a Discord voice endpoint that resolves IPv6-first can hand the voice WebSocket an unreachable IPv6 address and die exactly like this, while the main gateway (which resolves IPv4-first) works fine. Fix (index.js only, first statement before any other require): `require('node:dns').setDefaultResultOrder('ipv4first')` with a comment explaining why. `src/shardManager.js` spawns repo-root `index.js` as the shard file, so the setting covers the sharded bot process; the dashboard is untouched (bot-only change). No new dependency, no other behavior change. Verified by `tmp/verify-1.15.21.js` (5/5: call present in index.js before the first discord.js require; fresh process reports default order `ipv4first` after the exact line from the file; `localhost` lookup returns IPv4 first) and `check-deploy.js` (38 top-level, 0 problems). Honest caveat: broken IPv6 DNS is proven; that it is the voice cause is not yet proven — the retry after this lands is the test. If voice still fails, the next step is the voice-region change. Server needs `git pull` + bot restart only — no `npm run deploy`, no `npm install`, no dashboard restart.
+
 ## [1.15.20] - 2026-11-15
 
 ### Added
