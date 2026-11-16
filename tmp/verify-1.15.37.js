@@ -22,6 +22,12 @@
 //    stored under a wrong key were invisible as such, and the duplicate
 //    check read a different truth than the list.
 //
+// NOTE (1.15.38): the duplicate check no longer runs its own SELECT — it
+// reads the same guild-wide rows as the list (listGuildMappings) and the
+// insert lookup was unified the same way. The fake below was updated for
+// the new query shapes; every behavioral assertion in this file is
+// unchanged and must still pass.
+//
 // The fake pool below mimics mysql2 (verified in node_modules): pool.execute
 // throws TypeError('Bind parameters must not contain undefined...') on an
 // undefined bind, returns an OkPacket object (with affectedRows) for
@@ -93,13 +99,10 @@ async function fakeExecute(sql, params = []) {
   if (/SELECT \* FROM reaction_roles WHERE message_id/.test(sql)) {
     return [table.filter((r) => r.message_id === p[0]), undefined];
   }
-  if (/SELECT id FROM reaction_roles WHERE guild_id/.test(sql)) {
-    // Channel-scoped duplicate check (1.15.37): [guild, channel, message, emoji].
-    return [table.filter((r) => r.guild_id === p[0] && r.channel_id === p[1] && r.message_id === p[2] && r.emoji === p[3]).map((r) => ({ id: r.id })), undefined];
-  }
-  if (/SELECT channel_id, role_id FROM reaction_roles WHERE guild_id/.test(sql)) {
-    // insertMappingRow lookup — deliberately NOT channel-scoped.
-    return [table.filter((r) => r.guild_id === p[0] && r.message_id === p[1] && r.emoji === p[2]).map((r) => ({ channel_id: r.channel_id, role_id: r.role_id })), undefined];
+  if (/SELECT id, message_id, channel_id, emoji, role_id, required_role_id, min_days_in_server, min_level FROM reaction_roles WHERE guild_id/.test(sql)) {
+    // Guild-wide list read (1.15.38) — the duplicate check AND the list
+    // read these rows, so they cannot disagree. Returns full row objects.
+    return [table.filter((r) => r.guild_id === p[0]).map((r) => ({ ...r })), undefined];
   }
   if (/SELECT emoji FROM reaction_roles WHERE guild_id/.test(sql)) {
     // Post-refresh cross-check read (1.15.37).
@@ -361,8 +364,12 @@ function check(name, cond, extra) {
   const dash = fs.readFileSync(path.join(__dirname, '..', 'src', 'dashboard.js'), 'utf8');
   check('route: saved is counted from honest per-row results', dash.includes('const saved = results.filter((r) => r.ok).length;'));
   const rrSrc = fs.readFileSync(path.join(__dirname, '..', 'src', 'utils', 'reactionRoles.js'), 'utf8');
-  check('helper: duplicate check is scoped by channel too',
-    rrSrc.includes('WHERE guild_id = ? AND channel_id = ? AND message_id = ? AND emoji = ?'));
+  check('helper: duplicate check reads the same guild-wide rows as the list',
+    rrSrc.includes('SELECT id, message_id, channel_id, emoji, role_id, required_role_id, min_days_in_server, min_level FROM reaction_roles WHERE guild_id = ? ORDER BY message_id'));
+  check('helper: no separately-scoped duplicate SELECT remains',
+    !rrSrc.includes('WHERE guild_id = ? AND channel_id = ? AND message_id = ? AND emoji = ?'));
+  check('helper: duplicate rejections name the matched mapping',
+    rrSrc.includes('(mapping #${dup.id}, role ${dup.role_id})'));
   check('helper: insert verifies affectedRows === 1', rrSrc.includes('affectedRows === 1'));
   check('helper: cross-check re-reads stored emojis after refresh',
     rrSrc.includes('SELECT emoji FROM reaction_roles WHERE guild_id = ? AND message_id = ?'));

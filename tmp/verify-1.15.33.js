@@ -30,15 +30,10 @@ db.query = async (sql, params = []) => {
   if (s.startsWith('SELECT emoji FROM reaction_roles WHERE guild_id = ? AND message_id = ?')) {
     return fakeRows.filter((r) => r.guild_id === params[0] && r.message_id === params[1]).map((r) => ({ emoji: r.emoji }));
   }
-  if (s.startsWith('SELECT id FROM reaction_roles WHERE guild_id = ? AND channel_id = ? AND message_id = ? AND emoji = ?')) {
-    // 1.15.37: the duplicate check is scoped by channel too — same rows
-    // the list groups by (channel, message).
-    return fakeRows.filter((r) => r.guild_id === params[0] && r.channel_id === params[1] && r.message_id === params[2] && r.emoji === params[3]).map((r) => ({ id: r.id }));
-  }
-  if (s.startsWith('SELECT channel_id, role_id FROM reaction_roles WHERE guild_id = ? AND message_id = ? AND emoji = ?')) {
-    // 1.15.37: insertMappingRow's lookup — deliberately NOT channel-scoped,
-    // so a row stored under the same message but a wrong channel is found.
-    return fakeRows.filter((r) => r.guild_id === params[0] && r.message_id === params[1] && r.emoji === params[2]).map((r) => ({ channel_id: r.channel_id, role_id: r.role_id }));
+  if (s.startsWith('SELECT id, message_id, channel_id, emoji, role_id, required_role_id, min_days_in_server, min_level FROM reaction_roles WHERE guild_id = ? ORDER BY message_id')) {
+    // 1.15.38: the duplicate check (and the insert lookup) read the same
+    // guild-wide rows the list shows, matched in JS.
+    return fakeRows.filter((r) => r.guild_id === params[0]).map((r) => ({ ...r }));
   }
   if (s.startsWith('UPDATE reaction_roles SET channel_id = ? WHERE guild_id = ? AND message_id = ? AND emoji = ?')) {
     // 1.15.37: channel re-key repair.

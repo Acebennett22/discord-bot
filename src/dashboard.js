@@ -425,7 +425,11 @@ app.post('/setup/api/test-db', requireSetupAccess, async (req, res) => {
 app.get('/version', (req, res) => {
   const { loadChangelog } = require('./utils/changelog');
   const { version } = require('../package.json');
-  res.render('version', { user: req.session.user || null, guilds: [], inviteUrl: inviteUrl(), isStaff: false, version, entries: loadChangelog() });
+  // Process start time (1.15.38): the version above comes from package.json
+  // on disk, so it cannot prove the running process is fresh — the start
+  // time can. If it predates the last restart, the process is stale.
+  const startedAt = new Date(Date.now() - process.uptime() * 1000).toISOString();
+  res.render('version', { user: req.session.user || null, guilds: [], inviteUrl: inviteUrl(), isStaff: false, version, entries: loadChangelog(), startedAt });
 });
 
 // Public wiki/docs page: static content from docs/content.json + the command

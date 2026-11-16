@@ -32,6 +32,30 @@ async function getMappings(messageId) {
   return (await db.query('SELECT * FROM reaction_roles WHERE message_id = ?', [messageId])) || [];
 }
 
+// The one read the dashboard list (settings GET) and /reactionroles-list
+// use — the duplicate check reads THESE rows (1.15.38), so it can never
+// disagree with the list. A separately-scoped duplicate SELECT drifted
+// twice (1.15.37's channel scoping still left the live check contradicting
+// the list), and two full-stack reproductions proved the repo's add path
+// is correct for the live inputs — the live false duplicate came from
+// outside the repo code (a stale dashboard process: /version reads
+// package.json on first request, so it cannot prove process age). A single
+// shared read cannot disagree with the list by construction, and every
+// rejection now names the matched row, so a recurrence is diagnosable
+// from the dashboard console alone.
+async function listGuildMappings(guildId) {
+  if (!db.isEnabled()) return [];
+  return (await db.query('SELECT id, message_id, channel_id, emoji, role_id, required_role_id, min_days_in_server, min_level FROM reaction_roles WHERE guild_id = ? ORDER BY message_id', [guildId])) || [];
+}
+
+// Every duplicate rejection is logged with the exact params (emoji code
+// points included) and the matched row, so a false duplicate can be
+// diagnosed from the dashboard console alone instead of guessed at.
+function logDuplicateCheck({ guildId, channelId, messageId, emoji }, matched) {
+  const points = [...String(emoji || '')].map((c) => `U+${c.codePointAt(0).toString(16).toUpperCase()}`).join(' ');
+  console.error(`[reaction-roles] duplicate rejected: guild=${guildId} channel=${channelId} message=${messageId} emoji=${emoji} (${points}) matched mapping #${matched?.id} channel=${matched?.channel_id} message=${matched?.message_id} role=${matched?.role_id}`);
+}
+
 // True when the reaction-role message is enabled (1.14.1). A message with
 // no mappings at all counts as disabled — there is nothing to grant.
 async function isMessageEnabled(messageId) {
@@ -148,17 +172,19 @@ async function validateMappingForInsert({ guildId, channelId, messageId, emoji, 
   const message = await ctx.getMessage(channelId, messageId);
   if (!message) fail(400, 'That message does not exist in this channel.');
   if (message.author?.id !== botUserId) fail(400, "That message wasn't posted by the bot — reaction roles can only be added to the bot's own messages.");
-  // Duplicate check (1.15.37): scoped by guild + channel + message +
-  // emoji — exactly the rows the list groups by (channel, message) and the
-  // refresh count checks. The old check ignored channel_id, so it read a
-  // different truth than the list: a row stored under the same message but
-  // a different channel looked like a duplicate here while the list showed
-  // it under another group (and the refresh count missed it). A row under
-  // the same message with a wrong channel is NOT a duplicate at this
-  // stage — the insert path repairs its channel instead (see
-  // insertMappingRow); only an exact (channel, role) match is rejected.
-  const existing = await db.query('SELECT id FROM reaction_roles WHERE guild_id = ? AND channel_id = ? AND message_id = ? AND emoji = ?', [guildId, channelId, messageId, emoji]);
-  if (existing?.length) fail(400, 'That emoji is already mapped on this message.');
+  // Duplicate check (1.15.38): read the same guild-wide rows the list
+  // shows and match in JS — same (channel, message, emoji) as before, but
+  // the read is the list's read, so the check and the list cannot
+  // disagree. A row under the same message with a wrong channel is NOT a
+  // duplicate at this stage — the insert path repairs its channel instead
+  // (see insertMappingRow); only an exact (channel, message, emoji)
+  // match is rejected, and the error names the matched mapping.
+  const stored = await listGuildMappings(guildId);
+  const dup = stored.find((m) => m.channel_id === channelId && m.message_id === messageId && m.emoji === emoji);
+  if (dup) {
+    logDuplicateCheck({ guildId, channelId, messageId, emoji }, dup);
+    fail(400, `That emoji is already mapped on this message (mapping #${dup.id}, role ${dup.role_id}).`);
+  }
 }
 
 async function insertMappingRow({ guildId, channelId, messageId, emoji, roleId }) {
@@ -183,19 +209,20 @@ async function insertMappingRow({ guildId, channelId, messageId, emoji, roleId }
   }
   if (result?.affectedRows === 1) return;
   // The insert did not land. Look up what is actually stored for this
-  // (guild, message, emoji) — deliberately WITHOUT the channel filter, so
-  // a row stored under the same message but a wrong channel is found
-  // instead of reported as a mystery failure.
-  const existing = await db.query(
-    'SELECT channel_id, role_id FROM reaction_roles WHERE guild_id = ? AND message_id = ? AND emoji = ?',
-    [guildId, messageId, emoji],
-  ).catch(() => null);
-  if (!existing?.length) {
+  // (guild, message, emoji) — the same guild-wide read the list shows
+  // (1.15.38), so the lookup and the list cannot disagree. Deliberately
+  // WITHOUT the channel filter, so a row stored under the same message
+  // but a wrong channel is found instead of reported as a mystery failure.
+  const stored = await listGuildMappings(guildId).catch(() => null);
+  const ex = stored?.find((m) => m.message_id === messageId && m.emoji === emoji);
+  if (!ex) {
     if (threw && threw.code !== 'ER_DUP_ENTRY') throw threw;
     fail(500, `The mapping for ${emoji} could not be saved to the database — please try adding it again.`);
   }
-  const ex = existing[0];
-  if (ex.role_id !== roleId) fail(400, 'That emoji is already mapped on this message.');
+  if (ex.role_id !== roleId) {
+    logDuplicateCheck({ guildId, channelId, messageId, emoji }, ex);
+    fail(400, `That emoji is already mapped on this message (mapping #${ex.id}, role ${ex.role_id}).`);
+  }
   if (ex.channel_id !== channelId) {
     // Same message, emoji and role, but the stored channel is wrong (the
     // add form carries a channel per row, and the duplicate check is
@@ -208,7 +235,8 @@ async function insertMappingRow({ guildId, channelId, messageId, emoji, roleId }
     ).catch(() => null);
     if (repaired?.affectedRows === 1) return;
   }
-  fail(400, 'That emoji is already mapped on this message.');
+  logDuplicateCheck({ guildId, channelId, messageId, emoji }, ex);
+  fail(400, `That emoji is already mapped on this message (mapping #${ex.id}, role ${ex.role_id}).`);
 }
 
 async function deleteMappingRow({ guildId, messageId, emoji }) {
@@ -392,4 +420,4 @@ async function removeMapping({ guildId, channelId, messageId, emoji }, discord) 
   return result;
 }
 
-module.exports = { emojiLabel, emojiButton, getMappings, isMessageEnabled, buildRows, resolveEmojiInput, validateEmojiAgainstGuild, addMapping, addMappingsBatch, removeMapping, removeMappingsBatch, refreshMessageButtons, roleNameResolverFromGuild, roleNameResolverFromRest };
+module.exports = { emojiLabel, emojiButton, getMappings, listGuildMappings, isMessageEnabled, buildRows, resolveEmojiInput, validateEmojiAgainstGuild, addMapping, addMappingsBatch, removeMapping, removeMappingsBatch, refreshMessageButtons, roleNameResolverFromGuild, roleNameResolverFromRest };
