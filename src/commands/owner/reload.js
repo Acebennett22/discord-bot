@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { MessageFlags, SlashCommandBuilder } = require('discord.js');
 const path = require('path');
 const fs = require('fs');
 const { requireOwner } = require('../../utils/ownerCheck');
@@ -13,7 +13,7 @@ module.exports = {
     if (!(await requireOwner(interaction))) return;
     const name = interaction.options.getString('command').toLowerCase();
     const existing = interaction.client.commands.get(name);
-    if (!existing) return interaction.reply({ embeds: [errorEmbed('Reload failed', `No loaded command named \`/${name}\`.`)] , ephemeral: true });
+    if (!existing) return interaction.reply({ embeds: [errorEmbed('Reload failed', `No loaded command named \`/${name}\`.`)] , flags: MessageFlags.Ephemeral });
     // Find the file on disk by scanning the command folders.
     const commandsPath = path.join(__dirname, '..');
     let filePath = null;
@@ -23,15 +23,15 @@ module.exports = {
       const candidate = path.join(folderPath, `${name}.js`);
       if (fs.existsSync(candidate)) { filePath = candidate; break; }
     }
-    if (!filePath) return interaction.reply({ embeds: [errorEmbed('Reload failed', `Could not find the file for \`/${name}\` on disk.`)], ephemeral: true });
+    if (!filePath) return interaction.reply({ embeds: [errorEmbed('Reload failed', `Could not find the file for \`/${name}\` on disk.`)], flags: MessageFlags.Ephemeral });
     try {
       delete require.cache[require.resolve(filePath)];
       const fresh = require(filePath);
       if (!fresh?.data?.name || typeof fresh.execute !== 'function') throw new Error('File does not export { data, execute }.');
       interaction.client.commands.set(fresh.data.name, fresh);
-      return interaction.reply({ ephemeral: true, embeds: [successEmbed('Command reloaded', `\`/${name}\` was reloaded from \`${path.relative(process.cwd(), filePath)}\`. Note: slash-command *definitions* still need \`npm run deploy\` to update on Discord.`) ] });
+      return interaction.reply({ flags: MessageFlags.Ephemeral, embeds: [successEmbed('Command reloaded', `\`/${name}\` was reloaded from \`${path.relative(process.cwd(), filePath)}\`. Note: slash-command *definitions* still need \`npm run deploy\` to update on Discord.`) ] });
     } catch (err) {
-      return interaction.reply({ embeds: [errorEmbed('Reload failed', `\`${err.message}\``)], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Reload failed', `\`${err.message}\``)], flags: MessageFlags.Ephemeral });
     }
   },
 };

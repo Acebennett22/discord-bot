@@ -1,6 +1,6 @@
 // Handles suggestion flows: /suggest modal submit, 👍/👎 vote buttons,
 // and Approve / Deny / Mark implemented review buttons.
-const { Events } = require('discord.js');
+const { MessageFlags, Events } = require('discord.js');
 const sugg = require('../utils/suggestions');
 const { getGuildSettings } = require('../utils/guildSettings');
 const { successEmbed, errorEmbed } = require('../utils/embeds');
@@ -44,7 +44,7 @@ module.exports = {
         return interaction.reply({ embeds: [errorEmbed('Vote failed', result.error)] });
       }
       await sugg.syncEmbed(interaction.guild, result.suggestion);
-      return interaction.reply({ embeds: [successEmbed('Vote recorded', `Suggestion #${id} is now at 👍 ${result.up} · 👎 ${result.down}.`)], ephemeral: true });
+      return interaction.reply({ embeds: [successEmbed('Vote recorded', `Suggestion #${id} is now at 👍 ${result.up} · 👎 ${result.down}.`)], flags: MessageFlags.Ephemeral });
     }
 
     // --- Review buttons (admin or reviewer role) ---

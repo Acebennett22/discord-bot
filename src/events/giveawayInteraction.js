@@ -2,7 +2,7 @@
 // Requirements (required role / min days / min leveling level) are checked
 // first — a member who misses one gets an ephemeral message naming exactly
 // what they missed, and is not entered.
-const { Events } = require('discord.js');
+const { MessageFlags, Events } = require('discord.js');
 const db = require('../utils/database');
 const { successEmbed, errorEmbed, infoEmbed } = require('../utils/embeds');
 const { getRank } = require('../utils/leveling');
@@ -38,16 +38,16 @@ module.exports = {
     if (missed.length) {
       return interaction.reply({
         embeds: [errorEmbed('You don\'t meet the requirements', `You can't enter the giveaway for **${giveaway.prize}** yet:\n${missed.map((m) => `• ${m}`).join('\n')}`)],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
     const existing = await db.query('SELECT 1 FROM giveaway_entries WHERE giveaway_id = ? AND user_id = ?', [giveawayId, interaction.user.id]);
-    if (existing?.length) return interaction.reply({ embeds: [infoEmbed('Already entered', 'You are already entered in this giveaway.')], ephemeral: true });
+    if (existing?.length) return interaction.reply({ embeds: [infoEmbed('Already entered', 'You are already entered in this giveaway.')], flags: MessageFlags.Ephemeral });
     await db.query('INSERT INTO giveaway_entries (giveaway_id, user_id) VALUES (?, ?)', [giveawayId, interaction.user.id]);
     // Bonus entries (1.12.4): bonus role + Nitro booster.
     const { bonus, reasons } = await computeBonusEntries(giveaway, interaction.member).catch(() => ({ bonus: 0, reasons: [] }));
     if (bonus > 0) await recordBonusEntry(giveawayId, interaction.user.id, bonus, reasons.join('; ')).catch(() => {});
     const totalEntries = 1 + bonus;
-    return interaction.reply({ embeds: [successEmbed('Entered!', `🎉 You're entered in the giveaway for **${giveaway.prize}**!\n**Entries:** ${totalEntries}${bonus > 0 ? ` (includes ${bonus} bonus: ${reasons.join(', ')})` : ''}`)], ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed('Entered!', `🎉 You're entered in the giveaway for **${giveaway.prize}**!\n**Entries:** ${totalEntries}${bonus > 0 ? ` (includes ${bonus} bonus: ${reasons.join(', ')})` : ''}`)], flags: MessageFlags.Ephemeral });
   },
 };

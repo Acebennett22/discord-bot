@@ -4,11 +4,23 @@
 // Translation uses Google's free unofficial translate endpoint
 // (translate.googleapis.com/translate_a/single, client=gtx). It needs no
 // API key, but it is unofficial, has no SLA, and may rate-limit — failures
-// are swallowed and logged, never fatal. Language detection is a small
+// are swallowed and logged, never fatal. To stay under the limit there is a
+// small minimum interval between calls, retry with exponential backoff on
+// 429, and a per-guild 10-minute cooldown after a 429 (429s log at warn,
+// not error — a rate limit is not a bug). Language detection is a small
 // built-in heuristic (script + common-word matching) so no extra dependency
 // is needed; it is good enough for common languages and degrades gracefully.
 const db = require('./database');
 const errorLogger = require('./errorLogger');
+
+// Rate-limit handling for the unofficial endpoint.
+const MIN_INTERVAL_MS = 1000; // minimum gap between translate calls
+const MAX_RETRIES = 2; // retries after the first attempt, 429 only
+const RETRY_BASE_DELAY_MS = 1000; // doubled each retry (1s, then 2s)
+const COOLDOWN_MS = 10 * 60 * 1000; // per-guild skip window after a 429
+let lastCallAt = 0;
+const cooldownUntilByGuild = new Map();
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const SUPPORTED = {
   en: 'English', es: 'Spanish', fr: 'French', de: 'German', it: 'Italian',
@@ -62,13 +74,28 @@ function detectLanguage(text) {
 
 async function translateText(text, targetLang) {
   const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(targetLang)}&dt=t&q=${encodeURIComponent(text)}`;
-  const res = await fetch(url, { headers: { 'User-Agent': 'AceBot/1.10 (Discord bot)' } });
-  if (!res.ok) throw new Error(`Translate endpoint returned ${res.status}`);
-  const data = await res.json();
-  const translated = (data?.[0] || []).map((part) => part?.[0] || '').join('');
-  const detected = data?.[2] || null;
-  if (!translated) throw new Error('Empty translation result');
-  return { translated, detected };
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    // Minimum interval between calls so bursts don't hammer the endpoint.
+    const wait = MIN_INTERVAL_MS - (Date.now() - lastCallAt);
+    if (wait > 0) await sleep(wait);
+    lastCallAt = Date.now();
+    const res = await fetch(url, { headers: { 'User-Agent': 'AceBot/1.10 (Discord bot)' } });
+    if (res.status === 429) {
+      if (attempt < MAX_RETRIES) {
+        await sleep(RETRY_BASE_DELAY_MS * (2 ** attempt));
+        continue;
+      }
+      const err = new Error('Translate endpoint returned 429');
+      err.status = 429;
+      throw err;
+    }
+    if (!res.ok) throw new Error(`Translate endpoint returned ${res.status}`);
+    const data = await res.json();
+    const translated = (data?.[0] || []).map((part) => part?.[0] || '').join('');
+    const detected = data?.[2] || null;
+    if (!translated) throw new Error('Empty translation result');
+    return { translated, detected };
+  }
 }
 
 // Normalize channels_json to an array of string channel IDs. The column is
@@ -139,6 +166,9 @@ async function handleTranslateMessage(message) {
     if (/^[/!]/.test(text)) return false; // commands, not chat
     const detected = detectLanguage(text);
     if (detected === settings.target_lang) return false;
+    // Per-guild cooldown after a 429 — skip quietly instead of hitting the
+    // endpoint (and logging an error) on every message for 10 minutes.
+    if ((cooldownUntilByGuild.get(message.guildId) || 0) > Date.now()) return false;
     const { translated } = await translateText(text, settings.target_lang);
     if (translated.trim().toLowerCase() === text.toLowerCase()) return false;
     const { infoEmbed } = require('./embeds');
@@ -148,7 +178,11 @@ async function handleTranslateMessage(message) {
     }).catch(() => {});
     return true;
   } catch (e) {
-    errorLogger.log({ level: 'error', guildId: message.guildId, commandName: 'translate', message: `Auto-translate failed: ${e.message}`, stack: e.stack });
+    // A 429 is a rate limit, not a bug — log at warn, and cool this guild
+    // down for 10 minutes so the next messages don't retry immediately.
+    const isRateLimit = e.status === 429 || /429/.test(e.message || '');
+    if (isRateLimit) cooldownUntilByGuild.set(message.guildId, Date.now() + COOLDOWN_MS);
+    errorLogger.log({ level: isRateLimit ? 'warn' : 'error', guildId: message.guildId, commandName: 'translate', message: `Auto-translate failed: ${e.message}`, stack: e.stack });
     return false;
   }
 }

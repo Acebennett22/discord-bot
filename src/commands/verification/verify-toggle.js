@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+const { MessageFlags, SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const { successEmbed } = require('../../utils/embeds');
 const { setGuildSettings, getGuildSettings } = require('../../utils/guildSettings');
 
@@ -13,8 +13,8 @@ module.exports = {
     await setGuildSettings(interaction.guildId, { verificationEnabled: enabled });
     const settings = await getGuildSettings(interaction.guildId);
     if (enabled && !settings.verificationChannelId) {
-      return interaction.reply({ embeds: [successEmbed('Verification enabled', '⚠️ No verification channel is set yet — run /verify-setup first, or new members will have nowhere to verify.')], ephemeral: true });
+      return interaction.reply({ embeds: [successEmbed('Verification enabled', '⚠️ No verification channel is set yet — run /verify-setup first, or new members will have nowhere to verify.')], flags: MessageFlags.Ephemeral });
     }
-    return interaction.reply({ embeds: [successEmbed('Verification updated', `The verification gate is now **${enabled ? 'enabled' : 'disabled'}**.`)], ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed('Verification updated', `The verification gate is now **${enabled ? 'enabled' : 'disabled'}**.`)], flags: MessageFlags.Ephemeral });
   },
 };

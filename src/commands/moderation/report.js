@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+const { MessageFlags, SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const { successEmbed, errorEmbed, infoEmbed } = require('../../utils/embeds');
 const db = require('../../utils/database');
 const { getGuildSettings } = require('../../utils/guildSettings');
@@ -34,7 +34,7 @@ module.exports = {
         return `**#${r.id}** — <@${r.reported_id}> reported by <@${r.reporter_id}> — <t:${when}:R>\n> ${String(r.reason).slice(0, 200)}${r.evidence ? `\nEvidence: ${String(r.evidence).slice(0, 200)}` : ''}`;
       });
       const extra = rows.length === 25 ? '\n\n*(Showing the first 25.)*' : '';
-      return interaction.reply({ embeds: [infoEmbed(`Open reports (${rows.length})`, `${lines.join('\n\n')}${extra}`)], ephemeral: true });
+      return interaction.reply({ embeds: [infoEmbed(`Open reports (${rows.length})`, `${lines.join('\n\n')}${extra}`)], flags: MessageFlags.Ephemeral });
     }
 
     // submit
@@ -60,16 +60,16 @@ module.exports = {
     const premium = await getPremiumSettings(interaction.guildId).catch(() => null);
     const logChannelId = premium?.modlogChannelId || settings.logChannelId || '';
     if (!logChannelId) {
-      return interaction.reply({ embeds: [successEmbed('Report filed', `Your report against <@${reported.id}> was saved as **#${reportId}**.\n\n⚠️ No modlog channel is set up yet, so the moderators were **not** pinged in a channel — please ask an admin to run \`/modlog-setup\` so future reports reach the mod team.`)], ephemeral: true });
+      return interaction.reply({ embeds: [successEmbed('Report filed', `Your report against <@${reported.id}> was saved as **#${reportId}**.\n\n⚠️ No modlog channel is set up yet, so the moderators were **not** pinged in a channel — please ask an admin to run \`/modlog-setup\` so future reports reach the mod team.`)], flags: MessageFlags.Ephemeral });
     }
     const logChannel = interaction.guild.channels.cache.get(logChannelId)
       || await interaction.guild.channels.fetch(logChannelId).catch(() => null);
     if (!logChannel?.isTextBased()) {
-      return interaction.reply({ embeds: [successEmbed('Report filed', `Your report against <@${reported.id}> was saved as **#${reportId}**.\n\n⚠️ The configured modlog channel could not be found, so the moderators were **not** pinged in a channel — please ask an admin to re-run \`/modlog-setup\`.`)], ephemeral: true });
+      return interaction.reply({ embeds: [successEmbed('Report filed', `Your report against <@${reported.id}> was saved as **#${reportId}**.\n\n⚠️ The configured modlog channel could not be found, so the moderators were **not** pinged in a channel — please ask an admin to re-run \`/modlog-setup\`.`)], flags: MessageFlags.Ephemeral });
     }
     await logChannel.send({
       embeds: [infoEmbed(`🚨 Report #${reportId}`, `**Reported:** <@${reported.id}> (${reported.tag})\n**Reporter:** <@${interaction.user.id}> (${interaction.user.tag})\n**Reason:** ${reason.slice(0, 1000)}${evidence ? `\n**Evidence:** ${evidence.slice(0, 1000)}` : ''}\n\nUse \`/report list\` to see open reports.`)],
     }).catch(() => null);
-    return interaction.reply({ embeds: [successEmbed('Report filed', `Thanks — your report against <@${reported.id}> was sent to the moderators (report **#${reportId}**).`)], ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed('Report filed', `Thanks — your report against <@${reported.id}> was sent to the moderators (report **#${reportId}**).`)], flags: MessageFlags.Ephemeral });
   },
 };

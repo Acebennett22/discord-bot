@@ -1,8 +1,6 @@
 // Handles application flows: /apply select menu + modals, form-creation modal,
 // and Accept/Deny review buttons in the review channel.
-const {
-  Events, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder,
-} = require('discord.js');
+const { MessageFlags, Events, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
 const apps = require('../utils/applications');
 const { getGuildSettings } = require('../utils/guildSettings');
 const { successEmbed, errorEmbed } = require('../utils/embeds');
@@ -45,7 +43,7 @@ module.exports = {
       const formId = parseInt(interaction.customId.split(':')[1], 10);
       const form = await apps.getForm(formId, interaction.guildId);
       if (!form || !form.is_open) return interaction.reply({ embeds: [errorEmbed('Form closed', 'That form is no longer open.')] });
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
       const answers = form.questions.map((_, i) => interaction.fields.getTextInputValue(`q${i}`) || '');
       const appId = await apps.submitApplication(form, interaction.user.id, answers);
       const app = await apps.getApplication(appId, interaction.guildId);

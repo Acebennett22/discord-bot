@@ -1,5 +1,5 @@
 // Event RSVP buttons — customId event:<status>:<eventId>.
-const { Events } = require('discord.js');
+const { MessageFlags, Events } = require('discord.js');
 const { errorEmbed, infoEmbed } = require('../utils/embeds');
 const events = require('../utils/scheduledEvents');
 
@@ -15,6 +15,6 @@ module.exports = {
     if (event.status !== 'upcoming') return interaction.reply({ embeds: [infoEmbed('Event closed', `**${event.title}** is ${event.status} — RSVPs are closed.`)] });
     await events.setRsvp(eventId, interaction.user.id, status).catch(() => null);
     await events.refreshEventMessage(interaction.client, event).catch(() => {});
-    return interaction.reply({ embeds: [infoEmbed('RSVP saved', `You're marked **${events.RSVP_LABELS[status]}** for **${event.title}**.`)], ephemeral: true });
+    return interaction.reply({ embeds: [infoEmbed('RSVP saved', `You're marked **${events.RSVP_LABELS[status]}** for **${event.title}**.`)], flags: MessageFlags.Ephemeral });
   },
 };

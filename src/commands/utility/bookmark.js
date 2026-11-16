@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { MessageFlags, SlashCommandBuilder } = require('discord.js');
 const { successEmbed, errorEmbed, infoEmbed } = require('../../utils/embeds');
 const db = require('../../utils/database');
 const bookmarks = require('../../utils/bookmarks');
@@ -25,9 +25,9 @@ module.exports = {
     const sub = interaction.options.getSubcommand();
     if (sub === 'list') {
       const rows = await bookmarks.listBookmarks(interaction.guildId, interaction.user.id, 25);
-      if (!rows.length) return interaction.reply({ embeds: [infoEmbed('🔖 Your bookmarks', 'No bookmarks yet. Use /bookmark add, or right-click a message → Apps → Bookmark message.')], ephemeral: true });
+      if (!rows.length) return interaction.reply({ embeds: [infoEmbed('🔖 Your bookmarks', 'No bookmarks yet. Use /bookmark add, or right-click a message → Apps → Bookmark message.')], flags: MessageFlags.Ephemeral });
       const lines = rows.map((b) => `**#${b.id}** — <@${b.author_id || 'unknown'}> in <#${b.channel_id}> — [jump](${bookmarks.jumpLink(interaction.guildId, b.channel_id, b.message_id)})${b.note ? `\n> ${b.note.slice(0, 120)}` : ''}${b.content_excerpt ? `\n> ${(b.content_excerpt || '').slice(0, 120)}` : ''}`);
-      return interaction.reply({ embeds: [infoEmbed('🔖 Your bookmarks', lines.join('\n\n'))], ephemeral: true });
+      return interaction.reply({ embeds: [infoEmbed('🔖 Your bookmarks', lines.join('\n\n'))], flags: MessageFlags.Ephemeral });
     }
     if (sub === 'remove') {
       const removed = await bookmarks.removeBookmark(interaction.guildId, interaction.user.id, interaction.options.getInteger('id'));

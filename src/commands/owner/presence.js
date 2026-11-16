@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { MessageFlags, SlashCommandBuilder } = require('discord.js');
 const { requireOwner } = require('../../utils/ownerCheck');
 const { successEmbed, errorEmbed, statsEmbed } = require('../../utils/embeds');
 const presence = require('../../utils/presence');
@@ -28,11 +28,11 @@ module.exports = {
       const text = interaction.options.getString('text');
       const type = interaction.options.getString('type') || 'Watching';
       const applied = await presence.setOverride(client, text, type);
-      return interaction.reply({ embeds: [successEmbed('Presence set', `Now showing **${applied.type} ${applied.text}**.\nThis holds until the next rotation or \`/presence reset\`.`)] , ephemeral: true });
+      return interaction.reply({ embeds: [successEmbed('Presence set', `Now showing **${applied.type} ${applied.text}**.\nThis holds until the next rotation or \`/presence reset\`.`)] , flags: MessageFlags.Ephemeral });
     }
     if (sub === 'reset') {
       await presence.clearOverride(client);
-      return interaction.reply({ embeds: [successEmbed('Presence reset', 'Back to rotating the configured templates.')], ephemeral: true });
+      return interaction.reply({ embeds: [successEmbed('Presence reset', 'Back to rotating the configured templates.')], flags: MessageFlags.Ephemeral });
     }
     // list
     const activities = presence.loadActivities();
@@ -42,6 +42,6 @@ module.exports = {
     return interaction.reply({ embeds: [statsEmbed(
       'Presence templates',
       `${lines.join('\n') || 'No templates configured.'}\n\n**Currently showing:** ${current ? `${current.type} ${current.text}${current.override ? ' *(one-off override)*' : ''}` : '—'}`,
-    )], ephemeral: true });
+    )], flags: MessageFlags.Ephemeral });
   },
 };

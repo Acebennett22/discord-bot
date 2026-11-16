@@ -3,7 +3,7 @@
 // are checked before granting — a member who misses one gets an ephemeral
 // embed naming exactly what they missed. Removing a role never checks
 // requirements.
-const { Events } = require('discord.js');
+const { MessageFlags, Events } = require('discord.js');
 const { getMappings, isMessageEnabled } = require('../utils/reactionRoles');
 const { successEmbed, errorEmbed } = require('../utils/embeds');
 const { getRank } = require('../utils/leveling');
@@ -55,16 +55,16 @@ module.exports = {
     if (!role) return interaction.reply({ embeds: [errorEmbed('Role gone', 'That role no longer exists.')] });
     if (interaction.member.roles.cache.has(roleId)) {
       await interaction.member.roles.remove(role).catch(() => {});
-      return interaction.reply({ embeds: [successEmbed('Role removed', `➖ Removed the **${role.name}** role.`)], ephemeral: true });
+      return interaction.reply({ embeds: [successEmbed('Role removed', `➖ Removed the **${role.name}** role.`)], flags: MessageFlags.Ephemeral });
     }
     const missed = await checkRequirements(interaction, mapping);
     if (missed.length) {
       return interaction.reply({
         embeds: [errorEmbed('You don\'t meet the requirements', `You can't take the **${role.name}** role yet:\n${missed.map((m) => `• ${m}`).join('\n')}`)],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
     await interaction.member.roles.add(role).catch(() => {});
-    return interaction.reply({ embeds: [successEmbed('Role added', `➕ You now have the **${role.name}** role!`)], ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed('Role added', `➕ You now have the **${role.name}** role!`)], flags: MessageFlags.Ephemeral });
   },
 };

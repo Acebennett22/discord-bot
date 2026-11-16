@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { MessageFlags, SlashCommandBuilder } = require('discord.js');
 const { successEmbed, errorEmbed, infoEmbed } = require('../../utils/embeds');
 const db = require('../../utils/database');
 const { parseTime, discordTimestamp } = require('../../utils/timeParse');
@@ -28,7 +28,7 @@ module.exports = {
         'INSERT INTO reminders (guild_id, user_id, channel_id, text, remind_at) VALUES (?, ?, ?, ?, ?)',
         [interaction.guildId, interaction.user.id, interaction.channelId, text, remindAt],
       );
-      return interaction.reply({ embeds: [successEmbed('Reminder set', `I'll remind you ${discordTimestamp(remindAt)}:\n> ${text.slice(0, 500)}\n\nI'll DM you — if your DMs are closed, I'll post it in this channel instead. (Reminder #${result.insertId})`)], ephemeral: true });
+      return interaction.reply({ embeds: [successEmbed('Reminder set', `I'll remind you ${discordTimestamp(remindAt)}:\n> ${text.slice(0, 500)}\n\nI'll DM you — if your DMs are closed, I'll post it in this channel instead. (Reminder #${result.insertId})`)], flags: MessageFlags.Ephemeral });
     }
 
     if (sub === 'list') {
@@ -37,11 +37,11 @@ module.exports = {
         [interaction.guildId, interaction.user.id],
       ) || [];
       if (!rows.length) {
-        return interaction.reply({ embeds: [infoEmbed('Your reminders', 'You have no pending reminders in this server. Use `/remind set` to add one.')], ephemeral: true });
+        return interaction.reply({ embeds: [infoEmbed('Your reminders', 'You have no pending reminders in this server. Use `/remind set` to add one.')], flags: MessageFlags.Ephemeral });
       }
       const lines = rows.map((r) => `**#${r.id}** — ${discordTimestamp(r.remind_at)}\n> ${String(r.text).slice(0, 200)}`);
       const extra = rows.length === 25 ? '\n\n*(Showing the first 25 — cancel old ones to see more.)*' : '';
-      return interaction.reply({ embeds: [infoEmbed(`Your reminders (${rows.length})`, `${lines.join('\n\n')}${extra}`)], ephemeral: true });
+      return interaction.reply({ embeds: [infoEmbed(`Your reminders (${rows.length})`, `${lines.join('\n\n')}${extra}`)], flags: MessageFlags.Ephemeral });
     }
 
     // cancel

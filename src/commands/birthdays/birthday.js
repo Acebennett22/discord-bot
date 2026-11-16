@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { MessageFlags, SlashCommandBuilder } = require('discord.js');
 const { successEmbed, errorEmbed, infoEmbed } = require('../../utils/embeds');
 const { isValidBirthday, isBirthdayToday, ageOn } = require('../../utils/birthdays');
 const db = require('../../utils/database');
@@ -25,13 +25,13 @@ module.exports = {
       const day = interaction.options.getInteger('day');
       const year = interaction.options.getInteger('year');
       if (!isValidBirthday(month, day, year ?? null)) {
-        return interaction.reply({ embeds: [errorEmbed('Not a real date', `${MONTH_NAMES[month]} ${day}${year ? `, ${year}` : ''} is not a valid date.`)], ephemeral: true });
+        return interaction.reply({ embeds: [errorEmbed('Not a real date', `${MONTH_NAMES[month]} ${day}${year ? `, ${year}` : ''} is not a valid date.`)], flags: MessageFlags.Ephemeral });
       }
       await db.query(
         'INSERT INTO birthdays (guild_id, user_id, month, day, year, announced_last_year) VALUES (?, ?, ?, ?, ?, NULL) ON DUPLICATE KEY UPDATE month = VALUES(month), day = VALUES(day), year = VALUES(year), announced_last_year = NULL',
         [interaction.guildId, interaction.user.id, month, day, year ?? null],
       );
-      return interaction.reply({ embeds: [successEmbed('Birthday saved', `🎂 Your birthday is set to **${MONTH_NAMES[month]} ${day}**${year ? `, ${year}` : ''} in this server. The bot will celebrate it on the day!`)], ephemeral: true });
+      return interaction.reply({ embeds: [successEmbed('Birthday saved', `🎂 Your birthday is set to **${MONTH_NAMES[month]} ${day}**${year ? `, ${year}` : ''} in this server. The bot will celebrate it on the day!`)], flags: MessageFlags.Ephemeral });
     }
     if (sub === 'remove') {
       await db.query('DELETE FROM birthdays WHERE guild_id = ? AND user_id = ?', [interaction.guildId, interaction.user.id]);

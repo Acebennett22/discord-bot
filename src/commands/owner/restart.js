@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { MessageFlags, SlashCommandBuilder } = require('discord.js');
 const { requireOwner } = require('../../utils/ownerCheck');
 const { infoEmbed } = require('../../utils/embeds');
 
@@ -6,7 +6,7 @@ module.exports = {
   data: new SlashCommandBuilder().setName('restart').setDescription('Owner only: restart this shard/bot.'),
   async execute(interaction) {
     if (!(await requireOwner(interaction))) return;
-    await interaction.reply({ embeds: [infoEmbed('Restarting', '🔄 Restarting… I\'ll be right back.')], ephemeral: true });
+    await interaction.reply({ embeds: [infoEmbed('Restarting', '🔄 Restarting… I\'ll be right back.')], flags: MessageFlags.Ephemeral });
     // Give the reply a moment to send before tearing down.
     setTimeout(async () => {
       try {

@@ -1,6 +1,6 @@
 // Ticket rating buttons + comment modal — customIds trating:<ticketId>:<stars>,
 // trating-addcomment:<ticketId>:<stars>, trating-comment:<ticketId>:<stars>.
-const { Events } = require('discord.js');
+const { MessageFlags, Events } = require('discord.js');
 const { errorEmbed, successEmbed } = require('../utils/embeds');
 const ratings = require('../utils/ticketRatings');
 
@@ -20,7 +20,7 @@ module.exports = {
       return interaction.reply({
         embeds: [successEmbed('Thanks for rating!', `You rated your ticket ${'⭐'.repeat(stars)} (${stars}/5).`)],
         components: [ratings.commentRow(ticketId, stars)],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       }).catch(() => {});
     }
     if (interaction.isModalSubmit() && interaction.customId.startsWith('trating-comment:')) {
@@ -29,7 +29,7 @@ module.exports = {
       const stars = Number(starsStr);
       const comment = interaction.fields.getTextInputValue('comment') || '';
       await ratings.saveRating(ticketId, interaction.guildId, interaction.user.id, stars, comment || null).catch(() => null);
-      return interaction.reply({ embeds: [successEmbed('Comment saved', comment ? 'Thanks — your comment was added to the rating.' : 'Rating saved.')], ephemeral: true }).catch(() => {});
+      return interaction.reply({ embeds: [successEmbed('Comment saved', comment ? 'Thanks — your comment was added to the rating.' : 'Rating saved.')], flags: MessageFlags.Ephemeral }).catch(() => {});
     }
   },
 };

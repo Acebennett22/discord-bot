@@ -5,7 +5,7 @@
 //    captcha; honest about it in the README). Answer right -> role granted.
 // Challenges live in memory (5-minute expiry); the grant itself is logged
 // to MySQL (verification_logs).
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
+const { MessageFlags, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
 const db = require('./database');
 const { getGuildSettings } = require('./guildSettings');
 const { errorEmbed, successEmbed } = require('./embeds');
@@ -89,17 +89,17 @@ async function answerCaptcha(interaction) {
   const pending = pendingChallenges.get(interaction.user.id);
   if (!pending || pending.expiresAt < Date.now() || pending.guildId !== interaction.guildId) {
     pendingChallenges.delete(interaction.user.id);
-    return interaction.reply({ embeds: [errorEmbed('Challenge expired', 'Click the Verify button again to get a new question.')], ephemeral: true });
+    return interaction.reply({ embeds: [errorEmbed('Challenge expired', 'Click the Verify button again to get a new question.')], flags: MessageFlags.Ephemeral });
   }
   pendingChallenges.delete(interaction.user.id);
   const given = interaction.fields.getTextInputValue('verify:answer').trim();
   if (given !== pending.answer) {
     await logVerification(interaction.guildId, interaction.user.id, 'captcha', 'failed');
-    return interaction.reply({ embeds: [errorEmbed('Wrong answer', `That wasn't right — the answer was **${pending.answer}**. Click Verify again to try a new question.`)], ephemeral: true });
+    return interaction.reply({ embeds: [errorEmbed('Wrong answer', `That wasn't right — the answer was **${pending.answer}**. Click Verify again to try a new question.`)], flags: MessageFlags.Ephemeral });
   }
   const result = await grantVerification(interaction.member, 'captcha');
-  if (!result.ok) return interaction.reply({ embeds: [errorEmbed('Could not verify', result.reason)], ephemeral: true });
-  return interaction.reply({ embeds: [successEmbed('Verified!', `✅ You're verified — the **${result.role.name}** role was granted. Welcome!`)], ephemeral: true });
+  if (!result.ok) return interaction.reply({ embeds: [errorEmbed('Could not verify', result.reason)], flags: MessageFlags.Ephemeral });
+  return interaction.reply({ embeds: [successEmbed('Verified!', `✅ You're verified — the **${result.role.name}** role was granted. Welcome!`)], flags: MessageFlags.Ephemeral });
 }
 
 module.exports = {

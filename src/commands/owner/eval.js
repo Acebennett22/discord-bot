@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { MessageFlags, SlashCommandBuilder } = require('discord.js');
 const { requireOwner } = require('../../utils/ownerCheck');
 const { infoEmbed, errorEmbed } = require('../../utils/embeds');
 
@@ -14,7 +14,7 @@ module.exports = {
   async execute(interaction) {
     if (!(await requireOwner(interaction))) return;
     const code = interaction.options.getString('code');
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     try {
       // eslint-disable-next-line no-eval
       let result = eval(code);

@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, PermissionFlagsBits, ChannelType } = require('discord.js');
+const { MessageFlags, SlashCommandBuilder, PermissionFlagsBits, ChannelType } = require('discord.js');
 const { successEmbed } = require('../../utils/embeds');
 const { setGuildSettings, getGuildSettings } = require('../../utils/guildSettings');
 
@@ -17,10 +17,10 @@ module.exports = {
     if (enabled !== null) patch.modmailEnabled = enabled;
     if (!Object.keys(patch).length) {
       const s = await getGuildSettings(interaction.guildId);
-      return interaction.reply({ embeds: [successEmbed('Modmail settings', `Enabled: **${s.modmailEnabled ? 'yes' : 'no'}**\nCategory: ${s.modmailCategoryId ? `<#${s.modmailCategoryId}>` : 'not set'}\n\nWhen enabled, users DM the bot and staff answer from a thread channel here.`)], ephemeral: true });
+      return interaction.reply({ embeds: [successEmbed('Modmail settings', `Enabled: **${s.modmailEnabled ? 'yes' : 'no'}**\nCategory: ${s.modmailCategoryId ? `<#${s.modmailCategoryId}>` : 'not set'}\n\nWhen enabled, users DM the bot and staff answer from a thread channel here.`)], flags: MessageFlags.Ephemeral });
     }
     await setGuildSettings(interaction.guildId, patch);
     const s = await getGuildSettings(interaction.guildId);
-    return interaction.reply({ embeds: [successEmbed('Modmail updated', `Enabled: **${s.modmailEnabled ? 'yes' : 'no'}**\nCategory: ${s.modmailCategoryId ? `<#${s.modmailCategoryId}>` : 'not set'}`)], ephemeral: true });
+    return interaction.reply({ embeds: [successEmbed('Modmail updated', `Enabled: **${s.modmailEnabled ? 'yes' : 'no'}**\nCategory: ${s.modmailCategoryId ? `<#${s.modmailCategoryId}>` : 'not set'}`)], flags: MessageFlags.Ephemeral });
   },
 };

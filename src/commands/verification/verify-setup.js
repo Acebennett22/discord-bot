@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, PermissionFlagsBits, ChannelType } = require('discord.js');
+const { MessageFlags, SlashCommandBuilder, PermissionFlagsBits, ChannelType } = require('discord.js');
 const { successEmbed, errorEmbed } = require('../../utils/embeds');
 const { setGuildSettings, getGuildSettings } = require('../../utils/guildSettings');
 const { verifyPanelComponents } = require('../../utils/verification');
@@ -29,7 +29,7 @@ module.exports = {
       const msg = await channel.send({ content: panelText, components: verifyPanelComponents() });
       panelMessageId = msg.id;
     } catch {
-      return interaction.reply({ embeds: [errorEmbed('Could not post the panel', `I can't send messages in <#${channel.id}>. Check my permissions there and try again.`)], ephemeral: true });
+      return interaction.reply({ embeds: [errorEmbed('Could not post the panel', `I can't send messages in <#${channel.id}>. Check my permissions there and try again.`)], flags: MessageFlags.Ephemeral });
     }
     await setGuildSettings(interaction.guildId, {
       verificationChannelId: channel.id,
@@ -40,7 +40,7 @@ module.exports = {
     });
     return interaction.reply({
       embeds: [successEmbed('Verification set up', `**Channel:** <#${channel.id}>\n**Role:** <@&${role.id}>\n**Mode:** ${mode === 'captcha' ? 'Captcha (math question in a modal)' : 'Button (click to verify)'}\nNew members are DM'd where to verify. Verification is now **enabled** — turn it off with /verify-toggle.`)],
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
   },
 };
