@@ -19,6 +19,7 @@ const fs = require('fs');
 const path = require('path');
 const { errorEmbed } = require('../utils/embeds');
 const { shouldAutoDeleteReply, armReplyAutoDelete } = require('../utils/replyAutoDelete');
+const { shouldForceEphemeral, armReplyEphemeral } = require('../utils/replyEphemeral');
 
 // folder -> parent command name. null = keep each file as its own top-level
 // command (those files already define subcommands of their own).
@@ -240,6 +241,14 @@ function buildConsolidated() {
         // in-scope command fades too. Out-of-scope commands are never
         // armed, so their reply behavior is unchanged.
         if (shouldAutoDeleteReply(parentName, child, interaction)) armReplyAutoDelete(interaction);
+        // Ticket replies ephemeral (1.16.3): arm AFTER auto-delete, so
+        // this wrapper is outermost and the Ephemeral flag is set before
+        // the auto-delete wrapper inspects the options — an ephemeral
+        // ticket reply is never scheduled for deletion (it already
+        // vanishes for everyone but the invoker). Armed before the
+        // permission check too, so the router's own "Missing permissions"
+        // reply for /ticket is ephemeral as well.
+        if (shouldForceEphemeral(parentName, child, interaction)) armReplyEphemeral(interaction);
         if (child.perms && interaction.memberPermissions && !interaction.memberPermissions.has(child.perms)) {
           const label = PERM_NAMES[child.perms] || 'the required permission';
           return interaction.reply({ embeds: [errorEmbed('Missing permissions', `You need the **${label}** permission to use this command.`)] });
