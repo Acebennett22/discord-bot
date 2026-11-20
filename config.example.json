@@ -55,6 +55,10 @@
     "setupViaDomain": true,
     "publicUrl": "https://bot.example.com"
   },
+  "health": {
+    "port": 3011,
+    "_note": "Localhost-only health endpoint the bot listens on (127.0.0.1) so the dashboard status page can tell whether the bot is online. Never exposed publicly; the dashboard fetches it server-side. Change the port here only if 3011 is taken."
+  },
   "leveling": {
     "xpPerMessageMin": 15,
     "xpPerMessageMax": 25,

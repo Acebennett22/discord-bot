@@ -27,6 +27,8 @@ const errorLogger = require('./utils/errorLogger');
 const { runBackup, retentionDays, BACKUP_DIR } = require('../scripts/backup-db');
 const { FEATURES, setToggle } = require('./utils/featureToggles');
 const { validateTemplate } = require('./utils/liveChannelTemplate');
+const { fetchBotHealth } = require('./utils/botHealth');
+const { healthPort } = require('./utils/healthServer');
 
 // Command catalog (scanned from src/commands/*/*.js) for the Staff and
 // per-guild Commands pages.
@@ -84,6 +86,20 @@ const botHeaders = () => ({ Authorization: `Bot ${config.token}` });
 function inviteUrl() {
   const perms = (config.dashboard && config.dashboard.invitePermissions) || 1099951041558;
   return `https://discord.com/oauth2/authorize?client_id=${config.clientId}&permissions=${perms}&scope=bot%20applications.commands`;
+}
+
+// Human uptime for the staff overview ("2h 14m", "3d 5h 2m"). Garbage in,
+// '—' out — never throws on a weird health payload.
+function formatUptime(seconds) {
+  if (!Number.isFinite(seconds) || seconds < 0) return '—';
+  const s = Math.floor(seconds);
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  if (d > 0) return `${d}d ${h}h ${m}m`;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s % 60}s`;
+  return `${s}s`;
 }
 
 async function staffFlag(req) {
@@ -2322,6 +2338,23 @@ app.post('/api/staff/presence/templates', requireStaff, async (req, res) => {
 // --- Staff area (owner + approved staff only) --------------------------------
 app.get('/staff', requireStaff, async (req, res) => {
   const data = { botConnected: false, shardInfo: 'Bot not connected — the dashboard runs standalone (npm run dashboard), separate from the bot process. Shard/live status comes from the bot itself; totals below come from the MySQL logs.' };
+  // Bot health (1.16.5): ask the bot's localhost health endpoint whether it
+  // is online. fetchBotHealth never throws and aborts after ~2s, so a dead
+  // bot just leaves the page on the "not connected" wording above — the page
+  // still renders fast and nothing else on it is affected.
+  const health = await fetchBotHealth(healthPort(config));
+  if (health) {
+    const shards = health.shards || [];
+    const ready = shards.filter((s) => s.ready).length;
+    const uptime = formatUptime(health.uptimeSeconds);
+    const version = health.version || '?';
+    data.botConnected = true;
+    data.botHealth = health;
+    data.botHealthUptime = uptime;
+    data.shardInfo = health.online
+      ? `Bot online — v${version} · uptime ${uptime} · ${ready}/${shards.length} shard${shards.length === 1 ? '' : 's'} ready${typeof health.guilds === 'number' ? ` · ${health.guilds} guild${health.guilds === 1 ? '' : 's'}` : ''}.`
+      : `Bot process is running but no shards are ready — v${version} · uptime ${uptime}.`;
+  }
   if (db.isEnabled()) {
     const totalCommands = (await db.query('SELECT COUNT(*) AS c FROM command_logs'))?.[0]?.c ?? 0;
     const totalGuilds = (await db.query('SELECT COUNT(DISTINCT guild_id) AS c FROM guild_stats'))?.[0]?.c ?? 0;

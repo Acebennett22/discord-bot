@@ -15,6 +15,7 @@ const db = require('./src/utils/database');
 const { loadCommands } = require('./src/handlers/commandHandler');
 const { loadEvents } = require('./src/handlers/eventHandler');
 const errorLogger = require('./src/utils/errorLogger');
+const { startHealthServer, healthPort } = require('./src/utils/healthServer');
 
 process.on('unhandledRejection', (err) => errorLogger.log({ level: 'error', message: `Unhandled rejection: ${err?.message || err}`, stack: err?.stack, context: { type: 'unhandledRejection' } }));
 process.on('uncaughtException', (err) => errorLogger.log({ level: 'error', message: `Uncaught exception: ${err?.message || err}`, stack: err?.stack, context: { type: 'uncaughtException' } }));
@@ -47,6 +48,20 @@ db.initDatabase();
 client.once(Events.ClientReady, () => {
   if (client.shard?.ids?.length) errorLogger.setShardId(client.shard.ids[0]);
 });
+
+// Health endpoint (1.16.5): localhost-only, so the dashboard status page can
+// tell whether the bot is online. Only in the unsharded path — under
+// `npm start` the ShardingManager owns the endpoint and each shard worker
+// has client.shard set, so workers never try to bind the same port.
+if (!client.shard) {
+  startHealthServer({
+    port: healthPort(config),
+    getStatus: () => ({
+      shards: [{ id: 0, ready: client.isReady() }],
+      guilds: client.guilds.cache.size,
+    }),
+  });
+}
 
 client.login(config.token).catch((err) => {
   errorLogger.log({ level: 'error', message: `Login failed: ${err.message}`, stack: err.stack, context: { type: 'login' } });

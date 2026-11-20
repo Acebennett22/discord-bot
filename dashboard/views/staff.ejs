@@ -105,7 +105,12 @@
 
     <% if (section === 'overview') { %>
       <h1>Bot overview</h1>
+      <% if (data.botConnected && data.botHealth) { %>
+      <p><strong>Status:</strong> <%= data.botHealth.online ? '🟢 Online' : '🟡 Process running, no shards ready' %> · <strong>Version:</strong> v<%= data.botHealth.version || '?' %> · <strong>Uptime:</strong> <%= data.botHealthUptime || '—' %><% if (typeof data.botHealth.guilds === 'number') { %> · <strong>Guilds:</strong> <%= data.botHealth.guilds %><% } %></p>
+      <p class="muted">Shards: <% (data.botHealth.shards || []).forEach((s, i) => { %>#<%= s.id %>: <%= s.ready ? '✅ ready' : '❌ not ready' %><% if (i < data.botHealth.shards.length - 1) { %>, <% } %><% }); %></p>
+      <% } else { %>
       <p class="muted"><%= data.shardInfo %></p>
+      <% } %>
       <p><strong>Errors in the last 24h:</strong> <span data-overview="errors24h"><%= data.errors24h ?? '—' %></span> — <a href="/staff/errors">view errors</a></p>
       <p><strong>Total guilds:</strong> <span data-overview="guilds"><%= data.totalGuilds ?? '—' %></span> &nbsp;·&nbsp; <strong>Total users seen:</strong> <%= data.totalUsers ?? '—' %> &nbsp;·&nbsp; <strong>Commands run:</strong> <span data-overview="commandsUsed"><%= data.totalCommands ?? '—' %></span> &nbsp;·&nbsp; <strong>Songs played:</strong> <%= data.songs ?? '—' %></p>
       <p class="muted">Live stats refresh automatically every 30 seconds. Joins today: <span data-overview="joinsToday">—</span> · flagged today: <span data-overview="flaggedToday">—</span></p>
