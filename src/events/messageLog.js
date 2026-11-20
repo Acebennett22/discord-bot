@@ -2,10 +2,11 @@
 // and posted to the configured modlog channel. Content that looks like a
 // token/password is redacted before it is stored or posted. Only logs when
 // a modlog channel is set for the guild.
-const { Events } = require('discord.js');
+const { Events, AuditLogEvent } = require('discord.js');
 const db = require('../utils/database');
 const { getPremiumSettings } = require('../utils/premiumSettings');
 const { infoEmbed } = require('../utils/embeds');
+const { resolveActor } = require('../utils/resolveActor');
 
 const SECRET_PATTERN = /(token|password|passwd|secret|api[-_]?key|apikey|auth)[\s=:]+[^\s]{4,}/gi;
 const DISCORD_TOKEN = /[MN][A-Za-z0-9_-]{23}\.[A-Za-z0-9_-]{6}\.[A-Za-z0-9_-]{27}/g;
@@ -28,6 +29,25 @@ async function modlogChannel(guild) {
   return channel?.isTextBased() ? channel : null;
 }
 
+// Who deleted a message (1.16.4). A mod (or the bot itself, e.g. a purge
+// or automod) deleting someone else's message writes a MESSAGE_DELETE
+// audit entry: executor = the deleter, target = the author, and the entry
+// carries the channel — so the lookup matches both the author and the
+// channel. A bulk delete writes one MESSAGE_BULK_DELETE entry instead,
+// whose target is the channel, so that is the fallback. When the author
+// deletes their own message Discord writes NO audit entry at all, so
+// "no entry after the retry" honestly means self-deleted — the log says
+// so instead of a bare 'unknown'.
+async function resolveDeletedBy(message) {
+  const byMod = await resolveActor(message.guild, AuditLogEvent.MessageDelete, message.author.id, {
+    extraMatch: (e) => e.extra?.channel?.id === message.channelId,
+  });
+  if (byMod !== 'unknown') return byMod;
+  const byBulk = await resolveActor(message.guild, AuditLogEvent.MessageBulkDelete, message.channelId);
+  if (byBulk !== 'unknown') return byBulk;
+  return 'the author (deleted their own message)';
+}
+
 module.exports = [
   {
     name: Events.MessageDelete,
@@ -41,9 +61,10 @@ module.exports = [
         );
         const channel = await modlogChannel(message.guild);
         if (!channel) return;
+        const deletedBy = await resolveDeletedBy(message);
         await channel.send({
           embeds: [infoEmbed('🗑️ Message deleted',
-            `**Author:** ${message.author.tag} (<@${message.author.id}>)\n**Channel:** <#${message.channelId}>\n**Content:**\n${excerpt(content)}`)],
+            `**Author:** ${message.author.tag} (<@${message.author.id}>)\n**Deleted by:** ${deletedBy}\n**Channel:** <#${message.channelId}>\n**Content:**\n${excerpt(content)}`)],
         }).catch(() => {});
       } catch {}
     },

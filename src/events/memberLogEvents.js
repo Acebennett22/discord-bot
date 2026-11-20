@@ -6,23 +6,13 @@
 // (1.16.1) Bans, unbans, timeouts, and role changes now name the
 // moderator, like Discord's audit log: the executor is resolved from the
 // guild audit log, falling back to 'unknown' when it can't be resolved.
+// (1.16.4) The resolver lives in src/utils/resolveActor.js now (shared
+// with the message-delete log) and retries once after ~1.5s, because the
+// gateway event can fire before Discord has written the audit entry —
+// that race is why the bot's own autorole once logged "By: unknown".
 const { Events, AuditLogEvent } = require('discord.js');
 const { logEvent } = require('../utils/memberLog');
-
-// Resolve "who did it" from the guild audit log — same pattern as the
-// kick check in guildMemberRemove.js: needs View Audit Log, matches a
-// fresh (<10s) entry for the target, falls back to 'unknown'. Never
-// throws, so a failed lookup never breaks the log post.
-async function resolveActor(guild, auditType, targetId) {
-  try {
-    if (!guild.members.me?.permissions?.has('ViewAuditLog')) return 'unknown';
-    const logs = await guild.fetchAuditLogs({ type: auditType, limit: 3 });
-    const entry = logs.entries.find((e) => e.target?.id === targetId && Date.now() - e.createdAt.getTime() < 10_000);
-    return entry?.executor ? `${entry.executor.tag} (<@${entry.executor.id}>)` : 'unknown';
-  } catch {
-    return 'unknown';
-  }
-}
+const { resolveActor } = require('../utils/resolveActor');
 
 function roleDiff(oldMember, newMember) {
   const oldRoles = new Set(oldMember.roles.cache.keys());
