@@ -21,6 +21,8 @@ const config = require('./utils/config');
 const db = require('./utils/database');
 const { getGuildSettings, setGuildSettings } = require('./utils/guildSettings');
 const staffUtils = require('./utils/staff');
+const localAccounts = require('./utils/localAccounts');
+const { staffFlag, requireStaff, requireStaffWrite, requireAdmin, requireOwner, actorId, getLocalAccount, canManageAccounts, handleLocalLogin, createAccountApi, setAccountRoleApi, setAccountStatusApi, resetAccountPasswordApi, deleteAccountApi } = require('./utils/dashboardAuth');
 const { resolveUserLabels } = require('./utils/userLabels');
 const { createSessionStore, SESSION_MAX_AGE_MS } = require('./utils/sessionStore');
 const errorLogger = require('./utils/errorLogger');
@@ -77,7 +79,15 @@ if ((config.dashboard?.sessionSecret || '').includes('CHANGE_ME')) {
 // defined" — the same class of bug as the 1.15.2 translate crash (a template
 // referencing a variable a route doesn't provide). Explicit render locals
 // still override this default.
-app.use((req, res, next) => { res.locals.authExpired = false; next(); });
+app.use((req, res, next) => {
+  res.locals.authExpired = false;
+  // Local-account identity for templates (1.16.6): the header shows the
+  // local username/role when logged in that way, and the staff nav shows
+  // the Accounts link only to the Discord owner or a local admin.
+  res.locals.localAccount = getLocalAccount(req);
+  res.locals.canManageAccounts = canManageAccounts(req);
+  next();
+});
 
 // --- Discord API helpers -------------------------------------------------------
 const discordApi = axios.create({ baseURL: 'https://discord.com/api/v10', timeout: 10_000 });
@@ -102,21 +112,12 @@ function formatUptime(seconds) {
   return `${s}s`;
 }
 
-async function staffFlag(req) {
-  return req.session.user ? await staffUtils.isStaff(req.session.user.id) : false;
-}
+// (staffFlag / requireStaff / requireStaffWrite / requireAdmin /
+// requireOwner / actorId / getLocalAccount / canManageAccounts /
+// handleLocalLogin all come from src/utils/dashboardAuth.js — see the
+// require at the top of this file. Local username/password accounts log
+// in alongside Discord OAuth; see that module for the session shape.)
 
-async function requireStaff(req, res, next) {
-  if (!req.session.user) return res.redirect('/login');
-  if (!(await staffUtils.isStaff(req.session.user.id))) return res.status(403).send('Staff only — this area is for the bot owner and approved staff.');
-  next();
-}
-
-async function requireOwner(req, res, next) {
-  if (!req.session.user) return res.redirect('/login');
-  if (!staffUtils.isOwner(req.session.user.id)) return res.status(403).send('Owner only.');
-  next();
-}
 
 // --- First-run setup wizard --------------------------------------------------
 const PLACEHOLDER_VALUES = new Set(['', 'YOUR_DISCORD_BOT_TOKEN_HERE', 'YOUR_CLIENT_ID_HERE', 'YOUR_TOKEN_HERE', 'YOUR_CLIENT_ID']);
@@ -460,7 +461,13 @@ app.get('/', (req, res) => {
   res.redirect('/servers');
 });
 
+// Login page (1.16.6): Discord OAuth as before, plus a username +
+// password form for local dashboard accounts.
 app.get('/login', (req, res) => {
+  res.render('login', { error: null, username: '' });
+});
+
+app.get('/login/discord', (req, res) => {
   const secret = config.dashboard?.clientSecret || '';
   if (!secret || secret.includes('YOUR_')) {
     return res.send('Dashboard OAuth is not configured yet — fill in dashboard.clientSecret in config.json (Discord Developer Portal → OAuth2 → Client Secret), then restart the dashboard.');
@@ -473,6 +480,8 @@ app.get('/login', (req, res) => {
   });
   res.redirect(`https://discord.com/oauth2/authorize?${params}`);
 });
+
+app.post('/login/local', handleLocalLogin);
 
 app.get('/callback', async (req, res) => {
   const { code } = req.query;
@@ -494,6 +503,8 @@ app.get('/callback', async (req, res) => {
     if (tokenRes.data.expires_in) req.session.tokenExpiresAt = Date.now() + tokenRes.data.expires_in * 1000;
     const userRes = await discordApi.get('/users/@me', { headers: { Authorization: `Bearer ${tokenRes.data.access_token}` } });
     req.session.user = userRes.data;
+    req.session.authType = 'discord';
+    delete req.session.localAccount;
     res.redirect('/servers');
   } catch (err) {
     console.error('[dashboard] OAuth callback failed:', err.response?.data || err.message);
@@ -1617,7 +1628,7 @@ app.post('/api/guilds/:id/temproles/:tempId/remove', requireAuth, requireGuildAc
 // --- Server backups API (1.5.4, staff) -------------------------------------------
 // List is rendered on /staff/backups (serverBackups in data). Create snapshots
 // via REST; restore via REST with role/channel mapping by name.
-app.post('/api/staff/serverbackups', requireStaff, async (req, res) => {
+app.post('/api/staff/serverbackups', requireStaffWrite, async (req, res) => {
   if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
   const { guildId, name } = req.body || {};
   if (!guildId) return res.status(400).json({ error: 'guildId required.' });
@@ -1640,14 +1651,14 @@ app.post('/api/staff/serverbackups', requireStaff, async (req, res) => {
       }));
     const settings = await getGuildSettings(guildId);
     const result = await snapshotData(guildId, guildRes.data?.name || guildId, req.session.user, name || 'backup', roles, channels, settings);
-    await staffUtils.audit(req.session.user.id, 'serverbackup.create', String(result.id || ''), `${result.roles} roles, ${result.channels} channels`);
+    await staffUtils.audit(actorId(req), 'serverbackup.create', String(result.id || ''), `${result.roles} roles, ${result.channels} channels`);
     res.json({ ok: true, ...result });
   } catch (err) {
     res.status(502).json({ error: `Snapshot failed: ${err.message}` });
   }
 });
 
-app.post('/api/staff/serverbackups/:backupId/restore', requireStaff, async (req, res) => {
+app.post('/api/staff/serverbackups/:backupId/restore', requireStaffWrite, async (req, res) => {
   if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
   const rows = await db.query('SELECT * FROM server_backups WHERE id = ?', [req.params.backupId]);
   const backup = rows?.[0];
@@ -1662,14 +1673,14 @@ app.post('/api/staff/serverbackups/:backupId/restore', requireStaff, async (req,
   };
   try {
     const summary = await restoreBackupViaApi(backup.guild_id, backup, { replace, api });
-    await staffUtils.audit(req.session.user.id, 'serverbackup.restore', String(backup.id), `${summary.rolesCreated} roles created, ${summary.channelsCreated} channels created${replace ? ', replace mode' : ''}`);
+    await staffUtils.audit(actorId(req), 'serverbackup.restore', String(backup.id), `${summary.rolesCreated} roles created, ${summary.channelsCreated} channels created${replace ? ', replace mode' : ''}`);
     res.json({ ok: true, summary });
   } catch (err) {
     res.status(502).json({ error: `Restore failed: ${err.message}` });
   }
 });
 
-app.delete('/api/staff/serverbackups/:backupId', requireStaff, async (req, res) => {
+app.delete('/api/staff/serverbackups/:backupId', requireStaffWrite, async (req, res) => {
   if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
   const rows = await db.query('SELECT * FROM server_backups WHERE id = ?', [req.params.backupId]);
   if (!rows?.length) return res.status(404).json({ error: 'Backup not found.' });
@@ -2312,14 +2323,14 @@ function parsePresenceTemplates(raw) {
   return activities;
 }
 
-app.post('/api/staff/presence/rotate', requireStaff, async (req, res) => {
+app.post('/api/staff/presence/rotate', requireStaffWrite, async (req, res) => {
   if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable — the bot checks the rotate flag in MySQL.' });
   await db.query('INSERT INTO presence_state (id, rotate_requested_at) VALUES (1, NOW()) ON DUPLICATE KEY UPDATE rotate_requested_at = NOW()');
-  await staffUtils.audit(req.session.user.id, 'presence.rotate', '', 'rotate now requested');
+  await staffUtils.audit(actorId(req), 'presence.rotate', '', 'rotate now requested');
   res.json({ ok: true });
 });
 
-app.post('/api/staff/presence/templates', requireStaff, async (req, res) => {
+app.post('/api/staff/presence/templates', requireStaffWrite, async (req, res) => {
   const activities = parsePresenceTemplates(req.body?.templates);
   if (!activities) return res.status(400).json({ error: 'Add at least one template (one per line).' });
   const configPath = path.join(__dirname, '..', 'config.json');
@@ -2330,7 +2341,7 @@ app.post('/api/staff/presence/templates', requireStaff, async (req, res) => {
   try { fs.writeFileSync(configPath, JSON.stringify(current, null, 2) + '\n'); }
   catch (e) { return res.status(500).json({ error: `Could not write config.json: ${e.message}` }); }
   Object.assign(config, current); // update this process's in-memory config too
-  await staffUtils.audit(req.session.user.id, 'presence.templates', '', `${activities.length} templates saved`);
+  await staffUtils.audit(actorId(req), 'presence.templates', '', `${activities.length} templates saved`);
   res.json({ ok: true, activities });
 });
 
@@ -2398,14 +2409,14 @@ app.get('/staff/errors/:id', requireStaff, async (req, res) => {
   res.render('staff', { user: req.session.user, section: 'error-detail', data: { error: row }, isStaff: true, inviteUrl: inviteUrl(), saved: req.query.saved === '1' });
 });
 
-app.post('/api/staff/errors/purge', requireStaff, async (req, res) => {
+app.post('/api/staff/errors/purge', requireStaffWrite, async (req, res) => {
   const ids = req.body?.ids;
   if (ids !== undefined && (!Array.isArray(ids) || !ids.length || !ids.every((v) => Number.isInteger(Number(v)) && Number(v) > 0))) {
     return res.status(400).json({ error: 'ids must be a non-empty array of error log ids, or omitted to purge all.' });
   }
   try {
     const result = await errorLogger.purgeErrorLogs(ids);
-    await staffUtils.audit(req.session.user.id, 'errors.purge', null,
+    await staffUtils.audit(actorId(req), 'errors.purge', null,
       result.mode === 'all'
         ? `deleted=${result.deleted} fileCleared=${result.fileCleared} dbAvailable=${result.dbAvailable}`
         : `ids=${ids.join(',')} deleted=${result.deleted}`);
@@ -2415,10 +2426,10 @@ app.post('/api/staff/errors/purge', requireStaff, async (req, res) => {
   }
 });
 
-app.post('/api/staff/errors/:id/resolve', requireStaff, async (req, res) => {
+app.post('/api/staff/errors/:id/resolve', requireStaffWrite, async (req, res) => {
   if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
-  await db.query('UPDATE error_logs SET resolved = 1, resolved_by = ? WHERE id = ?', [req.session.user.id, req.params.id]);
-  await staffUtils.audit(req.session.user.id, 'error.resolve', req.params.id, null);
+  await db.query('UPDATE error_logs SET resolved = 1, resolved_by = ? WHERE id = ?', [actorId(req), req.params.id]);
+  await staffUtils.audit(actorId(req), 'error.resolve', req.params.id, null);
   res.json({ ok: true });
 });
 
@@ -2451,6 +2462,22 @@ app.get('/staff/manage', requireOwner, async (req, res) => {
   res.render('staff', { user: req.session.user, section: 'manage', data: { staff, audit: auditRows, ownerId: config.ownerId, bootstrap: config.staffUserIds || [] }, isStaff: true, inviteUrl: inviteUrl(), saved: req.query.saved === '1' });
 });
 
+// --- Local dashboard accounts (1.16.6) ------------------------------------
+// Username + password accounts with Admin / Staff / Viewer roles, managed
+// here by the Discord owner or a local admin. Discord login is untouched
+// and still works alongside these. Bootstrap: the owner logs in with
+// Discord once and creates the first local admin here.
+app.get('/staff/accounts', requireAdmin, async (req, res) => {
+  const accounts = await localAccounts.listAccounts();
+  res.render('staff', { user: req.session.user, section: 'accounts', data: { accounts, selfId: getLocalAccount(req)?.id || null }, isStaff: true, inviteUrl: inviteUrl(), saved: req.query.saved === '1' });
+});
+
+app.post('/api/staff/accounts', requireAdmin, createAccountApi);
+app.post('/api/staff/accounts/:id/role', requireAdmin, setAccountRoleApi);
+app.post('/api/staff/accounts/:id/status', requireAdmin, setAccountStatusApi);
+app.post('/api/staff/accounts/:id/reset-password', requireAdmin, resetAccountPasswordApi);
+app.delete('/api/staff/accounts/:id', requireAdmin, deleteAccountApi);
+
 app.get('/staff/backups', requireStaff, async (req, res) => {
   const logs = db.isEnabled() ? (await db.query('SELECT * FROM backup_logs ORDER BY id DESC LIMIT 30') || []) : [];
   let files = [];
@@ -2473,10 +2500,10 @@ app.get('/staff/backups/download/:filename', requireStaff, async (req, res) => {
   res.download(full, filename);
 });
 
-app.post('/api/staff/backup-now', requireStaff, async (req, res) => {
+app.post('/api/staff/backup-now', requireStaffWrite, async (req, res) => {
   const result = await runBackup();
   if (!result.ok) return res.status(500).json({ error: result.error });
-  await staffUtils.audit(req.session.user.id, 'backup.manual', result.filename, `${result.sizeBytes} bytes`);
+  await staffUtils.audit(actorId(req), 'backup.manual', result.filename, `${result.sizeBytes} bytes`);
   res.json({ ok: true, filename: result.filename, sizeBytes: result.sizeBytes });
 });
 
@@ -2565,13 +2592,13 @@ app.get('/api/staff/botflags', requireStaff, async (req, res) => {
   res.json({ flags, stats, raid: botTracker.raidWatchStatus(guildId) });
 });
 
-app.post('/api/staff/botflags/:id/clear', requireStaff, async (req, res) => {
+app.post('/api/staff/botflags/:id/clear', requireStaffWrite, async (req, res) => {
   if (!db.isEnabled()) return res.status(500).json({ error: 'Database unavailable.' });
   const rows = await db.query('SELECT * FROM bot_flags WHERE id = ?', [req.params.id]) || [];
   const flag = rows[0];
   if (!flag) return res.status(404).json({ error: 'Flag not found.' });
-  await db.query("UPDATE bot_flags SET status = 'reviewed', reviewed_by = ? WHERE id = ?", [req.session.user.id, flag.id]);
-  await staffUtils.audit(req.session.user.id, 'botflag.clear', String(flag.user_id), `flag #${flag.id} score ${flag.score}`);
+  await db.query("UPDATE bot_flags SET status = 'reviewed', reviewed_by = ? WHERE id = ?", [actorId(req), flag.id]);
+  await staffUtils.audit(actorId(req), 'botflag.clear', String(flag.user_id), `flag #${flag.id} score ${flag.score}`);
   res.json({ ok: true });
 });
 
@@ -2586,14 +2613,14 @@ async function botFlagAction(req, res, action) {
   } catch (err) {
     return res.status(500).json({ error: `Discord ${action} failed: ${err.response?.data?.message || err.message}` });
   }
-  await db.query("UPDATE bot_flags SET status = 'reviewed', action_taken = ?, reviewed_by = ? WHERE id = ?", [action, req.session.user.id, flag.id]);
-  await staffUtils.audit(req.session.user.id, `botflag.${action}`, String(flag.user_id), `flag #${flag.id} score ${flag.score}`);
+  await db.query("UPDATE bot_flags SET status = 'reviewed', action_taken = ?, reviewed_by = ? WHERE id = ?", [action, actorId(req), flag.id]);
+  await staffUtils.audit(actorId(req), `botflag.${action}`, String(flag.user_id), `flag #${flag.id} score ${flag.score}`);
   res.json({ ok: true });
 }
-app.post('/api/staff/botflags/:id/kick', requireStaff, (req, res) => botFlagAction(req, res, 'kick'));
-app.post('/api/staff/botflags/:id/ban', requireStaff, (req, res) => botFlagAction(req, res, 'ban'));
+app.post('/api/staff/botflags/:id/kick', requireStaffWrite, (req, res) => botFlagAction(req, res, 'kick'));
+app.post('/api/staff/botflags/:id/ban', requireStaffWrite, (req, res) => botFlagAction(req, res, 'ban'));
 
-app.post('/api/staff/bottracking/settings', requireStaff, async (req, res) => {
+app.post('/api/staff/bottracking/settings', requireStaffWrite, async (req, res) => {
   const { guildId, threshold, autoAction, suspectRoleId } = req.body || {};
   if (!guildId) return res.status(400).json({ error: 'guildId is required.' });
   if (threshold != null && (threshold < 0 || threshold > 100)) return res.status(400).json({ error: 'Threshold must be 0–100.' });
@@ -2604,13 +2631,13 @@ app.post('/api/staff/bottracking/settings', requireStaff, async (req, res) => {
     botSuspectRoleId: suspectRoleId || '',
   });
   if (!saved.saved) return res.status(500).json({ error: 'Database unavailable — settings kept in memory only.' });
-  await staffUtils.audit(req.session.user.id, 'bottracking.settings', guildId, `threshold=${threshold} action=${autoAction}`);
+  await staffUtils.audit(actorId(req), 'bottracking.settings', guildId, `threshold=${threshold} action=${autoAction}`);
   res.json({ ok: true });
 });
 
 // Plain-POST fallback for the bot-tracking settings form (no-JS browsers):
 // same save as the API above, then back to the page with ?saved=1.
-app.post('/staff/bottracking/settings', requireStaff, async (req, res) => {
+app.post('/staff/bottracking/settings', requireStaffWrite, async (req, res) => {
   const { guildId, threshold, autoAction, suspectRoleId } = req.body || {};
   if (!guildId) return res.redirect('/staff/bottracking?saved=0');
   await setGuildSettings(guildId, {
@@ -2618,7 +2645,7 @@ app.post('/staff/bottracking/settings', requireStaff, async (req, res) => {
     botAutoAction: ['flag', 'kick', 'ban'].includes(autoAction) ? autoAction : 'flag',
     botSuspectRoleId: suspectRoleId || '',
   });
-  await staffUtils.audit(req.session.user.id, 'bottracking.settings', guildId, `threshold=${threshold} action=${autoAction} (form POST)`);
+  await staffUtils.audit(actorId(req), 'bottracking.settings', guildId, `threshold=${threshold} action=${autoAction} (form POST)`);
   res.redirect(`/staff/bottracking?guild=${encodeURIComponent(guildId)}&saved=1`);
 });
 
@@ -2706,7 +2733,7 @@ app.get('/staff/antinuke', requireStaff, async (req, res) => {
   res.render('staff', { user: req.session.user, section: 'antinuke', data: { guilds, guildId, events, antinukeSettings }, isStaff: true, inviteUrl: inviteUrl(), saved: req.query.saved === '1' });
 });
 
-app.post('/api/staff/antinuke/settings', requireStaff, async (req, res) => {
+app.post('/api/staff/antinuke/settings', requireStaffWrite, async (req, res) => {
   const { guildId, enabled, action, threshold, logChannelId, whitelistRoles } = req.body || {};
   if (!guildId) return res.status(400).json({ error: 'guildId is required.' });
   if (action && !['kick', 'ban', 'lockdown'].includes(action)) return res.status(400).json({ error: 'action must be kick, ban, or lockdown.' });
@@ -2719,12 +2746,12 @@ app.post('/api/staff/antinuke/settings', requireStaff, async (req, res) => {
     antinukeWhitelistRoles: Array.isArray(whitelistRoles) ? whitelistRoles : [],
   });
   if (!saved.saved) return res.status(500).json({ error: 'Database unavailable — settings kept in memory only.' });
-  await staffUtils.audit(req.session.user.id, 'antinuke.settings', guildId, `enabled=${enabled} action=${action} threshold=${threshold}`);
+  await staffUtils.audit(actorId(req), 'antinuke.settings', guildId, `enabled=${enabled} action=${action} threshold=${threshold}`);
   res.json({ ok: true });
 });
 
 // Plain-POST fallback for the anti-nuke settings form (no-JS browsers).
-app.post('/staff/antinuke/settings', requireStaff, async (req, res) => {
+app.post('/staff/antinuke/settings', requireStaffWrite, async (req, res) => {
   const { guildId, enabled, action, threshold, logChannelId } = req.body || {};
   if (!guildId) return res.redirect('/staff/antinuke?saved=0');
   const whitelistRoles = Array.isArray(req.body.whitelistRoles) ? req.body.whitelistRoles : (req.body.whitelistRoles ? [req.body.whitelistRoles] : []);
@@ -2735,7 +2762,7 @@ app.post('/staff/antinuke/settings', requireStaff, async (req, res) => {
     antinukeLogChannelId: logChannelId || '',
     antinukeWhitelistRoles: whitelistRoles,
   });
-  await staffUtils.audit(req.session.user.id, 'antinuke.settings', guildId, `enabled=${enabled} action=${action} (form POST)`);
+  await staffUtils.audit(actorId(req), 'antinuke.settings', guildId, `enabled=${enabled} action=${action} (form POST)`);
   res.redirect(`/staff/antinuke?guild=${encodeURIComponent(guildId)}&saved=1`);
 });
 
@@ -2802,21 +2829,21 @@ app.get('/staff/broadcast', requireOwner, async (req, res) => {
   res.render('staff', { user: req.session.user, section: 'broadcast', data: { guilds }, isStaff: true, inviteUrl: inviteUrl(), saved: req.query.saved === '1' });
 });
 
-app.post('/api/staff/commands', requireStaff, async (req, res) => {
+app.post('/api/staff/commands', requireStaffWrite, async (req, res) => {
   if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
   const { commandName, enabled } = req.body || {};
   if (!COMMAND_CATALOG.some((c) => c.name === commandName)) return res.status(400).json({ error: 'Unknown command.' });
-  await setToggle('command_toggles', commandName, '', Boolean(enabled), req.session.user.id);
-  await staffUtils.audit(req.session.user.id, 'command.toggle', commandName, `global enabled=${Boolean(enabled)}`);
+  await setToggle('command_toggles', commandName, '', Boolean(enabled), actorId(req));
+  await staffUtils.audit(actorId(req), 'command.toggle', commandName, `global enabled=${Boolean(enabled)}`);
   res.json({ ok: true });
 });
 
-app.post('/api/staff/features', requireStaff, async (req, res) => {
+app.post('/api/staff/features', requireStaffWrite, async (req, res) => {
   if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
   const { feature, enabled } = req.body || {};
   if (!FEATURES.includes(feature)) return res.status(400).json({ error: 'Unknown feature.' });
-  await setToggle('feature_toggles', feature, '', Boolean(enabled), req.session.user.id);
-  await staffUtils.audit(req.session.user.id, 'feature.toggle', feature, `global enabled=${Boolean(enabled)}`);
+  await setToggle('feature_toggles', feature, '', Boolean(enabled), actorId(req));
+  await staffUtils.audit(actorId(req), 'feature.toggle', feature, `global enabled=${Boolean(enabled)}`);
   res.json({ ok: true });
 });
 
@@ -2899,7 +2926,7 @@ app.get('/api/staff/guilds/:id/channels', requireStaff, async (req, res) => {
   res.json({ channels: text });
 });
 
-app.post('/api/staff/embed-creator', requireStaff, async (req, res) => {
+app.post('/api/staff/embed-creator', requireStaffWrite, async (req, res) => {
   const { guildId, channelId } = req.body || {};
   if (!guildId || !/^\d{17,20}$/.test(String(guildId))) return res.status(400).json({ error: 'Pick a server.' });
   if (!channelId || !/^\d{17,20}$/.test(String(channelId))) return res.status(400).json({ error: 'Pick a text channel.' });

@@ -98,6 +98,23 @@ const STICKY_MESSAGES_CREATE = `CREATE TABLE IF NOT EXISTS sticky_messages (
   INDEX idx_sticky_guild (guild_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`;
 
+// The dashboard_accounts table (1.16.6) — same self-heal as sticky_messages:
+// CREATE TABLE IF NOT EXISTS in sql/schema.sql only runs on fresh installs
+// (the wizard), so existing installs get the table here on startup.
+const DASHBOARD_ACCOUNTS_CREATE = `CREATE TABLE IF NOT EXISTS dashboard_accounts (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  username VARCHAR(32) NOT NULL,
+  password_hash VARCHAR(256) NOT NULL,
+  role ENUM('admin','staff','viewer') NOT NULL DEFAULT 'viewer',
+  disabled TINYINT(1) NOT NULL DEFAULT 0,
+  created_by VARCHAR(64) NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  last_login_at TIMESTAMP NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_dashboard_account_username (username),
+  INDEX idx_dashboard_accounts_role (role)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`;
+
 async function runMigrations(dbName) {
   if (!pool) return;
   for (const [table, column, definition] of MISSING_COLUMNS) {
@@ -124,6 +141,11 @@ async function runMigrations(dbName) {
     await pool.execute(STICKY_MESSAGES_CREATE);
   } catch (err) {
     console.warn('[db] Migration: could not ensure sticky_messages table:', err.message);
+  }
+  try {
+    await pool.execute(DASHBOARD_ACCOUNTS_CREATE);
+  } catch (err) {
+    console.warn('[db] Migration: could not ensure dashboard_accounts table:', err.message);
   }
   await ensureReactionRolesEmojiCollation(dbName);
 }

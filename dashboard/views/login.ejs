@@ -1,0 +1,21 @@
+<%- include('partials/header') %>
+<section class="hero">
+  <h1>Log in</h1>
+  <p class="muted">Sign in with Discord, or with a dashboard username and password (for staff accounts created by the owner).</p>
+  <% if (typeof error !== 'undefined' && error) { %><p style="color:#fa777c"><strong><%= error %></strong></p><% } %>
+  <div class="actions" style="margin-bottom:24px">
+    <a class="btn" href="/login/discord">Login with Discord</a>
+  </div>
+  <div class="card" style="max-width:420px;text-align:left">
+    <h3>Dashboard account</h3>
+    <form method="post" action="/login/local">
+      <label>Username</label>
+      <input type="text" name="username" autocomplete="username" required value="<%= typeof username !== 'undefined' ? username : '' %>">
+      <label>Password</label>
+      <input type="password" name="password" autocomplete="current-password" required>
+      <br><br><button class="btn" type="submit">Log in</button>
+    </form>
+    <p class="muted">Dashboard accounts can only reach the Staff area — never per-server settings. Passwords are stored hashed, never in plain text.</p>
+  </div>
+</section>
+<%- include('partials/footer') %>

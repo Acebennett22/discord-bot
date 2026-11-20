@@ -300,6 +300,23 @@ CREATE TABLE IF NOT EXISTS staff_audit (
   INDEX idx_staff_audit_actor (actor_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Local dashboard accounts (1.16.6): username + password login alongside
+-- Discord OAuth. Passwords are scrypt hashes, never plaintext. Usernames
+-- are unique case-insensitively (utf8mb4_unicode_ci collation).
+CREATE TABLE IF NOT EXISTS dashboard_accounts (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  username VARCHAR(32) NOT NULL,
+  password_hash VARCHAR(256) NOT NULL,
+  role ENUM('admin','staff','viewer') NOT NULL DEFAULT 'viewer',
+  disabled TINYINT(1) NOT NULL DEFAULT 0,
+  created_by VARCHAR(64) NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  last_login_at TIMESTAMP NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_dashboard_account_username (username),
+  INDEX idx_dashboard_accounts_role (role)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- guild_id '' = global toggle. Global off disables everywhere; guild off disables in that guild.
 CREATE TABLE IF NOT EXISTS command_toggles (
   command_name VARCHAR(64) NOT NULL,

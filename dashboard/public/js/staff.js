@@ -53,6 +53,17 @@
       } catch (err) { AceBot.toast('Failed: ' + err.message, 'error'); }
       return;
     }
+    if (form.id === 'add-account-form') {
+      e.preventDefault();
+      const fd = new FormData(form);
+      try {
+        await AceBot.postJSON('/api/staff/accounts', { username: fd.get('username'), password: fd.get('password'), role: fd.get('role') });
+        AceBot.toast('Account created');
+        form.reset();
+        await AceBot.refreshSection('#accounts-list');
+      } catch (err) { AceBot.toast('Failed: ' + err.message, 'error'); }
+      return;
+    }
     if (form.id === 'broadcast-form') {
       e.preventDefault();
       const fd = new FormData(form);
@@ -111,6 +122,19 @@
   });
 
   // --- Click handlers (delegated) ---
+  // --- Account role changes (dashboard accounts section) ---------------
+  document.addEventListener('change', async (e) => {
+    const sel = e.target.closest ? e.target.closest('[data-account-role]') : null;
+    if (!sel) return;
+    try {
+      await AceBot.postJSON(`/api/staff/accounts/${sel.dataset.accountRole}/role`, { role: sel.value });
+      AceBot.toast('Role updated');
+    } catch (err) {
+      AceBot.toast('Failed: ' + err.message, 'error');
+      await AceBot.refreshSection('#accounts-list');
+    }
+  });
+
   // --- Error log selection (staff errors section) -------------------------
   // Delegated: #errors-list is swapped by refreshSection, so direct binding
   // would die on refresh. Select-all toggles every row; Purge selected stays
@@ -146,6 +170,46 @@
         await AceBot.del('/api/staff/users/' + rmStaff.dataset.removeStaff);
         AceBot.removeRow(rmStaff);
         AceBot.toast('Staff member removed');
+      } catch (err) { AceBot.toast('Failed: ' + err.message, 'error'); }
+      return;
+    }
+    const accEnable = e.target.closest('[data-account-enable]');
+    if (accEnable) {
+      try {
+        await AceBot.postJSON(`/api/staff/accounts/${accEnable.dataset.accountEnable}/status`, { disabled: false });
+        AceBot.toast('Account enabled');
+        await AceBot.refreshSection('#accounts-list');
+      } catch (err) { AceBot.toast('Failed: ' + err.message, 'error'); }
+      return;
+    }
+    const accDisable = e.target.closest('[data-account-disable]');
+    if (accDisable) {
+      if (!AceBot.confirmAction('Disable this account? It will not be able to log in until re-enabled.')) return;
+      try {
+        await AceBot.postJSON(`/api/staff/accounts/${accDisable.dataset.accountDisable}/status`, { disabled: true });
+        AceBot.toast('Account disabled');
+        await AceBot.refreshSection('#accounts-list');
+      } catch (err) { AceBot.toast('Failed: ' + err.message, 'error'); }
+      return;
+    }
+    const accReset = e.target.closest('[data-account-reset]');
+    if (accReset) {
+      const pw = window.prompt('New password for this account (at least 8 characters):');
+      if (pw === null) return;
+      if (!pw || pw.length < 8) { AceBot.toast('Password must be at least 8 characters.', 'error'); return; }
+      try {
+        await AceBot.postJSON(`/api/staff/accounts/${accReset.dataset.accountReset}/reset-password`, { password: pw });
+        AceBot.toast('Password reset');
+      } catch (err) { AceBot.toast('Failed: ' + err.message, 'error'); }
+      return;
+    }
+    const accDelete = e.target.closest('[data-account-delete]');
+    if (accDelete) {
+      if (!AceBot.confirmAction('Delete this account? This cannot be undone.')) return;
+      try {
+        await AceBot.del(`/api/staff/accounts/${accDelete.dataset.accountDelete}`);
+        AceBot.removeRow(accDelete);
+        AceBot.toast('Account deleted');
       } catch (err) { AceBot.toast('Failed: ' + err.message, 'error'); }
       return;
     }

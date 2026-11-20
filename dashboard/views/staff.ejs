@@ -7,6 +7,7 @@
       <a href="/staff/commands" class="<%= section === 'commands' ? 'active' : '' %>">⌨️ Command Management</a>
       <a href="/staff/features" class="<%= section === 'features' ? 'active' : '' %>">🧩 Feature Management</a>
       <a href="/staff/manage" class="<%= section === 'manage' ? 'active' : '' %>">👥 Staff Management</a>
+      <% if (typeof canManageAccounts !== 'undefined' && canManageAccounts) { %><a href="/staff/accounts" class="<%= section === 'accounts' ? 'active' : '' %>">🔑 Accounts</a><% } %>
       <a href="/staff/broadcast" class="<%= section === 'broadcast' ? 'active' : '' %>">📣 Broadcast</a>
       <a href="/staff/embed-creator" class="<%= section === 'embed-creator' ? 'active' : '' %>">📝 Embed Creator</a>
       <a href="/staff/errors" class="<%= section === 'errors' || section === 'error-detail' ? 'active' : '' %>">🐛 Errors</a>
@@ -183,6 +184,33 @@
       </form>
       <h2>Staff audit log</h2>
       <ul><% data.audit.forEach(a => { %><li><%= a.created_at %> — <%= a.actor_id %> — <strong><%= a.action %></strong> — <%= a.target_id || '' %> <%= a.details || '' %></li><% }); %></ul>
+    <% } %>
+
+    <% if (section === 'accounts') { %>
+      <h1>Dashboard accounts</h1>
+      <p class="muted">Username + password accounts for the Staff area. <strong>Admin</strong> can do everything staff can, plus manage accounts here. <strong>Staff</strong> can do all staff actions. <strong>Viewer</strong> can only look — every change button returns 403 for them. These accounts never get per-server settings pages; those stay Discord-only. Passwords are stored hashed, never in plain text.</p>
+      <div id="accounts-list">
+      <table><tr><th>Username</th><th>Role</th><th>Status</th><th>Last login</th><th>Created by</th><th></th></tr>
+      <% data.accounts.forEach(a => { %>
+        <tr><td><%= a.username %></td>
+        <td><select data-account-role="<%= a.id %>"><option value="admin" <%= a.role === 'admin' ? 'selected' : '' %>>Admin</option><option value="staff" <%= a.role === 'staff' ? 'selected' : '' %>>Staff</option><option value="viewer" <%= a.role === 'viewer' ? 'selected' : '' %>>Viewer</option></select></td>
+        <td><%= a.disabled ? 'Disabled' : 'Enabled' %></td>
+        <td><%= a.last_login_at || 'never' %></td>
+        <td><%= a.created_by || '—' %></td>
+        <td style="white-space:nowrap"><% if (a.disabled) { %><button class="btn" data-account-enable="<%= a.id %>">Enable</button><% } else { %><button class="btn ghost" data-account-disable="<%= a.id %>" <%= data.selfId && String(data.selfId) === String(a.id) ? 'disabled' : '' %>>Disable</button><% } %> <button class="btn ghost" data-account-reset="<%= a.id %>">Reset password</button> <button class="btn danger" data-account-delete="<%= a.id %>" <%= data.selfId && String(data.selfId) === String(a.id) ? 'disabled' : '' %>>Delete</button></td></tr>
+      <% }); %></table>
+      </div>
+      <% if (!data.accounts.length) { %><p class="muted">No local accounts yet — create the first one below.</p><% } %>
+      <h2>Create account</h2>
+      <form id="add-account-form">
+        <label>Username</label>
+        <input type="text" name="username" placeholder="username" required>
+        <label>Password</label>
+        <input type="password" name="password" placeholder="at least 8 characters" required>
+        <label>Role</label>
+        <select name="role"><option value="viewer">Viewer</option><option value="staff">Staff</option><option value="admin">Admin</option></select>
+        <br><br><button class="btn" type="submit">Create account</button>
+      </form>
     <% } %>
 
     <% if (section === 'broadcast') { %>
