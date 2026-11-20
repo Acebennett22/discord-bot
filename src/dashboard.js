@@ -30,6 +30,7 @@ const { runBackup, retentionDays, BACKUP_DIR } = require('../scripts/backup-db')
 const { FEATURES, setToggle } = require('./utils/featureToggles');
 const { validateTemplate } = require('./utils/liveChannelTemplate');
 const { fetchBotHealth } = require('./utils/botHealth');
+const { formatErrorContext } = require('./utils/formatErrorContext');
 const { healthPort } = require('./utils/healthServer');
 
 // Command catalog (scanned from src/commands/*/*.js) for the Staff and
@@ -2406,6 +2407,11 @@ app.get('/staff/errors/:id', requireStaff, async (req, res) => {
     row = rows?.[0] || null;
   }
   if (!row) return res.status(404).send('Error log not found.');
+  // The context column comes back from MySQL as a parsed object, which
+  // EJS would print as "[object Object]" — normalise it to a display
+  // string first (pretty JSON for objects, raw text otherwise, null hides
+  // the Context section).
+  row.context = formatErrorContext(row.context);
   res.render('staff', { user: req.session.user, section: 'error-detail', data: { error: row }, isStaff: true, inviteUrl: inviteUrl(), saved: req.query.saved === '1' });
 });
 
