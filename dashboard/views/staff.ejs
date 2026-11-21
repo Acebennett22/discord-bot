@@ -38,14 +38,25 @@
       </div>
       <p class="muted" style="margin-top:6px">Purge selected deletes only the checked rows from the database — <code>logs/bot-errors.log</code> is only cleared by Purge all. Purge all also drops any entries the bot queued while the database was unreachable, so they can't come back.</p>
       <div class="table-scroll">
-      <table class="errors-table"><colgroup><col class="c-check"><col class="c-id"><col class="c-level"><col class="c-shard"><col class="c-command"><col class="c-message"><col class="c-when"><col class="c-actions"></colgroup><tr><th><input type="checkbox" id="select-all-errors" title="Select all"></th><th>ID</th><th>Level</th><th>Shard</th><th>Command</th><th>Message</th><th>When</th><th></th></tr>
+      <table class="errors-table" id="main-errors-table"><colgroup><col class="c-check"><col class="c-id"><col class="c-level"><col class="c-shard"><col class="c-command"><col class="c-message"><col class="c-when"><col class="c-actions"></colgroup><tr><th><input type="checkbox" id="select-all-errors" data-select-all-for="main-errors-table" title="Select all"></th><th>ID</th><th>Level</th><th>Shard</th><th>Command</th><th>Message</th><th>When</th><th></th></tr>
       <% data.errors.forEach(e => { %>
         <tr><td><input type="checkbox" class="error-select" value="<%= e.id %>"></td><td>#<%= e.id %></td><td><span class="badge level-<%= e.level %>"><%= e.level %></span></td><td><%= e.shard_id ?? '—' %></td><td class="cmd"><%= e.command_name || '—' %></td>
         <td class="msg" title="<%= e.message %>"><span class="msg-text"><%= e.message %></span><% if (e.resolved) { %> <span class="resolved-mark" title="Resolved">✅</span><% } %></td><td class="when" title="<%= e.created_at %>"><%= (e.created_at instanceof Date ? e.created_at : new Date(e.created_at)).toISOString().slice(0, 16).replace('T', ' ') %></td>
         <td><a class="btn ghost" href="/staff/errors/<%= e.id %>">Details</a></td></tr>
       <% }); %></table>
       </div>
-      <% if (!data.errors.length) { %><p class="muted">No errors match. 🎉</p><% } %>
+      <% if (!data.errors.length && !(data.autoTranslate || []).length) { %><p class="muted">No errors match. 🎉</p><% } %>
+      <h2>🌐 Auto-translate</h2>
+      <p class="muted">Rate-limit (429) warnings from auto-translate live here so they don't flood the list above — newest 25. Error-level auto-translate failures show here too; they're still real errors, just grouped.</p>
+      <div class="table-scroll">
+      <table class="errors-table" id="auto-translate-errors-table"><colgroup><col class="c-check"><col class="c-id"><col class="c-level"><col class="c-shard"><col class="c-command"><col class="c-message"><col class="c-when"><col class="c-actions"></colgroup><tr><th><input type="checkbox" id="select-all-auto-translate" data-select-all-for="auto-translate-errors-table" title="Select all"></th><th>ID</th><th>Level</th><th>Shard</th><th>Command</th><th>Message</th><th>When</th><th></th></tr>
+      <% (data.autoTranslate || []).forEach(e => { %>
+        <tr><td><input type="checkbox" class="error-select" value="<%= e.id %>"></td><td>#<%= e.id %></td><td><span class="badge level-<%= e.level %>"><%= e.level %></span></td><td><%= e.shard_id ?? '—' %></td><td class="cmd"><%= e.command_name || '—' %></td>
+        <td class="msg" title="<%= e.message %>"><span class="msg-text"><%= e.message %></span><% if (e.resolved) { %> <span class="resolved-mark" title="Resolved">✅</span><% } %></td><td class="when" title="<%= e.created_at %>"><%= (e.created_at instanceof Date ? e.created_at : new Date(e.created_at)).toISOString().slice(0, 16).replace('T', ' ') %></td>
+        <td><a class="btn ghost" href="/staff/errors/<%= e.id %>">Details</a></td></tr>
+      <% }); %></table>
+      </div>
+      <% if (!(data.autoTranslate || []).length) { %><p class="muted">No auto-translate entries.</p><% } %>
       </div>
     <% } %>
 

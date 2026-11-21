@@ -2447,20 +2447,38 @@ app.get('/staff', requireStaff, async (req, res) => {
   res.render('staff', { user: req.session.user, section: 'overview', data, isStaff: true, inviteUrl: inviteUrl(), saved: req.query.saved === '1' });
 });
 
+// Auto-translate rows are warn-level 429s that repeat constantly and flood
+// the list, so they get their own section below the main table. A row is
+// auto-translate when it came from the auto-translate handler: command
+// 'translate' with a message starting "Auto-translate failed: ". The
+// /translate slash command's own failures are logged as "/translate
+// failed: ..." by the interaction handler, so the message prefix is what
+// keeps the two apart. The split is by row content, so old rows move to
+// the new section automatically — no migration, no new column. New rows
+// also carry context { source: 'auto-translate' } (see src/utils/translate.js).
+const AUTO_TRANSLATE_PREDICATE = `(command_name = 'translate' AND message LIKE 'Auto-translate failed:%')`;
+const ERROR_LOG_COLUMNS = 'id, level, shard_id, guild_id, command_name, user_id, message, created_at, resolved';
+
 app.get('/staff/errors', requireStaff, async (req, res) => {
   const { level, command, shard } = req.query;
   let rows = [];
+  let autoTranslate = [];
   if (db.isEnabled()) {
     const where = [];
     const params = [];
     if (level && ['error', 'warn', 'info'].includes(level)) { where.push('level = ?'); params.push(level); }
     if (command) { where.push('command_name = ?'); params.push(command); }
     if (shard !== undefined && shard !== '') { where.push('shard_id = ?'); params.push(parseInt(shard, 10)); }
+    const mainWhere = [...where, `NOT ${AUTO_TRANSLATE_PREDICATE}`];
+    const autoWhere = [...where, AUTO_TRANSLATE_PREDICATE];
     rows = await db.query(
-      `SELECT id, level, shard_id, guild_id, command_name, user_id, message, created_at, resolved FROM error_logs ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY id DESC LIMIT 100`,
+      `SELECT ${ERROR_LOG_COLUMNS} FROM error_logs WHERE ${mainWhere.join(' AND ')} ORDER BY id DESC LIMIT 100`,
+      params) || [];
+    autoTranslate = await db.query(
+      `SELECT ${ERROR_LOG_COLUMNS} FROM error_logs WHERE ${autoWhere.join(' AND ')} ORDER BY id DESC LIMIT 25`,
       params) || [];
   }
-  res.render('staff', { user: req.session.user, section: 'errors', data: { errors: rows, filters: { level: level || '', command: command || '', shard: shard || '' } }, isStaff: true, inviteUrl: inviteUrl(), saved: req.query.saved === '1' });
+  res.render('staff', { user: req.session.user, section: 'errors', data: { errors: rows, autoTranslate, filters: { level: level || '', command: command || '', shard: shard || '' } }, isStaff: true, inviteUrl: inviteUrl(), saved: req.query.saved === '1' });
 });
 
 app.get('/staff/errors/:id', requireStaff, async (req, res) => {

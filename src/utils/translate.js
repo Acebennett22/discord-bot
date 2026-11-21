@@ -182,7 +182,7 @@ async function handleTranslateMessage(message) {
     // down for 10 minutes so the next messages don't retry immediately.
     const isRateLimit = e.status === 429 || /429/.test(e.message || '');
     if (isRateLimit) cooldownUntilByGuild.set(message.guildId, Date.now() + COOLDOWN_MS);
-    errorLogger.log({ level: isRateLimit ? 'warn' : 'error', guildId: message.guildId, commandName: 'translate', message: `Auto-translate failed: ${e.message}`, stack: e.stack });
+    errorLogger.log({ level: isRateLimit ? 'warn' : 'error', guildId: message.guildId, commandName: 'translate', message: `Auto-translate failed: ${e.message}`, stack: e.stack, context: { source: 'auto-translate' } });
     return false;
   }
 }

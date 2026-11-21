@@ -137,20 +137,20 @@
 
   // --- Error log selection (staff errors section) -------------------------
   // Delegated: #errors-list is swapped by refreshSection, so direct binding
-  // would die on refresh. Select-all toggles every row; Purge selected stays
-  // disabled until at least one row is checked.
+  // would die on refresh. Each table's select-all toggles only its own
+  // rows; Purge selected stays disabled until at least one row is checked.
   document.addEventListener('change', (e) => {
-    if (e.target.id === 'select-all-errors') {
-      document.querySelectorAll('.error-select').forEach((cb) => { cb.checked = e.target.checked; });
+    const selectAll = e.target.closest ? e.target.closest('[data-select-all-for]') : null;
+    if (selectAll) {
+      document.querySelectorAll(`#${selectAll.dataset.selectAllFor} .error-select`).forEach((cb) => { cb.checked = selectAll.checked; });
     }
-    if (e.target.id === 'select-all-errors' || e.target.classList.contains('error-select')) {
+    if (selectAll || e.target.classList.contains('error-select')) {
       const btn = document.getElementById('purge-selected-errors');
       if (btn) btn.disabled = !document.querySelector('.error-select:checked');
-      const all = document.getElementById('select-all-errors');
-      if (all && e.target.classList.contains('error-select')) {
-        const boxes = [...document.querySelectorAll('.error-select')];
-        all.checked = boxes.length > 0 && boxes.every((cb) => cb.checked);
-      }
+      document.querySelectorAll('[data-select-all-for]').forEach((header) => {
+        const boxes = [...document.querySelectorAll(`#${header.dataset.selectAllFor} .error-select`)];
+        header.checked = boxes.length > 0 && boxes.every((cb) => cb.checked);
+      });
     }
   });
 
