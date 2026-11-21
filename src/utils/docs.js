@@ -33,7 +33,7 @@ const FOLDER_CATEGORY = {
   staff: 'Staff / Owner', owner: 'Staff / Owner', welcome: 'Welcome',
   automod: 'Automod', suggestions: 'Suggestions', economy: 'Economy',
   casino: 'Casino', starboard: 'Starboard', customcommands: 'Custom Commands',
-  faq: 'FAQ', emojis: 'Emojis',
+  faq: 'FAQ', emojis: 'Emojis', botidentity: 'Bot Identity',
 };
 const COMMAND_CATEGORY = {
   afk: 'AFK', 'afk-remove': 'AFK', poll: 'Polls', 'poll-end': 'Polls',
@@ -50,7 +50,7 @@ const COMMAND_CATEGORY = {
   'emoji-add': 'Emojis', 'emoji-remove': 'Emojis', 'emoji-list': 'Emojis',
 };
 const CATEGORY_ORDER = [
-  'Moderation', 'Music', 'Utility', 'Tickets', 'Leveling', 'Fun', 'Giveaways',
+  'Moderation', 'Music', 'Utility', 'Bot Identity', 'Tickets', 'Leveling', 'Fun', 'Giveaways',
   'Reaction Roles', 'Streams', 'Game Servers', 'Steam', 'Applications', 'Invites',
   'Staff / Owner', 'Welcome', 'Automod', 'Suggestions', 'Economy', 'Casino',
   'Inventory & Trading', 'Starboard', 'Custom Commands', 'AFK', 'Polls', 'FAQ',

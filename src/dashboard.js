@@ -94,6 +94,13 @@ app.use((req, res, next) => {
 const discordApi = axios.create({ baseURL: 'https://discord.com/api/v10', timeout: 10_000 });
 const botHeaders = () => ({ Authorization: `Bot ${config.token}` });
 
+// Bot-token REST client in the { get, patch } shape the identity util takes
+// (src/utils/dashboardIdentity.js) — same calls, same headers as above.
+const botRest = () => ({
+  get: (url) => discordApi.get(url, { headers: botHeaders() }),
+  patch: (url, data) => discordApi.patch(url, data, { headers: botHeaders() }),
+});
+
 function inviteUrl() {
   const perms = (config.dashboard && config.dashboard.invitePermissions) || 1099951041558;
   return `https://discord.com/oauth2/authorize?client_id=${config.clientId}&permissions=${perms}&scope=bot%20applications.commands`;
@@ -541,7 +548,7 @@ app.get('/servers', requireAuth, async (req, res) => {
 });
 
 // --- Per-server settings pages (one per module) --------------------------------
-const MODULES = ['general', 'moderation', 'tickets', 'serverstats', 'streams', 'music', 'leveling', 'reactionroles', 'gameservers', 'commands', 'applications', 'invites', 'welcome', 'automod', 'suggestions', 'economy', 'starboard', 'customcommands', 'faq', 'scheduled', 'roles', 'verification', 'counting', 'tempvc', 'birthdays', 'analytics', 'giveaways', 'ai', 'modmail', 'games', 'emojis', 'media', 'threads', 'confessions', 'events', 'embeds', 'embed-creator', 'polls', 'announcements'];
+const MODULES = ['general', 'identity', 'moderation', 'tickets', 'serverstats', 'streams', 'music', 'leveling', 'reactionroles', 'gameservers', 'commands', 'applications', 'invites', 'welcome', 'automod', 'suggestions', 'economy', 'starboard', 'customcommands', 'faq', 'scheduled', 'roles', 'verification', 'counting', 'tempvc', 'birthdays', 'analytics', 'giveaways', 'ai', 'modmail', 'games', 'emojis', 'media', 'threads', 'confessions', 'events', 'embeds', 'embed-creator', 'polls', 'announcements'];
 
 app.get('/guilds/:id', requireAuth, requireGuildAccess, (req, res) => res.redirect(`/guilds/${req.params.id}/general`));
 
@@ -602,6 +609,7 @@ app.get('/guilds/:id/:module', requireAuth, requireGuildAccess, async (req, res)
   let milestoneSettings = null;
   let milestoneNext = null;
   let translateSettings = null;
+  let identity = null;
   // 1.7.x / 1.8.x tabs.
   let scheduledEventsList = [];
   let wordleLeaderboard = [];
@@ -766,6 +774,13 @@ app.get('/guilds/:id/:module', requireAuth, requireGuildAccess, async (req, res)
       milestoneNext = memberCount !== null ? (await milestones.nextMilestone(id, memberCount)).next : null;
       translateSettings = await translate.getTranslateSettings(id);
     }
+    // Bot identity (1.16.8): stored row + live member state + prefix for
+    // the tab. A failed live fetch leaves identity null instead of
+    // breaking the page — the tab still renders its forms.
+    if (module === 'identity') {
+      const { getIdentityView } = require('./utils/dashboardIdentity');
+      identity = await getIdentityView(id, { rest: botRest() }).catch(() => null);
+    }
     // 1.7.x / 1.8.x tabs: events, wordle (games), slowmode (moderation),
     // status roles (roles), built embeds, past polls, ticket ratings,
     // invite rewards, inactive members (analytics).
@@ -823,7 +838,7 @@ app.get('/guilds/:id/:module', requireAuth, requireGuildAccess, async (req, res)
   }
   res.render('settings', {
     user: req.session.user, guild: req.guildMeta, module, settings,
-    channels, roles, streamers, tickets, gameServers, applicationForms, pendingApplications, inviteLeaderboard, inviteStats, automodSettings, automodActions, suggestions, premiumSettings, shopItems, customCommands, faqs, scheduledMessages, countingSettings, birthdays, reactionRoleMappings, analyticsData, giveaways, aiUsage, aiConfigured, mcWidgets, voiceStats, voiceRate, colorRoles, modmailThreads, modmailBlocks, playlists, triviaSettings, triviaLeaderboard, roleMenus, milestoneSettings, milestoneNext, translateSettings, ticketPanels, inviteRoleRules, prestigeLeaderboard, countdowns, emojis, workJobs, recentRobs, tempBans, lotteryStatus, lotteryDraws, serverRules, inviteUrl: inviteUrl(),
+    channels, roles, streamers, tickets, gameServers, applicationForms, pendingApplications, inviteLeaderboard, inviteStats, automodSettings, automodActions, suggestions, premiumSettings, shopItems, customCommands, faqs, scheduledMessages, countingSettings, birthdays, reactionRoleMappings, analyticsData, giveaways, aiUsage, aiConfigured, mcWidgets, voiceStats, voiceRate, colorRoles, modmailThreads, modmailBlocks, playlists, triviaSettings, triviaLeaderboard, roleMenus, milestoneSettings, milestoneNext, translateSettings, ticketPanels, inviteRoleRules, prestigeLeaderboard, countdowns, emojis, workJobs, recentRobs, tempBans, lotteryStatus, lotteryDraws, serverRules, identity, inviteUrl: inviteUrl(),
     saved: req.query.saved === '1', isStaff: await staffFlag(req),
     commandCatalog: COMMAND_CATALOG,
     scheduledEventsList, wordleLeaderboard, wordleToday, slowmodeSchedules, statusRoleRules, builtEmbeds, pastPolls, ticketRatingStats, inviteRewardList, inactiveMembers,
@@ -1039,6 +1054,50 @@ app.post('/api/guilds/:id/settings', requireAuth, requireGuildAccess, async (req
     return res.redirect(`${back}?saved=1`);
   }
   res.json({ ok: true, settings });
+});
+
+// --- Bot identity (1.16.8): per-server nickname/avatar/prefix --------------
+// Same auth as every other per-server route: a Discord login with Manage
+// Guild in this server (requireGuildAccess). Local dashboard accounts never
+// get guild access (1.16.6), so they cannot reach these routes either.
+// The avatar picture and the prefix are dashboard-only; the nickname can
+// also be changed with /botidentity in Discord.
+app.post('/api/guilds/:id/identity', requireAuth, requireGuildAccess, async (req, res) => {
+  try {
+    const { setIdentity } = require('./utils/dashboardIdentity');
+    const result = await setIdentity(req.params.id, req.body || {}, { rest: botRest() });
+    if (req.is('application/x-www-form-urlencoded')) return res.redirect(`/guilds/${req.params.id}/identity?saved=1`);
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error('[dashboard] identity save failed:', err.message);
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Avatar upload: the browser POSTs the raw image bytes (Content-Type is
+// the file's MIME type) — no multipart dependency. express.raw parses it;
+// the global json/urlencoded parsers skip non-JSON/form bodies, so the
+// bytes arrive untouched.
+app.post('/api/guilds/:id/identity/avatar', requireAuth, requireGuildAccess, express.raw({ type: 'image/*', limit: '8mb' }), async (req, res) => {
+  try {
+    const { uploadAvatar } = require('./utils/dashboardIdentity');
+    const result = await uploadAvatar(req.params.id, req.body, { rest: botRest() });
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error('[dashboard] identity avatar upload failed:', err.message);
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post('/api/guilds/:id/identity/avatar/reset', requireAuth, requireGuildAccess, async (req, res) => {
+  try {
+    const { resetAvatar } = require('./utils/dashboardIdentity');
+    const result = await resetAvatar(req.params.id, { rest: botRest() });
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error('[dashboard] identity avatar reset failed:', err.message);
+    res.status(400).json({ error: err.message });
+  }
 });
 
 // --- Welcome image preview (1.3.6) ---------------------------------------------

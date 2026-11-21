@@ -819,6 +819,17 @@
     "It also shows how many Automod actions fired in the last 24 hours, broken down by action.",
     "The command is read-only \u2014 it changes nothing."
    ]
+  },
+  {
+   "id": "bot-identity",
+   "title": "Bot identity",
+   "steps": [
+    "An admin runs /botidentity set-name to give the bot a different nickname in this server (up to 32 characters) - other servers are unaffected.",
+    "The bot's avatar picture for this server is set on the dashboard: open the server's settings, Bot Identity tab, and upload a PNG, JPG, or GIF picture (under 8 MB). The global picture is unchanged.",
+    "Use /botidentity show to see the nickname and picture this server is using, and /botidentity reset to clear the nickname back to the bot's global name (the picture is untouched — reset it on the dashboard).",
+    "The same dashboard tab sets the server's command prefix (optional, for later — slash commands are unchanged and the bot does not respond to prefix commands yet; a new prefix applies when the bot restarts).",
+    "The bot needs the Change Nickname permission in this server for both the nickname and the picture. The custom name and picture are reapplied automatically when the bot restarts."
+   ]
   }
  ]
 }

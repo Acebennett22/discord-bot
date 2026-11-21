@@ -140,6 +140,7 @@ CREATE TABLE IF NOT EXISTS guild_settings (
   reengage_enabled TINYINT(1) NOT NULL DEFAULT 0,
   reengage_days INT NOT NULL DEFAULT 30,
   reengage_channel_id VARCHAR(32) NULL,
+  prefix VARCHAR(32) NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (guild_id)
@@ -544,6 +545,12 @@ CREATE TABLE IF NOT EXISTS suggestion_votes (
 -- it from the CREATE TABLE above; existing installs get it from the
 -- MISSING_COLUMNS self-heal in src/utils/database.js on startup.
 --   ALTER TABLE guild_settings ADD COLUMN ticket_button_label VARCHAR(80) NULL;
+--
+-- Per-guild command prefix (added 1.16.8, 2026-11-20). NULL = no prefix
+-- configured; the bot loads prefixes into memory at startup
+-- (src/utils/guildPrefixes.js). Config only for now — slash commands are
+-- unchanged and the bot does not respond to prefix commands yet.
+--   ALTER TABLE guild_settings ADD COLUMN prefix VARCHAR(32) NULL;
 --
 -- Inventory/shop item types (added 2026-11-13): shop_items columns
 -- emoji/type/sell_price/crate_contents are in sql/premium.sql; on an
@@ -1559,4 +1566,13 @@ CREATE TABLE IF NOT EXISTS sticky_messages (
   PRIMARY KEY (id),
   UNIQUE KEY uq_sticky_channel (guild_id, channel_id),
   INDEX idx_sticky_guild (guild_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- v1.16.8 (2026-11-20): per-server bot identity — custom nickname + avatar picture per guild.
+CREATE TABLE IF NOT EXISTS guild_bot_identity (
+  guild_id VARCHAR(32) NOT NULL,
+  nickname VARCHAR(32) NULL,
+  avatar_path VARCHAR(255) NULL,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (guild_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

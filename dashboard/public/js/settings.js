@@ -235,6 +235,31 @@
         await AceBot.postJSON(api('/settings'), { autopublishChannels: fd.getAll('autopublishChannels') });
         AceBot.toast('Auto-publish channels saved');
       },
+      // Bot identity (1.16.8): nickname + prefix (JSON), and the avatar
+      // picture (raw file bytes — the route uses express.raw, not
+      // multipart, so the file goes up as the request body).
+      'identity-form': async () => {
+        const fd = new FormData(form);
+        const j = await AceBot.postJSON(api('/identity'), { nickname: fd.get('nickname'), prefix: fd.get('prefix') });
+        const result = document.getElementById('identity-result');
+        if (result) result.textContent = (j.warnings || []).length ? '⚠️ ' + j.warnings.join(' ') : '✅ Saved.';
+        AceBot.toast((j.warnings || []).length ? 'Saved with a warning' : 'Bot identity saved');
+        await AceBot.refreshSection('#identity-block');
+      },
+      'identity-avatar-form': async () => {
+        const file = form.querySelector('#identity-avatar-file')?.files?.[0];
+        if (!file) throw new Error('Choose a picture first.');
+        const res = await fetch(api('/identity/avatar'), { method: 'POST', headers: { 'Content-Type': file.type }, body: file });
+        const j = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(j.error || ('Upload failed (' + res.status + ')'));
+        const preview = document.getElementById('identity-avatar-preview');
+        if (preview && j.avatarUrl) preview.src = j.avatarUrl;
+        const result = document.getElementById('identity-avatar-result');
+        if (result) result.textContent = j.warning ? '⚠️ ' + j.warning : '✅ Picture updated.';
+        AceBot.toast(j.warning || 'Picture updated');
+        await AceBot.refreshSection('#identity-block');
+        form.reset();
+      },
     };
     if (!handlers[id]) return; // generic API forms are handled by app.js
     e.preventDefault();
@@ -243,7 +268,7 @@
     if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
     try { await handlers[id](); }
     catch (err) {
-      const resultIds = { 'add-streamer-form': 'streamer-result', 'create-app-form': 'app-form-result', 'automod-form': 'automod-result', 'add-shop-form': 'shop-result', 'add-custom-form': 'custom-result', 'add-faq-form': 'faq-result', 'add-ticket-panel-form': 'ticket-panel-result', 'add-invite-role-form': 'invite-role-result', 'add-reaction-role-form': 'reaction-role-result', 'add-countdown-form': 'countdown-result', 'add-emoji-form': 'emoji-result', 'rules-form': 'rules-result', 'add-event-form': 'event-result', 'add-slowmode-form': 'slowmode-result', 'add-statusrole-form': 'statusrole-result', 'add-invitereward-form': 'invitereward-result' };
+      const resultIds = { 'add-streamer-form': 'streamer-result', 'create-app-form': 'app-form-result', 'automod-form': 'automod-result', 'add-shop-form': 'shop-result', 'add-custom-form': 'custom-result', 'add-faq-form': 'faq-result', 'add-ticket-panel-form': 'ticket-panel-result', 'add-invite-role-form': 'invite-role-result', 'add-reaction-role-form': 'reaction-role-result', 'add-countdown-form': 'countdown-result', 'add-emoji-form': 'emoji-result', 'rules-form': 'rules-result', 'add-event-form': 'event-result', 'add-slowmode-form': 'slowmode-result', 'add-statusrole-form': 'statusrole-result', 'add-invitereward-form': 'invitereward-result', 'identity-form': 'identity-result', 'identity-avatar-form': 'identity-avatar-result' };
       showResult(resultIds[id], '❌ ' + err.message, false);
       AceBot.toast('Failed: ' + err.message, 'error');
     } finally {
@@ -440,6 +465,28 @@
       return;
     }
     // Generic delete / post buttons (color roles, MC widgets, modmail…).
+    // Bot identity avatar reset (1.16.8): restores the global picture.
+    const identResetBtn = e.target.closest('#identity-avatar-reset');
+    if (identResetBtn) {
+      if (!AceBot.confirmAction('Reset the bot\'s picture in this server back to its global picture?')) return;
+      identResetBtn.disabled = true;
+      try {
+        const j = await AceBot.postJSON(api('/identity/avatar/reset'), {});
+        const preview = document.getElementById('identity-avatar-preview');
+        if (preview && j.avatarUrl) preview.src = j.avatarUrl;
+        const result = document.getElementById('identity-avatar-result');
+        if (result) result.textContent = '✅ Picture reset to the global one.';
+        AceBot.toast('Picture reset');
+        await AceBot.refreshSection('#identity-block');
+      } catch (err) {
+        const result = document.getElementById('identity-avatar-result');
+        if (result) result.textContent = '❌ ' + err.message;
+        AceBot.toast('Failed: ' + err.message, 'error');
+      } finally {
+        identResetBtn.disabled = false;
+      }
+      return;
+    }
     const delBtn = e.target.closest('[data-delete]');
     if (delBtn) {
       if (!AceBot.confirmAction('Are you sure?')) return;
@@ -493,6 +540,18 @@
   }
 
   async function handleChange(e) {
+    // Bot identity tab (1.16.8): preview the chosen picture locally
+    // before upload — the upload itself is the form's submit handler.
+    if (e.target && e.target.id === 'identity-avatar-file') {
+      const file = e.target.files && e.target.files[0];
+      const preview = document.getElementById('identity-avatar-preview');
+      if (file && preview) {
+        const reader = new FileReader();
+        reader.onload = () => { preview.src = reader.result; };
+        reader.readAsDataURL(file);
+      }
+      return;
+    }
     const clip = e.target.closest('[data-clip-toggle]');
     if (clip) {
       try {

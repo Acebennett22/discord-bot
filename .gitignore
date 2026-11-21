@@ -1,6 +1,7 @@
 node_modules/
 config.json
 src/data/warns.json
+src/data/guild-avatars/
 .DS_Store
 backups/
 logs/

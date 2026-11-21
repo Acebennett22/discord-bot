@@ -6,7 +6,7 @@
       <strong><%= guild.name %></strong>
     </div>
     <nav>
-      <% const MODS = [['general','⚙️ General'],['moderation','🛡️ Moderation'],['tickets','🎫 Tickets'],['serverstats','📊 Server Stats'],['streams','📺 Streams'],['music','🎵 Music'],['leveling','🏆 Leveling'],['reactionroles','🎭 Reaction Roles'],['gameservers','🖥️ Game Servers'],['applications','📝 Applications'],['commands','⌨️ Commands'],['invites','📨 Invites'],['welcome','👋 Welcome'],['automod','🤖 Automod'],['suggestions','💡 Suggestions'],['economy','🪙 Economy'],['starboard','⭐ Starboard'],['customcommands','⌨️ Custom Commands'],['faq','💬 FAQ'],['scheduled','⏰ Scheduled'],['roles','🎭 Roles'],['verification','✅ Verification'],['counting','🔢 Counting'],['tempvc','🔊 Temp VC'],['birthdays','🎂 Birthdays'],['analytics','📈 Analytics'],['giveaways','🎉 Giveaways'],['ai','💬 AI Chat'],['modmail','📬 Modmail'],['games','🎲 Games'],['emojis','😀 Emojis'],['media','🧵 Media'],['threads','🧵 Threads'],['confessions','🤫 Confessions'],['events','📅 Events'],['embeds','🧩 Embeds'],['embed-creator','📝 Embed Creator'],['polls','📊 Polls'],['announcements','📣 Announcements']]; %>
+      <% const MODS = [['general','⚙️ General'],['identity','🎭 Bot Identity'],['moderation','🛡️ Moderation'],['tickets','🎫 Tickets'],['serverstats','📊 Server Stats'],['streams','📺 Streams'],['music','🎵 Music'],['leveling','🏆 Leveling'],['reactionroles','🎭 Reaction Roles'],['gameservers','🖥️ Game Servers'],['applications','📝 Applications'],['commands','⌨️ Commands'],['invites','📨 Invites'],['welcome','👋 Welcome'],['automod','🤖 Automod'],['suggestions','💡 Suggestions'],['economy','🪙 Economy'],['starboard','⭐ Starboard'],['customcommands','⌨️ Custom Commands'],['faq','💬 FAQ'],['scheduled','⏰ Scheduled'],['roles','🎭 Roles'],['verification','✅ Verification'],['counting','🔢 Counting'],['tempvc','🔊 Temp VC'],['birthdays','🎂 Birthdays'],['analytics','📈 Analytics'],['giveaways','🎉 Giveaways'],['ai','💬 AI Chat'],['modmail','📬 Modmail'],['games','🎲 Games'],['emojis','😀 Emojis'],['media','🧵 Media'],['threads','🧵 Threads'],['confessions','🤫 Confessions'],['events','📅 Events'],['embeds','🧩 Embeds'],['embed-creator','📝 Embed Creator'],['polls','📊 Polls'],['announcements','📣 Announcements']]; %>
       <% MODS.forEach(([m, label]) => { %>
         <a href="/guilds/<%= guild.id %>/<%= m %>" class="<%= module === m ? 'active' : '' %>"><%= label %></a>
       <% }); %>
@@ -71,6 +71,41 @@
       <% if ((translateSettings?.channels || []).length) { %><p class="muted">Currently watched: <%= (translateSettings.channels || []).map(id => '#' + ((channels.find(c => c.id === id) || {}).name || id)).join(', ') %></p><% } %>
       <br><br><button class="btn" type="submit">Save translate settings</button>
     </form>
+    <% } %>
+
+    <% if (module === 'identity') { %>
+    <h1>🎭 Bot Identity</h1>
+    <p class="muted">The name and picture the bot uses in <strong>this server only</strong> — other servers are unaffected, and the bot's global name and picture stay the same. The nickname can also be changed with <code>/botidentity</code> in Discord; the picture and the command prefix can only be changed here. Changes apply immediately.</p>
+    <% if (!identity) { %><p class="muted">Could not load the bot's current identity for this server — the nickname and prefix below can still be saved.</p><% } %>
+    <div id="identity-block">
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:12px">
+        <% if (identity?.avatarUrl) { %><img id="identity-avatar-preview" src="<%= identity.avatarUrl %>" alt="Bot avatar in this server" width="96" height="96" style="border-radius:50%"><% } %>
+        <div>
+          <strong><%= identity?.username ? '@' + identity.username : 'Bot' %></strong><br>
+          <span class="muted">Nickname here: <strong><%= identity?.nickname || '— (global name)' %></strong></span><br>
+          <span class="muted">Picture: <%= identity?.hasCustomAvatar ? 'custom for this server' : 'global picture' %></span>
+        </div>
+      </div>
+      <h2>Picture</h2>
+      <p class="muted">PNG, JPG, or GIF under 8 MB. Uploading replaces the picture immediately; the old picture is gone, not kept.</p>
+      <form id="identity-avatar-form">
+        <label>New picture</label>
+        <input type="file" id="identity-avatar-file" accept="image/png,image/jpeg,image/gif" required>
+        <br><br><button class="btn" type="submit">Upload picture</button>
+        <button class="btn danger" type="button" id="identity-avatar-reset">Reset to global picture</button>
+      </form>
+      <p id="identity-avatar-result" class="muted"></p>
+      <h2>Nickname &amp; command prefix</h2>
+      <form id="identity-form">
+        <label>Nickname in this server (1–32 characters; blank clears it)</label>
+        <input type="text" name="nickname" maxlength="32" value="<%= identity?.nickname || '' %>" placeholder="Bot's global name">
+        <label>Command prefix (optional, up to 32 characters; blank = none)</label>
+        <input type="text" name="prefix" maxlength="32" value="<%= settings.prefix || '' %>" placeholder="e.g. !">
+        <p class="muted">The prefix is stored for later — slash commands are unchanged, and the bot does not respond to prefix commands yet. A new prefix applies when the bot restarts.</p>
+        <br><button class="btn" type="submit">Save nickname &amp; prefix</button>
+      </form>
+      <p id="identity-result" class="muted"></p>
+    </div>
     <% } %>
 
     <% if (module === 'threads') { %>

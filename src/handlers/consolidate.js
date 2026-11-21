@@ -25,6 +25,7 @@ const { shouldForceEphemeral, armReplyEphemeral } = require('../utils/replyEphem
 // command (those files already define subcommands of their own).
 const PARENT_MAP = {
   admin: null, // serverbackup
+  botidentity: null, // botidentity (standalone, has subcommands)
   ai: 'ai',
   applications: 'application',
   automod: 'automod',

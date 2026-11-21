@@ -87,6 +87,7 @@ const DEFAULTS = {
   reengageEnabled: false,
   reengageDays: 30,
   reengageChannelId: '',
+  prefix: '',
 };
 
 const DEFAULT_WELCOME_MESSAGE = 'Welcome to {server}, {user}! You are member #{membercount}.';
@@ -129,6 +130,7 @@ const COLUMNS = [
   'autopublish_channels',
   'reengage_enabled', 'reengage_days', 'reengage_channel_id',
   'ticket_button_label',
+  'prefix',
 ];
 
 async function getGuildSettings(guildId) {
@@ -231,6 +233,7 @@ async function getGuildSettings(guildId) {
         reengageDays: r.reengage_days ?? 30,
         reengageChannelId: r.reengage_channel_id || '',
         ticketButtonLabel: r.ticket_button_label || '',
+        prefix: r.prefix || '',
       };
     }
   }
@@ -324,6 +327,7 @@ async function setGuildSettings(guildId, patch) {
     next.reengageDays ?? 30,
     next.reengageChannelId || null,
     next.ticketButtonLabel || null,
+    next.prefix || null,
   ];
   // COLUMNS.length columns, values.length params — keep them in sync.
   if (values.length !== COLUMNS.length) throw new Error(`guildSettings column/param mismatch: ${COLUMNS.length} columns, ${values.length} values`);

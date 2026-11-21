@@ -63,6 +63,7 @@ const MISSING_COLUMNS = [
   ['giveaways', 'bonus_entries', 'INT NULL'],
   ['polls', 'final_counts', 'JSON NULL'],
   ['guild_settings', 'ticket_button_label', 'VARCHAR(80) NULL'],
+  ['guild_settings', 'prefix', 'VARCHAR(32) NULL'],
 ];
 
 // The autoresponders table failed to create on installs whose wizard ran
@@ -115,6 +116,17 @@ const DASHBOARD_ACCOUNTS_CREATE = `CREATE TABLE IF NOT EXISTS dashboard_accounts
   INDEX idx_dashboard_accounts_role (role)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`;
 
+// The guild_bot_identity table (1.16.8) — same self-heal as sticky_messages:
+// CREATE TABLE IF NOT EXISTS in sql/schema.sql only runs on fresh installs
+// (the wizard), so existing installs get the table here on startup.
+const GUILD_BOT_IDENTITY_CREATE = `CREATE TABLE IF NOT EXISTS guild_bot_identity (
+  guild_id VARCHAR(32) NOT NULL,
+  nickname VARCHAR(32) NULL,
+  avatar_path VARCHAR(255) NULL,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (guild_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`;
+
 async function runMigrations(dbName) {
   if (!pool) return;
   for (const [table, column, definition] of MISSING_COLUMNS) {
@@ -146,6 +158,11 @@ async function runMigrations(dbName) {
     await pool.execute(DASHBOARD_ACCOUNTS_CREATE);
   } catch (err) {
     console.warn('[db] Migration: could not ensure dashboard_accounts table:', err.message);
+  }
+  try {
+    await pool.execute(GUILD_BOT_IDENTITY_CREATE);
+  } catch (err) {
+    console.warn('[db] Migration: could not ensure guild_bot_identity table:', err.message);
   }
   await ensureReactionRolesEmojiCollation(dbName);
 }
