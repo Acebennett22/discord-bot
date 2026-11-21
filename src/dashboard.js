@@ -58,7 +58,7 @@ app.use(express.static(path.join(__dirname, '..', 'dashboard', 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(helmet({ contentSecurityPolicy: false }));
-app.use(rateLimit({ windowMs: 15 * 60_000, max: 300 }));
+app.use(rateLimit({ windowMs: 15 * 60_000, limit: 300 }));
 app.use(session({
   secret: (config.dashboard && config.dashboard.sessionSecret) || 'dev-only-change-me',
   resave: false,

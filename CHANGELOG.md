@@ -6,6 +6,11 @@ in `package.json` is the source of truth for the current release — every
 version below must match a `package.json` version, and the dashboard
 `/version` page renders from this file.
 
+## [1.16.11] - 2026-11-21
+
+### Changed
+- Dependency majors, first pair: helmet 7.2.0 → 8.3.0 and express-rate-limit 7.5.1 → 8.7.5 (1.16.11). The dashboard's rate limiter moves from the renamed option `max` to `limit` in `src/dashboard.js` (same values — 15-minute window, 300 requests); the rename is a migration off a deprecated alias, not a crash fix — 8.7.5 still accepts `max` (`limit: notUndefinedOptions.max ?? 5` in its source), but `max` is deprecated and the supported name is `limit`, and no other rate-limit usage exists anywhere in `src/`. Helmet 8's breaking changes were checked against the dashboard's one-line setup (`helmet({ contentSecurityPolicy: false })`) and need no code change: CSP is disabled outright so the CSP throw-on-unquoted-directive change does not apply, no middleware was removed in v8, and the only behavior change that reaches us is HSTS max-age going from 180 to 365 days. Helmet 8 requires Node 18+ and the server runs Node 20.5.1, so that is satisfied. Express-rate-limit 8.0.0–8.2.1 were skipped deliberately (CVE-2026-30827) — the target is 8.7.5. No other dependency was touched and no `npm audit fix` was run. Verified by `tmp/verify-1.16.11.js` (10/10: package.json pins ^8.3.0 / ^8.7.5 with exactly 8.3.0 / 8.7.5 installed, the dashboard rate limiter uses `limit: 300` with the 15-minute window unchanged, helmet is still wired with CSP disabled, the real v8 limiter returns 429 after the limit (and the deprecated `max` still works as an alias), and the real helmet 8 sets the security headers with no CSP header) and `check-deploy.js` (39 top-level, 0 problems — unchanged). Server needs `git pull` + `npm install` (dependency change) + restart BOTH the bot and the dashboard (standing deploy rule — always restart both on every deploy, even when a release only needs one); no `npm run deploy` (no command definition changed).
+
 ## [1.16.10] - 2026-11-21
 
 ### Fixed
