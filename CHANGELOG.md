@@ -6,6 +6,11 @@ in `package.json` is the source of truth for the current release — every
 version below must match a `package.json` version, and the dashboard
 `/version` page renders from this file.
 
+## [1.16.12] - 2026-11-21
+
+### Changed
+- node-cron upgraded 3.0.3 → 4.6.0 (1.16.12). The only usage site is the daily DB backup in `scripts/backup-db.js:105` (`cron.schedule('0 3 * * *', ...)` via `startBackupSchedule`, wired up in `src/events/ready.js`), and that call is unchanged — v4 is a TypeScript rewrite, but the `schedule(expression, callback)` API the bot uses is identical, and the backup still registers the 03:00 job with the same expression, the same 30-day retention, and the same failure logging. Two things to know about v4: it requires Node >= 20 (the server runs 20.5.1, so that is satisfied, with no room to spare — the pending engines bump to >= 22.22.2 would keep this safe), and its `package.json` no longer exports the `./package.json` subpath, so anything that read the installed version via `require('node-cron/package.json')` must read the file directly instead (nothing in the bot did). No other dependency touched, no `npm audit fix`. Verified by `tmp/verify-1.16.12.js` (6/6: package.json pins ^4.6.0 with 4.6.0 installed, the backup schedule call is unchanged and is the only cron usage in the codebase, the 03:00 expression validates and junk does not, a v4 job scheduled on a 1-second interval actually fires and stays stopped after stop(), and the real startBackupSchedule() registers the 03:00 job) and `check-deploy.js` (39 top-level, 0 problems — unchanged). Server needs `git pull` + `npm install` (dependency change) + bot restart ONLY (the change lives in the backup script the bot loads at startup); no `npm run deploy` (no command definition changed), no dashboard restart (the dashboard does not use node-cron — but the standing rule is to restart both on every deploy, so restart the dashboard too). After the restart, check the bot log for "[backup] Daily backup scheduled at 03:00" and confirm the next backup runs at 03:00.
+
 ## [1.16.11] - 2026-11-21
 
 ### Changed
