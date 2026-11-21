@@ -59,6 +59,18 @@ module.exports = {
       // be expired (10062 Unknown interaction) — there is nobody left to
       // tell, so a dead reply must never throw out of the handler.
       await interaction.reply({ embeds: [errorEmbed('Disabled', why)] }).catch(() => {});
+      // Log the attempt like any other execution: a disabled command used
+      // to return before logCommand, so the attempt was invisible in the
+      // command logs and the usage counters.
+      await db.logCommand({
+        guildId: interaction.guildId,
+        userId: interaction.user?.id ?? 'unknown',
+        username: interaction.user?.tag,
+        commandName: effectiveName ?? 'unknown',
+        channelId: interaction.channelId,
+        success: false,
+        errorMessage: `Disabled (${toggle.reason || 'disabled'})`,
+      });
       return;
     }
     let success = true;

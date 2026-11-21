@@ -28,10 +28,10 @@ module.exports = {
     const durationRaw = interaction.options.getString('duration');
     if (durationRaw) {
       endsAt = parseTime(durationRaw);
-      if (!endsAt) return interaction.reply({ embeds: [errorEmbed('Bad duration', 'I couldn\'t understand that time. Try "in 2h", "tomorrow 9am", or "2026-11-14 15:00".')] });
+      if (!endsAt) return interaction.reply({ embeds: [errorEmbed('Bad duration', 'I couldn\'t understand that time. Try "in 2h", "tomorrow 9am", or "2026-12-25 15:00".')] });
     }
     const poll = { question, options, votes: {}, ends_at: endsAt, ended: false };
-    // Post the PUBLIC poll embed in the channel (the exception to ephemeral).
+    // Post the poll embed in the channel — polls are public so everyone can react.
     const sent = await interaction.channel.send({ embeds: [pollEmbed(poll, tallyVotes({}, options.length))] });
     for (let i = 0; i < options.length; i++) {
       await sent.react(NUMBER_EMOJIS[i]).catch(() => {});

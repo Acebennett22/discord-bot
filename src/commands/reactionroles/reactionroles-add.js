@@ -24,10 +24,16 @@ module.exports = {
     const minLevel = interaction.options.getInteger('min_level');
     const rows = await db.query('SELECT channel_id FROM reaction_roles WHERE message_id = ? LIMIT 1', [messageId]);
     const channelId = rows?.[0]?.channel_id || interaction.channelId;
-    await db.query(
+    // queryDetailed (not query): a failed INSERT must be told to the admin
+    // instead of replying "Pair added" for a pair that never saved. The
+    // wrapper returns { rows, error } — rows is the OkPacket (affectedRows
+    // 1 = inserted, 2 = updated, 0 = already exactly this pair), so any of
+    // those means the pair is stored; only a real error is a failure.
+    const { error } = await db.queryDetailed(
       'INSERT INTO reaction_roles (guild_id, channel_id, message_id, emoji, role_id, required_role_id, min_days_in_server, min_level) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE role_id = VALUES(role_id), required_role_id = VALUES(required_role_id), min_days_in_server = VALUES(min_days_in_server), min_level = VALUES(min_level)',
       [interaction.guildId, channelId, messageId, emoji, role.id, requiredRole?.id || null, minDays ?? null, minLevel ?? null],
     );
+    if (error) return interaction.reply({ embeds: [errorEmbed('Could not save pair', `The database refused the reaction-role pair: ${error.sqlMessage || error.message}`)] });
     const channel = interaction.guild.channels.cache.get(channelId) || await interaction.guild.channels.fetch(channelId).catch(() => null);
     const msg = channel ? await channel.messages.fetch(messageId).catch(() => null) : null;
     if (msg) await msg.edit({ components: await buildRows(messageId, roleNameResolverFromGuild(interaction.guild)) }).catch(() => {});
