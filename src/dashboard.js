@@ -579,6 +579,7 @@ app.get('/guilds/:id/:module', requireAuth, requireGuildAccess, async (req, res)
   let countingSettings = null;
   let birthdays = [];
   let reactionRoleMappings = [];
+  let tempvcHubs = [];
   let analyticsData = null;
   let giveaways = [];
   let aiUsage = null;
@@ -785,6 +786,16 @@ app.get('/guilds/:id/:module', requireAuth, requireGuildAccess, async (req, res)
       const { getIdentityView } = require('./utils/dashboardIdentity');
       identity = await getIdentityView(id, { rest: botRest() }).catch(() => null);
     }
+    // Temp VC hubs (1.16.17): the legacy single hub is migrated into the
+    // hubs table first, so the tab lists it too. A failed load leaves the
+    // list empty instead of breaking the page — the add form still renders.
+    if (module === 'tempvc') {
+      const { listHubs, migrateLegacyHub } = require('./utils/tempvc');
+      try {
+        await migrateLegacyHub(id, settings);
+        tempvcHubs = await listHubs(id);
+      } catch { tempvcHubs = []; }
+    }
     // 1.7.x / 1.8.x tabs: events, wordle (games), slowmode (moderation),
     // status roles (roles), built embeds, past polls, ticket ratings,
     // invite rewards, inactive members (analytics).
@@ -848,6 +859,7 @@ app.get('/guilds/:id/:module', requireAuth, requireGuildAccess, async (req, res)
     scheduledEventsList, wordleLeaderboard, wordleToday, slowmodeSchedules, statusRoleRules, builtEmbeds, pastPolls, ticketRatingStats, inviteRewardList, inactiveMembers,
     threadOverrides, pendingConfessions, tempRoles, xpShopItems,
     commandToggles: db.isEnabled() ? (await db.query('SELECT command_name, enabled FROM command_toggles WHERE guild_id = ?', [id]) || []) : [],
+    tempvcHubs,
   });
 });
 
@@ -960,15 +972,12 @@ app.post('/api/guilds/:id/settings', requireAuth, requireGuildAccess, async (req
   if ('verificationChannelId' in body) setChannel('verificationChannelId', body.verificationChannelId);
   if ('verificationRoleId' in body) setRole('verificationRoleId', body.verificationRoleId);
   if ('verificationMode' in body && ['button', 'captcha'].includes(body.verificationMode)) patch.verificationMode = body.verificationMode;
-  // Temporary voice channels (1.4.0).
-  if ('tempvcCreateChannelId' in body) {
-    const v = body.tempvcCreateChannelId;
-    if (v === '' || channels.some((c) => c.id === v && c.type === 2)) patch.tempvcCreateChannelId = v || '';
-  }
-  if ('tempvcCategoryId' in body) {
-    const v = body.tempvcCategoryId;
-    if (v === '' || channels.some((c) => c.id === v && c.type === 4)) patch.tempvcCategoryId = v || '';
-  }
+  // Temporary voice channels (1.4.0, hubs 1.16.17): the old single-hub
+  // settings (tempvcCreateChannelId / tempvcCategoryId) are fallback-only
+  // now — they are read by the voice handler for servers with no hub rows,
+  // and migrated into tempvc_hubs the first time hubs are managed. There
+  // is no UI for them anymore; hubs are added/removed via the Temp VC tab
+  // (POST/DELETE /api/guilds/:id/tempvc-hubs) or /tempvc setup in Discord.
   // 24/7 music mode (1.12.1), booster role (1.12.2), robbery toggle
   // (1.12.6), new-member link block (1.12.5).
   if ('music247Enabled' in body) patch.music247Enabled = body.music247Enabled === true || body.music247Enabled === 'true';
@@ -1472,6 +1481,73 @@ app.post('/api/guilds/:id/reaction-roles/refresh', requireAuth, requireGuildAcce
   }
   await staffUtils.audit(req.session.user.id, 'reaction-role.refresh', messageId, `guild=${guildId} channel=${channelId} count=${mappings.length}`).catch(() => {});
   res.json({ ok: true, count: mappings.length, messageId });
+});
+
+// --- Temp VC hubs API (1.16.17) ----------------------------------------------
+// POST /api/guilds/:id/tempvc-hubs { categoryId, name }: create the hub
+// voice channel in Discord (REST, same call serverBackup.js uses for
+// channel restores) and register it in tempvc_hubs. DELETE removes a hub
+// and deletes the Discord channel if the bot created it. Same gating as
+// the rest of the settings page (requireAuth + requireGuildAccess =
+// guild member with Manage Server). The bot reads hubs from the DB on
+// every voice join, so no bot restart is needed. A failed save deletes
+// the just-created channel again instead of leaving an orphan that
+// spawns nothing; a hub whose channel is already gone from Discord is
+// still unregistered.
+app.post('/api/guilds/:id/tempvc-hubs', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  const guildId = req.params.id;
+  const body = req.body || {};
+  const categoryId = String(body.categoryId || '');
+  const name = String(body.name || '').trim();
+  if (!/^\d{17,20}$/.test(categoryId)) return res.status(400).json({ error: 'Pick a category.' });
+  if (!name || name.length > 100) return res.status(400).json({ error: 'Give the hub channel a name (1–100 characters).' });
+  const { channels } = await guildChannelsRoles(guildId).catch(() => ({ channels: [], roles: [] }));
+  const category = channels.find((c) => c.id === categoryId && c.type === 4);
+  if (!category) return res.status(400).json({ error: 'That category does not exist in this server.' });
+  const { listHubs, migrateLegacyHub, registerHub, MAX_HUBS } = require('./utils/tempvc');
+  const settings = await getGuildSettings(guildId);
+  await migrateLegacyHub(guildId, settings);
+  const hubs = await listHubs(guildId);
+  if (hubs.length >= MAX_HUBS) return res.status(400).json({ error: `This server already has the maximum of ${MAX_HUBS} temp VC hubs.` });
+  let created;
+  try {
+    created = await discordApi.post(`/guilds/${guildId}/channels`, { name, type: 2, parent_id: categoryId }, { headers: botHeaders() });
+  } catch (e) {
+    const detail = e.response?.data?.message || e.message;
+    if (e.response?.status === 403) return res.status(403).json({ error: 'Discord refused: the bot needs the Manage Channels permission in this server.' });
+    return res.status(400).json({ error: `Discord refused the channel create: ${detail}` });
+  }
+  const channelId = created?.data?.id;
+  if (!channelId) return res.status(500).json({ error: 'Discord did not return a channel id.' });
+  const { error } = await registerHub(guildId, channelId, categoryId, 1);
+  if (error) {
+    await discordApi.delete(`/channels/${channelId}`, { headers: botHeaders() }).catch(() => {});
+    return res.status(500).json({ error: `Could not save the hub: ${error.sqlMessage || error.message}` });
+  }
+  await staffUtils.audit(req.session.user.id, 'tempvc-hub.add', channelId, `guild=${guildId} category=${categoryId} name=${name}`).catch(() => {});
+  res.json({ ok: true, channelId, channelName: name, categoryId, categoryName: category.name });
+});
+
+app.delete('/api/guilds/:id/tempvc-hubs/:channelId', requireAuth, requireGuildAccess, async (req, res) => {
+  if (!db.isEnabled()) return res.status(503).json({ error: 'Database unavailable.' });
+  const guildId = req.params.id;
+  const channelId = req.params.channelId;
+  if (!/^\d{17,20}$/.test(String(channelId))) return res.status(400).json({ error: 'Unknown hub.' });
+  const { getHub, unregisterHub, migrateLegacyHub, clearLegacySettingsIfMatches } = require('./utils/tempvc');
+  const settings = await getGuildSettings(guildId);
+  await migrateLegacyHub(guildId, settings);
+  const hub = await getHub(guildId, channelId);
+  if (!hub) return res.status(404).json({ error: 'That hub no longer exists.' });
+  await unregisterHub(guildId, channelId);
+  await clearLegacySettingsIfMatches(guildId, hub, settings);
+  let channelDeleted = false;
+  if (hub.created_by_bot) {
+    await discordApi.delete(`/channels/${channelId}`, { headers: botHeaders() }).catch(() => {});
+    channelDeleted = true;
+  }
+  await staffUtils.audit(req.session.user.id, 'tempvc-hub.remove', channelId, `guild=${guildId} created_by_bot=${hub.created_by_bot}`).catch(() => {});
+  res.json({ ok: true, channelId, channelDeleted });
 });
 
 // --- Color roles API (1.4.4) ---------------------------------------------------

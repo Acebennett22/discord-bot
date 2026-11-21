@@ -649,6 +649,22 @@ CREATE TABLE IF NOT EXISTS temp_channels (
   INDEX idx_temp_channels_owner (guild_id, owner_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Temp VC hubs (1.16.17): one row per "join to create" channel. A hub's
+-- temp channels are created under its category_id (NULL = the hub
+-- channel's own category). created_by_bot marks channels the bot made
+-- (via /tempvc setup add or the dashboard) — removing such a hub also
+-- deletes the Discord channel; a hub registered from an admin-made (or
+-- legacy single-hub) channel is only unregistered on removal.
+CREATE TABLE IF NOT EXISTS tempvc_hubs (
+  guild_id VARCHAR(32) NOT NULL,
+  create_channel_id VARCHAR(32) NOT NULL,
+  category_id VARCHAR(32) NULL,
+  created_by_bot TINYINT(1) NOT NULL DEFAULT 1,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (guild_id, create_channel_id),
+  INDEX idx_tempvc_hubs_guild (guild_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS birthdays (
   guild_id VARCHAR(32) NOT NULL,
   user_id VARCHAR(32) NOT NULL,

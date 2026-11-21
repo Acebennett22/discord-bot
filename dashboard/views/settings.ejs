@@ -663,17 +663,32 @@
 
     <% if (module === 'tempvc') { %>
     <h1>Temporary Voice Channels</h1>
-    <p class="muted">Joining the "create" voice channel spins up a personal voice channel for that member (named after them); it is deleted when it becomes empty. Owners manage theirs with /tempvc (limit, lock/unlock, rename, kick, claim).</p>
-    <form method="post" action="/api/guilds/<%= guild.id %>/settings">
-      <label>"Create" voice channel (joining it creates a temp channel)</label>
-      <select name="tempvcCreateChannelId"><option value="">— none —</option>
-        <% channels.filter(c => c.type === 2).forEach(c => { %><option value="<%= c.id %>" <%= settings.tempvcCreateChannelId === c.id ? 'selected' : '' %>><%= c.name %></option><% }); %>
+    <p class="muted">Joining a hub ("create") voice channel spins up a personal voice channel for that member (named after them) in that hub's category; it is deleted when it becomes empty. Owners manage theirs with /tempvc (limit, lock/unlock, rename, kick, claim). Hubs are managed here or with /tempvc setup add, remove, and list in Discord — a server can have up to 10 hubs.</p>
+    <div id="tempvc-hubs-list">
+    <% if (tempvcHubs.length) { %>
+      <table><tr><th>Hub channel</th><th>Category</th><th></th></tr>
+      <% tempvcHubs.forEach(h => { %>
+        <% const ch = channels.find(c => c.id === h.create_channel_id); %>
+        <% const cat = h.category_id ? channels.find(c => c.id === h.category_id) : null; %>
+        <% const stale = !ch || (h.category_id && !cat); %>
+        <tr>
+          <td><%= ch ? ch.name : `⚠️ missing channel (${h.create_channel_id})` %></td>
+          <td><%= h.category_id ? (cat ? cat.name : `⚠️ missing category (${h.category_id})`) : '—' %></td>
+          <td><button class="btn btn-sm" type="button" data-remove-tempvc-hub="<%= h.create_channel_id %>">Remove</button><%= stale ? ' <span class="muted">stale — remove it to clean up</span>' : '' %></td>
+        </tr>
+      <% }); %></table>
+    <% } else { %><p class="muted">No temp VC hubs yet.</p><% } %>
+    </div>
+    <h2>Add a hub</h2>
+    <form id="add-tempvc-hub-form">
+      <label>Category the hub channel is created in</label>
+      <select name="categoryId" required>
+        <% channels.filter(c => c.type === 4).forEach(c => { %><option value="<%= c.id %>"><%= c.name %></option><% }); %>
       </select>
-      <label>Category for temp channels</label>
-      <select name="tempvcCategoryId"><option value="">— none —</option>
-        <% channels.filter(c => c.type === 4).forEach(c => { %><option value="<%= c.id %>" <%= settings.tempvcCategoryId === c.id ? 'selected' : '' %>><%= c.name %></option><% }); %>
-      </select>
-      <br><br><button class="btn" type="submit">Save temp VC settings</button>
+      <label>Hub channel name</label>
+      <input type="text" name="name" placeholder="➕ Join to Create" required maxlength="100">
+      <p class="muted">The bot creates a voice channel with this name in the category above. Members who join it get their own temp channel in that category. Removing a hub deletes its channel too, if the bot created it.</p>
+      <br><button class="btn" type="submit">Create hub</button>
     </form>
     <h2>😴 AFK channel auto-create</h2>
     <p class="muted">When the primary AFK channel fills up, the bot creates a second AFK voice channel ("AFK 2") in the same category and deletes it when it empties. If the primary is empty for 10 minutes and the secondary is also empty, the secondary is deleted. Same as /afkchannel-setup in Discord.</p>

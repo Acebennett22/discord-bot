@@ -127,6 +127,20 @@ const GUILD_BOT_IDENTITY_CREATE = `CREATE TABLE IF NOT EXISTS guild_bot_identity
   PRIMARY KEY (guild_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`;
 
+// The tempvc_hubs table (1.16.17) — same self-heal as guild_bot_identity:
+// one row per "join to create" hub channel, with the category its temp
+// channels are created under. created_by_bot marks channels the bot made
+// (via /tempvc setup add or the dashboard) so removal can delete them too.
+const TEMPVC_HUBS_CREATE = `CREATE TABLE IF NOT EXISTS tempvc_hubs (
+  guild_id VARCHAR(32) NOT NULL,
+  create_channel_id VARCHAR(32) NOT NULL,
+  category_id VARCHAR(32) NULL,
+  created_by_bot TINYINT(1) NOT NULL DEFAULT 1,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (guild_id, create_channel_id),
+  INDEX idx_tempvc_hubs_guild (guild_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`;
+
 async function runMigrations(dbName) {
   if (!pool) return;
   for (const [table, column, definition] of MISSING_COLUMNS) {
@@ -163,6 +177,11 @@ async function runMigrations(dbName) {
     await pool.execute(GUILD_BOT_IDENTITY_CREATE);
   } catch (err) {
     console.warn('[db] Migration: could not ensure guild_bot_identity table:', err.message);
+  }
+  try {
+    await pool.execute(TEMPVC_HUBS_CREATE);
+  } catch (err) {
+    console.warn('[db] Migration: could not ensure tempvc_hubs table:', err.message);
   }
   await ensureReactionRolesEmojiCollation(dbName);
 }

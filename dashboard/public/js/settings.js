@@ -176,6 +176,14 @@
         await AceBot.refreshSection('#reaction-roles-list');
         resetReactionRoleRows();
       },
+      // Temp VC hubs (1.16.17): the bot creates the hub channel in Discord.
+      'add-tempvc-hub-form': async () => {
+        const fd = new FormData(form);
+        await AceBot.postJSON(api('/tempvc-hubs'), { categoryId: fd.get('categoryId'), name: fd.get('name') });
+        AceBot.toast('Temp VC hub created');
+        await AceBot.refreshSection('#tempvc-hubs-list');
+        form.reset();
+      },
       'add-countdown-form': async () => {
         const fd = new FormData(form);
         await AceBot.postJSON(api('/countdowns'), Object.fromEntries(fd));
@@ -360,6 +368,18 @@
         const j = await AceBot.del(api(`/reaction-roles/${rrRemoveOne.dataset.removeReactionRole}`));
         AceBot.toast(j.messageGone ? 'Reaction role removed (its message is already gone)' : 'Reaction role removed');
         await AceBot.refreshSection('#reaction-roles-list');
+      } catch (err) { AceBot.toast('Failed: ' + err.message, 'error'); }
+      return;
+    }
+    // Temp VC hubs (1.16.17): removing a hub deletes its Discord channel
+    // too, if the bot created it.
+    const tempvcRemove = e.target.closest('[data-remove-tempvc-hub]');
+    if (tempvcRemove) {
+      if (!AceBot.confirmAction('Remove this temp VC hub? Its channel is deleted too if the bot created it.')) return;
+      try {
+        await AceBot.del(api(`/tempvc-hubs/${tempvcRemove.dataset.removeTempvcHub}`));
+        AceBot.toast('Temp VC hub removed');
+        await AceBot.refreshSection('#tempvc-hubs-list');
       } catch (err) { AceBot.toast('Failed: ' + err.message, 'error'); }
       return;
     }
