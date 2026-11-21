@@ -69,30 +69,66 @@ function runBackup() {
     const out = fs.createWriteStream(outPath);
     dump.stdout.pipe(gzip).pipe(out);
     let stderr = '';
-    dump.stderr.on('data', (d) => { stderr += d.toString(); });
-    dump.on('error', async (err) => {
-      const msg = `mysqldump failed to start: ${err.message} (is mysqldump installed?)`;
+    let exitCode = null;
+    let failed = false;
+    let settled = false;
+    const settle = (result) => { if (!settled) { settled = true; resolve(result); } };
+    // A stream failure resolves as a failed backup, never a crash: the
+    // dashboard has no uncaughtException handler, so an unhandled 'error'
+    // event on any of these streams kills the process outright.
+    const fail = async (msg) => {
+      if (failed || settled) return;
+      failed = true;
+      try { dump.kill(); } catch {}
+      gzip.destroy();
+      out.destroy();
       await errorLogger.log({ level: 'error', message: `Backup failed: ${msg}`, context: { type: 'backup' } });
       await logRun(filename, null, 'failed', msg);
-      resolve({ ok: false, error: msg });
+      settle({ ok: false, error: msg });
+    };
+    gzip.on('error', (err) => { fail(`Backup compression failed: ${err.message}`); });
+    out.on('error', (err) => { fail(`Backup write failed: ${err.message}`); });
+    if (dump.stdout) dump.stdout.on('error', (err) => { fail(`Backup dump stream failed: ${err.message}`); });
+    dump.stderr.on('data', (d) => { stderr += d.toString(); });
+    dump.on('error', (err) => {
+      fail(`mysqldump failed to start: ${err.message} (is mysqldump installed?)`);
     });
-    dump.on('close', async (code) => {
-      if (code !== 0) {
-        const msg = `mysqldump exited with code ${code}: ${stderr.slice(0, 500)}`;
-        await errorLogger.log({ level: 'error', message: `Backup failed: ${msg}`, context: { type: 'backup' } });
-        await logRun(filename, null, 'failed', msg);
-        try { fs.unlinkSync(outPath); } catch {}
-        return resolve({ ok: false, error: msg });
-      }
-      out.end();
-      out.on('finish', async () => {
+    dump.on('close', (code) => {
+      exitCode = code;
+      checkDone();
+    });
+    // Attached here, not inside the close handler: if the pipeline already
+    // drained before 'close' fires, a listener attached there would never
+    // fire and the backup would hang.
+    out.on('finish', () => { checkDone(); });
+    async function checkDone() {
+      // Success is declared only once BOTH mysqldump has exited AND the
+      // gzip pipeline has fully drained into the file. Never call out.end()
+      // here: pipe() ends `out` itself once gzip has flushed, and ending it
+      // early races the flush — the file is truncated and, on Node 20, the
+      // late flush write throws ERR_STREAM_WRITE_AFTER_END and crashes the
+      // process (the 1.16.14/1.16.15 dashboard deaths and Nov 16 log row
+      // #179). The partial file is only unlinked after the pipeline has
+      // drained, so no write can be in flight when it is deleted.
+      if (failed || settled) return;
+      if (exitCode === null || !out.writableFinished) return;
+      try {
+        if (exitCode !== 0) {
+          const msg = `mysqldump exited with code ${exitCode}: ${stderr.slice(0, 500)}`;
+          await errorLogger.log({ level: 'error', message: `Backup failed: ${msg}`, context: { type: 'backup' } });
+          await logRun(filename, null, 'failed', msg);
+          try { fs.unlinkSync(outPath); } catch {}
+          return settle({ ok: false, error: msg });
+        }
         const size = fs.statSync(outPath).size;
         await logRun(filename, size, 'success', null);
         await pruneOldBackups();
         console.log(`[backup] Saved ${filename} (${(size / 1024).toFixed(1)} KB).`);
-        resolve({ ok: true, filename, sizeBytes: size });
-      });
-    });
+        settle({ ok: true, filename, sizeBytes: size });
+      } catch (err) {
+        await fail(`Backup finalize failed: ${err.message}`);
+      }
+    }
   });
 }
 
