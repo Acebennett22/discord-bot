@@ -560,6 +560,13 @@
   }
 
   async function handleChange(e) {
+    // Settings module picker (1.16.18): plain navigation to the chosen
+    // module — a full page load, same as the old sidebar links.
+    if (e.target && e.target.id === 'module-picker') {
+      const mod = e.target.value;
+      if (mod) window.location.href = `/guilds/${guildId}/${mod}`;
+      return;
+    }
     // Bot identity tab (1.16.8): preview the chosen picture locally
     // before upload — the upload itself is the form's submit handler.
     if (e.target && e.target.id === 'identity-avatar-file') {

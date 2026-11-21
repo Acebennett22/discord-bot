@@ -5,11 +5,19 @@
       <% if (guild.icon) { %><img src="https://cdn.discordapp.com/icons/<%= guild.id %>/<%= guild.icon %>.png" alt=""><% } else { %><img src="/favicon.svg" alt=""><% } %>
       <strong><%= guild.name %></strong>
     </div>
-    <nav>
+    <nav aria-label="Settings sections">
       <% const MODS = [['general','⚙️ General'],['identity','🎭 Bot Identity'],['moderation','🛡️ Moderation'],['tickets','🎫 Tickets'],['serverstats','📊 Server Stats'],['streams','📺 Streams'],['music','🎵 Music'],['leveling','🏆 Leveling'],['reactionroles','🎭 Reaction Roles'],['gameservers','🖥️ Game Servers'],['applications','📝 Applications'],['commands','⌨️ Commands'],['invites','📨 Invites'],['welcome','👋 Welcome'],['automod','🤖 Automod'],['suggestions','💡 Suggestions'],['economy','🪙 Economy'],['starboard','⭐ Starboard'],['customcommands','⌨️ Custom Commands'],['faq','💬 FAQ'],['scheduled','⏰ Scheduled'],['roles','🎭 Roles'],['verification','✅ Verification'],['counting','🔢 Counting'],['tempvc','🔊 Temp VC'],['birthdays','🎂 Birthdays'],['analytics','📈 Analytics'],['giveaways','🎉 Giveaways'],['ai','💬 AI Chat'],['modmail','📬 Modmail'],['games','🎲 Games'],['emojis','😀 Emojis'],['media','🧵 Media'],['threads','🧵 Threads'],['confessions','🤫 Confessions'],['events','📅 Events'],['embeds','🧩 Embeds'],['embed-creator','📝 Embed Creator'],['polls','📊 Polls'],['announcements','📣 Announcements']]; %>
-      <% MODS.forEach(([m, label]) => { %>
-        <a href="/guilds/<%= guild.id %>/<%= m %>" class="<%= module === m ? 'active' : '' %>"><%= label %></a>
-      <% }); %>
+      <label for="module-picker">Settings section</label>
+      <select id="module-picker" aria-label="Settings section">
+        <% MODS.forEach(([m, label]) => { %>
+          <option value="<%= m %>" <%= module === m ? 'selected' : '' %>><%= label %></option>
+        <% }); %>
+      </select>
+      <noscript>
+        <% MODS.forEach(([m, label]) => { %>
+          <a href="/guilds/<%= guild.id %>/<%= m %>" class="<%= module === m ? 'active' : '' %>"><%= label %></a>
+        <% }); %>
+      </noscript>
     </nav>
   </aside>
   <section class="settings-content">
@@ -506,18 +514,18 @@
       <% const maxJoins = Math.max(1, ...analyticsData.daily.map(d => d.joins || 0)); const maxMsgs = Math.max(1, ...analyticsData.daily.map(d => d.messages_count || 0)); %>
       <h2>Joins &amp; leaves — last 30 days</h2>
       <% analyticsData.daily.forEach(d => { %>
-        <div style="display:flex;align-items:center;gap:8px;margin:3px 0">
-          <code style="width:110px"><%= String(d.date).slice(0, 10) %></code>
-          <div style="flex:1;background:var(--border);border-radius:4px;height:14px"><div style="width:<%= Math.round((d.joins || 0) / maxJoins * 100) %>%;background:#57f287;height:14px;border-radius:4px"></div></div>
-          <span style="width:170px">+<%= d.joins || 0 %> / −<%= d.leaves || 0 %> · <%= d.member_count || 0 %> members</span>
+        <div class="bar-row">
+          <code class="bar-date"><%= String(d.date).slice(0, 10) %></code>
+          <div class="bar-fill"><div style="width:<%= Math.round((d.joins || 0) / maxJoins * 100) %>%;background:#57f287"></div></div>
+          <span class="bar-stat">+<%= d.joins || 0 %> / −<%= d.leaves || 0 %> · <%= d.member_count || 0 %> members</span>
         </div>
       <% }); %>
       <h2>Messages per day</h2>
       <% analyticsData.daily.forEach(d => { %>
-        <div style="display:flex;align-items:center;gap:8px;margin:3px 0">
-          <code style="width:110px"><%= String(d.date).slice(0, 10) %></code>
-          <div style="flex:1;background:var(--border);border-radius:4px;height:14px"><div style="width:<%= Math.round((d.messages_count || 0) / maxMsgs * 100) %>%;background:#5865f2;height:14px;border-radius:4px"></div></div>
-          <span style="width:80px"><%= d.messages_count || 0 %></span>
+        <div class="bar-row">
+          <code class="bar-date"><%= String(d.date).slice(0, 10) %></code>
+          <div class="bar-fill"><div style="width:<%= Math.round((d.messages_count || 0) / maxMsgs * 100) %>%;background:#5865f2"></div></div>
+          <span class="bar-count"><%= d.messages_count || 0 %></span>
         </div>
       <% }); %>
     <% } %>
@@ -1369,10 +1377,10 @@
       <div class="card card-block" style="margin-bottom:12px">
         <strong><%= p.question %></strong> · <%= p.ended ? 'ended' : 'live' %> · <%= p.created_at %>
         <% (p.options || []).forEach((opt, i) => { const pct = total ? Math.round((counts[i] || 0) / total * 100) : 0; %>
-          <div style="display:flex;align-items:center;gap:8px;margin:3px 0">
-            <span style="width:220px"><%= opt %></span>
-            <div style="flex:1;background:var(--border);border-radius:4px;height:14px"><div style="width:<%= Math.round((counts[i] || 0) / max * 100) %>%;background:#5865f2;height:14px;border-radius:4px"></div></div>
-            <span style="width:90px"><%= counts[i] || 0 %> (<%= pct %>%)</span>
+          <div class="bar-row">
+            <span class="bar-opt"><%= opt %></span>
+            <div class="bar-fill"><div style="width:<%= Math.round((counts[i] || 0) / max * 100) %>%;background:#5865f2"></div></div>
+            <span class="bar-pct"><%= counts[i] || 0 %> (<%= pct %>%)</span>
           </div>
         <% }); %>
       </div>

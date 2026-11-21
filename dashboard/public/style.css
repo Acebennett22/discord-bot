@@ -78,6 +78,7 @@ header .user-avatar-fallback{display:inline-flex;align-items:center;justify-cont
 
 /* Layout */
 main{max-width:1080px;margin:0 auto;padding:28px 24px 60px}
+main img{max-width:100%}
 footer{max-width:1080px;margin:0 auto;padding:0 24px 32px;color:var(--faint);font-size:12px;text-align:center}
 
 /* Hero (home) */
@@ -217,7 +218,29 @@ tbody tr:hover{background:rgba(255,255,255,.03)}
 .streams-table td.s-name,.streams-table td.s-notify,.streams-table td.s-ping,.streams-table td.s-livechan{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .streams-table td.s-actions .btn{margin:2px 2px 2px 0}
 
-/* Responsive */
+/* Analytics + polls bar rows (1.16.18): the inline flex rows get classes
+   so they can wrap on narrow screens instead of overflowing the panel. */
+.bar-row{display:flex;align-items:center;gap:8px;margin:3px 0}
+.bar-row .bar-date{width:110px;flex:none}
+.bar-row .bar-stat{width:170px;flex:none}
+.bar-row .bar-count{width:80px;flex:none}
+.bar-row .bar-opt{width:220px;flex:none}
+.bar-row .bar-pct{width:90px;flex:none}
+.bar-row .bar-fill{flex:1;background:var(--border);border-radius:4px;height:14px;min-width:0}
+.bar-row .bar-fill > div{height:14px;border-radius:4px}
+
+/* Responsive — the dashboard scales from a 360px phone to a wide desktop
+   (1.16.18). One breakpoint per step: wide screens get a wider content
+   column, tablets stack the settings sidebar, phones wrap the header,
+   scroll wide tables inside their panel, and keep form text at 16px so
+   iOS does not zoom on focus. */
+@media (min-width:1400px){
+  main,footer{max-width:1240px}
+}
+@media (max-width:1024px){
+  .settings-layout{gap:16px}
+  .sidebar{width:220px}
+}
 @media (max-width:820px){
   .settings-layout{flex-direction:column}
   .sidebar{width:100%;position:static}
@@ -226,6 +249,34 @@ tbody tr:hover{background:rgba(255,255,255,.03)}
   .hero h1{font-size:30px}
   main{padding:20px 16px 48px}
   header{padding:10px 16px}
+}
+@media (max-width:640px){
+  header{flex-wrap:wrap;gap:8px;padding:10px 14px}
+  .header-right{flex-wrap:wrap}
+  main{padding:16px 12px 40px}
+  .settings-content{padding:16px;overflow-wrap:anywhere}
+  .sidebar{padding:14px}
+  /* Tables that are not already in a .table-scroll wrapper scroll inside
+     the content panel instead of forcing the page wider. */
+  .settings-content :not(.table-scroll) > table{display:block;overflow-x:auto;max-width:100%}
+  input[type=text],input[type=password],input[type=search],input[type=email],input[type=url],input[type=date],input[type=time],input[type=number],select,textarea{font-size:16px}
+  .hero{padding:28px 0 20px}
+  .hero h1{font-size:28px}
+  .hero p{font-size:16px}
+  .bar-row{flex-wrap:wrap}
+  .bar-row .bar-opt{width:100%}
+  .bar-row .bar-date,.bar-row .bar-stat,.bar-row .bar-count,.bar-row .bar-pct{width:auto}
+}
+@media (max-width:480px){
+  h1{font-size:24px}
+  .settings-content > h1{font-size:20px}
+  .hero h1{font-size:26px}
+  main{padding:14px 10px 36px}
+  .settings-content{padding:14px}
+  header .brand{font-size:15px}
+  header a:not(.btn):not(.brand){padding:6px 6px}
+  /* Keep the avatar, drop the username + role text on the smallest screens. */
+  .header-right .user,.header-right .user-chip .muted{display:none}
 }
 
 /* Client-side JS layer (dashboard/public/app.js): toast notifications */
