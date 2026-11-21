@@ -49,8 +49,12 @@ const app = express();
 const PORT = (config.dashboard && config.dashboard.port) || 3010;
 const REDIRECT_URI = (config.dashboard && config.dashboard.redirectUri) || `http://localhost:${PORT}/callback`;
 
-// Behind a reverse proxy (Nginx/Caddy/Cloudflare): trust X-Forwarded-* so
-// req.protocol / secure cookies work over HTTPS. See README "Reverse proxy".
+// Express 5 changed the default query parser from "extended" (qs) to
+// "simple" (Node's querystring). The dashboard only reads flat keys
+// (?saved=1, ?token=..., ?q=...), so the two parsers agree here — but pin
+// the v4 behavior explicitly so a future nested query param can't silently
+// change meaning on the upgrade.
+app.set('query parser', 'extended');
 app.set('trust proxy', 1);
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '..', 'dashboard', 'views'));
@@ -3018,16 +3022,25 @@ app.post('/api/staff/embed-creator', requireStaffWrite, async (req, res) => {
 });
 
 // Error handler: log 500s through the central error logger.
+// Express 5 forwards rejected promises from async handlers here (in v4
+// they were unhandled rejections), so a handler that already sent a
+// response and then throws can land here with headers sent — never try to
+// send a second response for those; hand the error back instead.
 app.use((err, req, res, next) => {
+  if (res.headersSent) return next(err);
   errorLogger.log({ level: 'error', message: `Dashboard ${req.method} ${req.path} failed: ${err.message}`, stack: err.stack, context: { path: req.path, method: req.method } });
   res.status(500).send('Something went wrong — the error was logged for staff.');
 });
 
 // --- Start -----------------------------------------------------------------------
+// Express 5 passes listen errors (e.g. EADDRINUSE) to this callback
+// instead of throwing them as v4 did — check the argument, or a port
+// clash would silently leave the dashboard not listening.
 (async () => {
   await db.initDatabase();
   issueSetupToken();
-  app.listen(PORT, () => {
+  app.listen(PORT, (err) => {
+    if (err) throw err;
     console.log(`[dashboard] Running at http://localhost:${PORT}`);
     console.log(`[dashboard] OAuth redirect URI must be: ${REDIRECT_URI}`);
   });
