@@ -3,8 +3,21 @@
 // so it can never list a command that doesn't exist (or miss one that
 // does). Audience is derived from the command's permission bits and
 // staff/owner checks in its source — never hand-written.
+//
+// `scanCommands` reads the flat file name, then maps it through the same
+// PARENT_MAP / UTILITY_TOOLS / stripPrefix rules as
+// src/handlers/consolidate.js, so /ban shows as "mod ban" and
+// /ticket-panel as "ticket panel" (its own subcommands stay listed
+// under it). Standalone commands (serverbackup, giveaway,
+// mediathreads, botidentity) keep their own names. The two message
+// context-menu commands have no description, so the scan skips them —
+// unchanged behavior; they were never in the reference.
+// The description regex accepts double quotes too: /fun wordle's
+// description is double-quoted, and the old single-quote-only regex
+// silently skipped it, so wordle never appeared in the reference.
 const fs = require('fs');
 const path = require('path');
+const { PARENT_MAP, UTILITY_TOOLS, stripPrefix } = require('../handlers/consolidate');
 
 let contentCache = null;
 let contentMtime = 0;
@@ -77,14 +90,27 @@ function scanCommands() {
     for (const file of fs.readdirSync(dir).filter((f) => f.endsWith('.js'))) {
       const source = fs.readFileSync(path.join(dir, file), 'utf8');
       const name = source.match(/\.setName\('([^']+)'\)/)?.[1];
-      // Description regex allows escaped quotes (e.g. 'server\'s stats').
-      const rawDesc = source.match(/\.setDescription\('((?:[^'\\]|\\.)*)'\)/)?.[1];
-      const desc = rawDesc ? rawDesc.replace(/\\'/g, "'").replace(/\\\\/g, '\\') : null;
+      // Description regex allows escaped quotes (e.g. 'server\'s stats')
+      // and double-quoted descriptions — /fun wordle's is double-quoted,
+      // and the old single-quote-only regex silently skipped it, so
+      // wordle never appeared in the reference.
+      const rawDesc = source.match(/\.setDescription\((?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)')\)/)?.slice(1).find((x) => x !== undefined);
+      const desc = rawDesc ? rawDesc.replace(/\\'/g, "'").replace(/\\"/g, '"').replace(/\\\\/g, '\\') : null;
       if (!name || !desc) continue;
       const perms = source.match(/setDefaultMemberPermissions\(([^)]+)\)/)?.[1] || null;
       const subs = [...source.matchAll(/\.addSubcommand\([\s\S]*?\.setName\('([^']+)'\)/g)].map((m) => m[1]);
+      // Consolidated display name (1.15.0): parent + subcommand, e.g.
+      // "mod ban", "ticket panel". Context-menu commands never reach
+      // here (no description, skipped above); the guard keeps their
+      // plain name if one ever gains a description. Categories are
+      // keyed by the flat name, so they are resolved before renaming.
+      let displayName = name;
+      if (!/ContextMenuCommandBuilder/.test(source)) {
+        const parent = folder === 'utility' && UTILITY_TOOLS.has(name) ? 'tools' : PARENT_MAP[folder];
+        if (parent) displayName = `${parent} ${stripPrefix(name, parent) || name}`;
+      }
       out.push({
-        name, description: desc,
+        name: displayName, description: desc,
         category: COMMAND_CATEGORY[name] || FOLDER_CATEGORY[folder] || folder,
         audience: audienceOf(source, perms),
         subcommands: subs,

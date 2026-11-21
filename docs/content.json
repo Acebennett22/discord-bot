@@ -1,7 +1,7 @@
 {
  "faq": [
   {
-   "a": "Click Add to Server at the top of this page (or /invite), pick your server, and authorize. You need Manage Server permission in that server. Then run /setup in the server and open the dashboard to configure it.",
+   "a": "Click Add to Server at the top of this page (or /invite), pick your server, and authorize. You need Manage Server permission in that server. Then run /utility setup in the server and open the dashboard to configure it.",
    "q": "How do I add the bot to my server?"
   },
   {
@@ -9,23 +9,23 @@
    "q": "Why are all command replies only visible to me?"
   },
   {
-   "a": "An admin runs /ticket-setup in the channel for the ticket panel. Members click the button to open a ticket; staff use /ticket-claim, /ticket-add, /ticket-remove, and /ticket-close. Category, log channel, and support role live on the dashboard Tickets tab.",
+   "a": "An admin runs /ticket setup in the channel for the ticket panel. Members click the button to open a ticket; staff use /ticket claim, /ticket add, /ticket remove, and /ticket close. Category, log channel, and support role live on the dashboard Tickets tab.",
    "q": "How do I set up tickets?"
   },
   {
-   "a": "An admin runs /application-create (name, description, up to 5 questions) then /application-open. Members apply with /apply; staff review with /application-list, /application-view, /application-accept, and /application-deny. See the Applications guide above.",
+   "a": "An admin runs /application create (name, description, up to 5 questions) then /application open. Members apply with /application apply; staff review with /application list, /application view, /application accept, and /application deny. See the Applications guide above.",
    "q": "How do I set up applications?"
   },
   {
-   "a": "An admin runs /stream-add for a Twitch or YouTube streamer (or adds them on the dashboard Streams tab) and picks an announcement channel. The bot posts when they go live. Use /stream-template to rename a channel while someone is live \u2014 see the Streams guide above.",
+   "a": "An admin runs /stream add for a Twitch or YouTube streamer (or adds them on the dashboard Streams tab) and picks an announcement channel. The bot posts when they go live. Use /stream template to rename a channel while someone is live \u2014 see the Streams guide above.",
    "q": "How do I set up streams?"
   },
   {
-   "a": "Leveling runs automatically: members earn XP from chatting and commands. Check progress with /rank, see the top 10 with /leaderboard, and set levels with /setlevel (admin). Level-up messages and level roles are on the dashboard Leveling tab.",
+   "a": "Leveling runs automatically: members earn XP from chatting and commands. Check progress with /level rank, see the top 10 with /level leaderboard, and set levels with /level setlevel (admin). Level-up messages and level roles are on the dashboard Leveling tab.",
    "q": "How do I set up leveling?"
   },
   {
-   "a": "Invite tracking is automatic once the bot has Manage Server permission \u2014 it compares its cached invite list to the live list on every join to find the inviter. See stats with /invites and /inviteleaderboard, details with /invite-info, and reset with /invite-reset (admin). The fake-account age threshold is on the dashboard Invites tab.",
+   "a": "Invite tracking is automatic once the bot has Manage Server permission \u2014 it compares its cached invite list to the live list on every join to find the inviter. See stats with /invite invites and /invite inviteleaderboard, details with /invite info, and reset with /invite reset (admin). The fake-account age threshold is on the dashboard Invites tab.",
    "q": "How do I set up invites?"
   },
   {
@@ -33,15 +33,15 @@
    "q": "Where is my data stored?"
   },
   {
-   "a": "The bot backs up the whole database every day at 3 AM (configurable) and keeps the last 30 days. The owner can run one on demand with /backup, and staff can see backup files and the run log on the Staff \u2192 Backups page. Restore with: node scripts/restore-db.js <file> --confirm.",
+   "a": "The bot backs up the whole database every day at 3 AM (configurable) and keeps the last 30 days. The owner can run one on demand with /owner backup, and staff can see backup files and the run log on the Staff \u2192 Backups page. Restore with: node scripts/restore-db.js <file> --confirm.",
    "q": "How do backups work?"
   },
   {
-   "a": "Every error and warning the bot hits is written to the MySQL error_logs table and to logs/bot-errors.log on the host. Staff can browse them on the Staff \u2192 Errors page or with /errors, and read one in full with /error <id>.",
+   "a": "Every error and warning the bot hits is written to the MySQL error_logs table and to logs/bot-errors.log on the host. Staff can browse them on the Staff \u2192 Errors page or with /staff errors, and read one in full with /staff error <id>.",
    "q": "How do I report an error / where do errors go?"
   },
   {
-   "a": "Run /stream-template set with a template that contains {name} (you can also use {game} and {title}), max 100 characters \u2014 or set it on the dashboard Streams tab, which shows a live preview. The channel renames when a streamer goes live and restores its original name when they go offline.",
+   "a": "Run /stream template set with a template that contains {name} (you can also use {game} and {title}), max 100 characters \u2014 or set it on the dashboard Streams tab, which shows a live preview. The channel renames when a streamer goes live and restores its original name when they go offline.",
    "q": "How do I change the live-channel name template?"
   },
   {
@@ -49,91 +49,91 @@
    "q": "How do I update the bot?"
   },
   {
-   "a": "An admin runs /verify-setup with a channel, the role to grant, and a mode \u2014 Button or Captcha (a quick math question in a modal). New members are DM'd where to verify. Toggle it with /verify-toggle, or use the dashboard Verification tab.",
+   "a": "An admin runs /verify setup with a channel, the role to grant, and a mode \u2014 Button or Captcha (a quick math question in a modal). New members are DM'd where to verify. Toggle it with /verify toggle, or use the dashboard Verification tab.",
    "q": "How do I set up verification?"
   },
   {
-   "a": "An admin runs /counting-setup with the channel. Each message there must start with the next number. A wrong number or the same person counting twice in a row deletes the message and resets the count to 0. /counting-reset resets it manually.",
+   "a": "An admin runs /counting setup with the channel. Each message there must start with the next number. A wrong number or the same person counting twice in a row deletes the message and resets the count to 0. /counting reset resets it manually.",
    "q": "How does counting work?"
   },
   {
-   "a": "An admin runs /bump-setup with the reminder channel. When someone types !d bump (or DISBOARD confirms a bump), the bot posts a 'Time to bump!' reminder 2 hours later. /bump shows the timer; /bump record records a manual bump.",
+   "a": "An admin runs /counting bump-setup with the reminder channel. When someone types !d bump (or DISBOARD confirms a bump), the bot posts a 'Time to bump!' reminder 2 hours later. /counting bump shows the timer; /counting bump record records a manual bump.",
    "q": "How do bump reminders work?"
   },
   {
-   "a": "Set a 'create' voice channel and a category on the dashboard Temp VC tab. Joining the create channel makes a personal voice channel named after you; it is deleted when empty. Owners manage theirs with /tempvc (limit, lock, unlock, rename, kick, claim).",
+   "a": "Set a 'create' voice channel and a category on the dashboard Temp VC tab. Joining the create channel makes a personal voice channel named after you; it is deleted when empty. Owners manage theirs with /tempvc tempvc (limit, lock, unlock, rename, kick, claim).",
    "q": "How do temporary voice channels work?"
   },
   {
-   "a": "Yes \u2014 /play accepts a Spotify track link and matches the track on YouTube. Spotify audio is never streamed directly (there is no public Spotify audio API), so this is a lookup. Playlist and album links only match their top YouTube result.",
+   "a": "Yes \u2014 /music play accepts a Spotify track link and matches the track on YouTube. Spotify audio is never streamed directly (there is no public Spotify audio API), so this is a lookup. Playlist and album links only match their top YouTube result.",
    "q": "Can I play Spotify links?"
   },
   {
-   "a": "An admin runs /birthday-setup with the announcement channel and the hour (default 9 AM, bot host local time). Members set theirs with /birthday set (month, day, optional year). The bot posts a birthday embed once per user per year.",
+   "a": "An admin runs /birthday setup with the announcement channel and the hour (default 9 AM, bot host local time). Members set theirs with /birthday birthday set (month, day, optional year). The bot posts a birthday embed once per user per year.",
    "q": "How do I set up birthdays?"
   },
   {
-   "a": "That role may have requirements: a role you must already have, a minimum number of days in the server, or a minimum leveling level. The bot tells you exactly which requirement you missed. Admins set requirements with /reactionroles-add.",
+   "a": "That role may have requirements: a role you must already have, a minimum number of days in the server, or a minimum leveling level. The bot tells you exactly which requirement you missed. Admins set requirements with /reactionroles add.",
    "q": "Why can't I take a reaction role?"
   },
   {
-   "a": "/weather <city, ZIP, or \"lat,lon\"> shows current conditions from Open-Meteo (free, no API key). /forecast shows up to 7 days ahead. An admin can set a server default location and units with /weather-set \u2014 imperial (\u00b0F/mph) by default, metric (\u00b0C/km/h) if set.",
+   "a": "/weather weather <city, ZIP, or \"lat,lon\"> shows current conditions from Open-Meteo (free, no API key). /weather forecast shows up to 7 days ahead. An admin can set a server default location and units with /weather set \u2014 imperial (\u00b0F/mph) by default, metric (\u00b0C/km/h) if set.",
    "q": "How does the weather command work?"
   },
   {
-   "a": "Use /playlist save while music is playing to save the current queue under a name, then /playlist load to queue it back. Playlists are per-user and per-server \u2014 max 10 per user, 50 tracks each.",
+   "a": "Use /music playlist save while music is playing to save the current queue under a name, then /music playlist load to queue it back. Playlists are per-user and per-server \u2014 max 10 per user, 50 tracks each.",
    "q": "How do saved music playlists work?"
   },
   {
-   "a": "An admin sets it up with /trivia-daily setup (channel + hour, UTC). The bot posts one question per day; the first correct answer wins 50 coins and a trivia point. Play with /trivia-daily play.",
+   "a": "An admin sets it up with /fun trivia-daily setup (channel + hour, UTC). The bot posts one question per day; the first correct answer wins 50 coins and a trivia point. Play with /fun trivia-daily play.",
    "q": "How does the daily trivia work?"
   },
   {
-   "a": "Run /heist with a bet (50\u20135000 coins). A 60-second lobby opens and others can join. Success chance is 40% plus 10% per extra crew member (max 90%). Success pays everyone their bet back x2; failure loses the bet.",
+   "a": "Run /casino heist with a bet (50\u20135000 coins). A 60-second lobby opens and others can join. Success chance is 40% plus 10% per extra crew member (max 90%). Success pays everyone their bet back x2; failure loses the bet.",
    "q": "How does a heist work?"
   },
   {
-   "a": "When the server hits 100, 250, 500, 1000, 2000, 5000, or 10000 members, the bot celebrates in the milestone channel and the member who triggered it earns 100 coins. Set the channel with /milestone-setup.",
+   "a": "When the server hits 100, 250, 500, 1000, 2000, 5000, or 10000 members, the bot celebrates in the milestone channel and the member who triggered it earns 100 coins. Set the channel with /utility milestone-setup.",
    "q": "What are member milestones?"
   },
   {
-   "a": "A select-menu message where members pick roles from a dropdown \u2014 select again to remove. Admins build them with /rolemenu create and /rolemenu add. Reaction-role requirements apply.",
+   "a": "A select-menu message where members pick roles from a dropdown \u2014 select again to remove. Admins build them with /role rolemenu create and /role rolemenu add. Reaction-role requirements apply.",
    "q": "What is a role menu?"
   },
   {
-   "a": "Admins pick channels with /translate-setup and a target language. Messages in other languages there get an automatic translation reply. It uses Google's free unofficial translate endpoint (no key, no SLA), and /translate translates any text on demand.",
+   "a": "Admins pick channels with /tools translate-setup and a target language. Messages in other languages there get an automatic translation reply. It uses Google's free unofficial translate endpoint (no key, no SLA), and /tools translate translates any text on demand.",
    "q": "How does auto-translate work?"
   },
   {
-   "a": "DJ mode locks the music control commands \u2014 /skip, /stop, /pause, /resume, /filter, /queue-clear \u2014 to a DJ role (and admins). An admin enables it with /dj-setup or on the dashboard Music tab. /play, /queue, /lyrics and /nowplaying stay open to everyone while \"gate only control commands\" is on.",
+   "a": "DJ mode locks the music control commands \u2014 /music skip, /music stop, /music pause, /music resume, /music filter, /music queue-clear \u2014 to a DJ role (and admins). An admin enables it with /music dj-setup or on the dashboard Music tab. /music play, /music queue, /music lyrics and /music nowplaying stay open to everyone while \"gate only control commands\" is on.",
    "q": "What is DJ mode?"
   },
   {
-   "a": "An admin runs /countdown create with a title and a time like \"in 2h30m\" or \"2026-12-25 18:00\". The bot posts an embed that updates every minute (every 5 minutes while more than a day is left), and when it hits zero it edits the message to \"\ud83c\udf89 <title> is here!\" and pings the channel once.",
+   "a": "An admin runs /utility countdown create with a title and a time like \"in 2h30m\" or \"2026-12-25 18:00\". The bot posts an embed that updates every minute (every 5 minutes while more than a day is left), and when it hits zero it edits the message to \"\ud83c\udf89 <title> is here!\" and pings the channel once.",
    "q": "How do countdowns work?"
   },
   {
-   "a": "At the max level (100 by default) a member can /prestige to reset to level 1 and gain +1 prestige. Each prestige gives a permanent +10% XP multiplier (cap +100% at prestige 10), a \u2b50 badge on /rank, and a permanent prestige role if the server configured one.",
+   "a": "At the max level (100 by default) a member can /level prestige to reset to level 1 and gain +1 prestige. Each prestige gives a permanent +10% XP multiplier (cap +100% at prestige 10), a \u2b50 badge on /level rank, and a permanent prestige role if the server configured one.",
    "q": "What does prestiging do?"
   },
   {
-   "a": "Yes \u2014 /ticket-panel create posts a new panel with its own category, staff role and topic. /ticket-setup stays as the default panel, and tickets record which panel they came from.",
+   "a": "Yes \u2014 /ticket panel create posts a new panel with its own category, staff role and topic. /ticket setup stays as the default panel, and tickets record which panel they came from.",
    "q": "Can I have more than one ticket panel?"
   },
   {
-   "a": "An admin maps an invite code to a role with /inviterole add. Anyone who joins through that invite automatically gets the role \u2014 it's based on the invite code used, not who invited them. The code must be a real active invite in the server.",
+   "a": "An admin maps an invite code to a role with /invite inviterole add. Anyone who joins through that invite automatically gets the role \u2014 it's based on the invite code used, not who invited them. The code must be a real active invite in the server.",
    "q": "How do invite-based auto-roles work?"
   },
   {
-   "a": "An admin runs /247 enable and picks a voice channel. The bot stays in that channel around the clock \u2014 even with an empty queue \u2014 and rejoins if it gets disconnected or kicked. /247 disable turns it off. The toggle is also on the dashboard Music tab.",
+   "a": "An admin runs /music 247 enable and picks a voice channel. The bot stays in that channel around the clock \u2014 even with an empty queue \u2014 and rejoins if it gets disconnected or kicked. /music 247 disable turns it off. The toggle is also on the dashboard Music tab.",
    "q": "How does 24/7 music mode work?"
   },
   {
-   "a": "Only from your wallet, with /rob \u2014 a 35% success chance, stealing 10\u201330% of your wallet (min 10, max 1,000 coins). Coins in your bank can never be robbed, so use /deposit to keep them safe. A failed robbery costs the robber a fine of up to 100 coins. Servers can turn robbery off entirely (dashboard Economy tab).",
+   "a": "Only from your wallet, with /economy rob \u2014 a 35% success chance, stealing 10\u201330% of your wallet (min 10, max 1,000 coins). Coins in your bank can never be robbed, so use /economy deposit to keep them safe. A failed robbery costs the robber a fine of up to 100 coins. Servers can turn robbery off entirely (dashboard Economy tab).",
    "q": "Can someone steal my economy coins?"
   },
   {
-   "a": "Run /jobs to see your server's jobs \u2014 each has a payout range, an unlock cost, and a level requirement. Buy one with /job buy <name>, pick it with /job set <name>, and /work then pays from that job's range instead of the default 50\u2013250 coins.",
+   "a": "Run /economy jobs to see your server's jobs \u2014 each has a payout range, an unlock cost, and a level requirement. Buy one with /economy job buy <name>, pick it with /economy job set <name>, and /economy work then pays from that job's range instead of the default 50\u2013250 coins.",
    "q": "How do work jobs work?"
   },
   {
@@ -141,47 +141,47 @@
    "q": "How do giveaway bonus entries work?"
   },
   {
-   "a": "An admin runs /tempban @user 7d [reason] \u2014 the member is banned and automatically unbanned when the duration ends (checked every 5 minutes). /tempban-list shows active tempbans; /tempban-cancel unbans early. You can't tempban the server owner, yourself, or anyone with a higher role than you. The Moderation tab on the dashboard lists active tempbans with cancel buttons.",
+   "a": "An admin runs /mod tempban @user 7d [reason] \u2014 the member is banned and automatically unbanned when the duration ends (checked every 5 minutes). /mod tempban-list shows active tempbans; /mod tempban-cancel unbans early. You can't tempban the server owner, yourself, or anyone with a higher role than you. The Moderation tab on the dashboard lists active tempbans with cancel buttons.",
    "q": "How do tempbans work?"
   },
   {
-   "a": "Use /purge <amount> [user] [contains] \u2014 it deletes up to 100 recent messages matching the filters. Pinned messages and messages older than 14 days are skipped and counted (Discord won't bulk-delete those). /clear still deletes an unfiltered batch. Every purge is audit-logged.",
+   "a": "Use /mod purge <amount> [user] [contains] \u2014 it deletes up to 100 recent messages matching the filters. Pinned messages and messages older than 14 days are skipped and counted (Discord won't bulk-delete those). /mod clear still deletes an unfiltered batch. Every purge is audit-logged.",
    "q": "How do I delete messages from one user, or messages containing certain text?"
   },
   {
-   "a": "Buy one ticket per week with /lottery buy [numbers] (default 100 coins, 3 numbers 1-30 or random). The draw runs Sundays at 20:00 server time; the jackpot is 50% of the week's ticket sales, split between players matching all 3 numbers, and 2 matches pay 100 coins. Results post to the lottery channel and winners are DM'd. /lottery status shows the jackpot and time to draw.",
+   "a": "Buy one ticket per week with /economy lottery buy [numbers] (default 100 coins, 3 numbers 1-30 or random). The draw runs Sundays at 20:00 server time; the jackpot is 50% of the week's ticket sales, split between players matching all 3 numbers, and 2 matches pay 100 coins. Results post to the lottery channel and winners are DM'd. /economy lottery status shows the jackpot and time to draw.",
    "q": "How does the lottery work?"
   },
   {
-   "a": "An admin runs /rules-setup and picks a channel, then fills in the title and rules in the modal. /rules shows them to anyone; /rules-edit updates the posted message in place. There is only one rules message per server \u2014 re-running setup edits it. You can also edit rules on the dashboard General tab.",
+   "a": "An admin runs /tools rules-setup and picks a channel, then fills in the title and rules in the modal. /tools rules shows them to anyone; /tools rules-edit updates the posted message in place. There is only one rules message per server \u2014 re-running setup edits it. You can also edit rules on the dashboard General tab.",
    "q": "How do I set up server rules?"
   },
   {
-   "a": "It watches for bursts of destructive actions (channel/role deletes, mass bans/kicks) and, when one member passes the threshold (default 5 actions in 60 seconds), kicks, bans, or strips their roles, then alerts the owner. Set it up with /antinuke-setup or on the Staff \u2192 Anti-Nuke dashboard page. It can't prevent the first deletions \u2014 Discord's audit log, which it uses to identify who did it, can lag a few seconds.",
+   "a": "It watches for bursts of destructive actions (channel/role deletes, mass bans/kicks) and, when one member passes the threshold (default 5 actions in 60 seconds), kicks, bans, or strips their roles, then alerts the owner. Set it up with /staff antinuke-setup or on the Staff \u2192 Anti-Nuke dashboard page. It can't prevent the first deletions \u2014 Discord's audit log, which it uses to identify who did it, can lag a few seconds.",
    "q": "What does anti-nuke protection do?"
   },
   {
-   "a": "Yes \u2014 set the message with /welcome-dm set <message> (placeholders {user}, {username}, {server}) and toggle it with /welcome-dm toggle. If a member's DMs are closed the DM is skipped silently. The dashboard Welcome tab has the message field, toggle, and a test button that DMs you a preview.",
+   "a": "Yes \u2014 set the message with /welcome dm set <message> (placeholders {user}, {username}, {server}) and toggle it with /welcome dm toggle. If a member's DMs are closed the DM is skipped silently. The dashboard Welcome tab has the message field, toggle, and a test button that DMs you a preview.",
    "q": "Can new members get a welcome DM?"
   },
   {
-   "a": "Run /wordle \u2014 one game per person per day, same word for everyone in the server. Guess via the modal (5 letters, 6 guesses, green/yellow/grey feedback). Streaks are consecutive winning days. See the top streaks with /wordle-leaderboard, or on the dashboard Games tab (staff can also see today's word there).",
+   "a": "Run /fun wordle \u2014 one game per person per day, same word for everyone in the server. Guess via the modal (5 letters, 6 guesses, green/yellow/grey feedback). Streaks are consecutive winning days. See the top streaks with /fun wordle-leaderboard, or on the dashboard Games tab (staff can also see today's word there).",
    "q": "How do I play Wordle?"
   },
   {
-   "a": "No. Sniped messages live in memory only, for 10 minutes, and are never written to the database or the error log. /snipe shows the last deleted message, /editsnipe shows the last edited message's before/after \u2014 staff only.",
-   "q": "Does /snipe store deleted messages?"
+   "a": "No. Sniped messages live in memory only, for 10 minutes, and are never written to the database or the error log. /mod snipe shows the last deleted message, /mod editsnipe shows the last edited message's before/after \u2014 staff only.",
+   "q": "Does /mod snipe store deleted messages?"
   },
   {
-   "a": "Custom statuses only update when Discord sends a presence update, so there can be a delay. The bot also runs a 10-minute sweep to catch missed updates. Check the rule with /statusrole list.",
+   "a": "Custom statuses only update when Discord sends a presence update, so there can be a delay. The bot also runs a 10-minute sweep to catch missed updates. Check the rule with /role statusrole list.",
    "q": "Why didn't my status role apply right away?"
   },
   {
-   "a": "Run /reengage-optout and pick \"Opt out\" \u2014 you'll never get a re-engagement message in that server again. You can opt back in any time with the same command.",
+   "a": "Run /tools reengage-optout and pick \"Opt out\" \u2014 you'll never get a re-engagement message in that server again. You can opt back in any time with the same command.",
    "q": "How do I stop getting \"we miss you\" messages?"
   },
   {
-   "a": "An admin sets milestones with /invitereward add <invites> <role|coins> <value>. When your valid invite count reaches one, the role or coins grant automatically (once per milestone) and you're DM'd. Check your progress with /myinviterewards.",
+   "a": "An admin sets milestones with /invite invitereward add <invites> <role|coins> <value>. When your valid invite count reaches one, the role or coins grant automatically (once per milestone) and you're DM'd. Check your progress with /invite myinviterewards.",
    "q": "How do invite rewards work?"
   }
  ],
@@ -201,7 +201,7 @@
     "title": "3. Get API keys (only the ones you need)"
    },
    {
-    "body": "Run /setup in your server (sets the welcome channel, log channel, and ticket settings), then open the dashboard, pick your server, and work through the tabs \u2014 General, Moderation, Tickets, Streams, Leveling, and the rest. Every setting saves to the database and applies within a minute, no restart needed.",
+    "body": "Run /utility setup in your server (sets the welcome channel, log channel, and ticket settings), then open the dashboard, pick your server, and work through the tabs \u2014 General, Moderation, Tickets, Streams, Leveling, and the rest. Every setting saves to the database and applies within a minute, no restart needed.",
     "title": "4. Configure your server"
    }
   ],
@@ -211,40 +211,40 @@
   {
    "id": "tickets",
    "steps": [
-    "An admin runs /ticket-setup in the channel where the ticket panel should live.",
+    "An admin runs /ticket setup in the channel where the ticket panel should live.",
     "Members click the panel button to open a private ticket channel.",
-    "Support staff use /ticket-claim to take it, /ticket-add and /ticket-remove to manage who can see it, and /ticket-close to close it (a transcript is saved).",
-    "Ticket category, log channel, and support role are set on the dashboard Tickets tab (or with /setup)."
+    "Support staff use /ticket claim to take it, /ticket add and /ticket remove to manage who can see it, and /ticket close to close it (a transcript is saved).",
+    "Ticket category, log channel, and support role are set on the dashboard Tickets tab (or with /utility setup)."
    ],
    "title": "Tickets"
   },
   {
    "id": "applications",
    "steps": [
-    "An admin runs /application-create with a name, a description, and up to 5 questions, then /application-open to accept applications.",
-    "Members apply with /apply and answer the questions in a modal.",
-    "Staff review with /application-list (pending counts), /application-view to read one, and /application-accept or /application-deny \u2014 accepting can grant a role and DMs the applicant.",
-    "Check your own applications anytime with /application-status. Manage forms on the dashboard Applications tab."
+    "An admin runs /application create with a name, a description, and up to 5 questions, then /application open to accept applications.",
+    "Members apply with /application apply and answer the questions in a modal.",
+    "Staff review with /application list (pending counts), /application view to read one, and /application accept or /application deny \u2014 accepting can grant a role and DMs the applicant.",
+    "Check your own applications anytime with /application status. Manage forms on the dashboard Applications tab."
    ],
    "title": "Applications"
   },
   {
    "id": "streams",
    "steps": [
-    "An admin runs /stream-add (Twitch or YouTube) and picks the announcement channel, or adds streamers on the dashboard Streams tab.",
-    "When a streamer goes live, the bot posts an announcement embed. /stream-announce posts one manually (handy for Facebook/TikTok).",
-    "To rename a channel while someone is live: /stream-template set with a template containing {name} (also {game} and {title}), max 100 characters \u2014 or set it on the Streams tab with the live preview.",
+    "An admin runs /stream add (Twitch or YouTube) and picks the announcement channel, or adds streamers on the dashboard Streams tab.",
+    "When a streamer goes live, the bot posts an announcement embed. /stream announce posts one manually (handy for Facebook/TikTok).",
+    "To rename a channel while someone is live: /stream template set with a template containing {name} (also {game} and {title}), max 100 characters \u2014 or set it on the Streams tab with the live preview.",
     "The channel is renamed only on live/offline transitions, and restores its exact original name when the stream ends. Discord allows about 2 renames per 10 minutes per channel, so the bot queues retries instead of failing.",
-    "To check one streamer right now instead of waiting for the next poll: /stream-check <platform> <channel>. If they just went live, the announcement posts to their notify channel. TikTok/Facebook stay manual-only \u2014 there is no public live API for them."
+    "To check one streamer right now instead of waiting for the next poll: /stream check <platform> <channel>. If they just went live, the announcement posts to their notify channel. TikTok/Facebook stay manual-only \u2014 there is no public live API for them."
    ],
    "title": "Streams + live channel name"
   },
   {
    "id": "welcome",
    "steps": [
-    "An admin runs /welcome-setup with a channel and a message template \u2014 placeholders: {user}, {username}, {server}, {membercount}.",
-    "Turn them on/off with /welcome-toggle, and preview one with /welcome-test.",
-    "Goodbye messages work the same way: /goodbye-setup and /goodbye-toggle.",
+    "An admin runs /welcome setup with a channel and a message template \u2014 placeholders: {user}, {username}, {server}, {membercount}.",
+    "Turn them on/off with /welcome toggle, and preview one with /welcome test.",
+    "Goodbye messages work the same way: /welcome goodbye-setup and /welcome goodbye-toggle.",
     "Both can also be configured on the dashboard Welcome tab, with a live preview as you type."
    ],
    "title": "Welcome messages"
@@ -252,21 +252,21 @@
   {
    "id": "automod",
    "steps": [
-    "An admin runs /automod-setup: spam limits (messages per window), what happens on spam (delete / warn / timeout), link and invite blocking, and the log channel.",
-    "Add banned words with /automod-words add, remove with /automod-words remove, list with /automod-words list.",
-    "Exempt roles or channels with /automod-exempt so staff and announcement channels are never filtered.",
-    "View current settings anytime with /automod. Everything is also on the dashboard Automod tab.",
-    "Extra spam detectors: /antispam turns on duplicate-message, ALL-CAPS, mention-spam, and link-count detection, each with its own thresholds and action.",
-    "Finer filtering: /content-filter add blocks a word or a link domain with its own action and severity (low/medium/high) \u2014 no built-in word list ships with the bot; each server defines its own entries."
+    "An admin runs /automod setup: spam limits (messages per window), what happens on spam (delete / warn / timeout), link and invite blocking, and the log channel.",
+    "Add banned words with /automod words add, remove with /automod words remove, list with /automod words list.",
+    "Exempt roles or channels with /automod exempt so staff and announcement channels are never filtered.",
+    "View current settings anytime with /automod automod. Everything is also on the dashboard Automod tab.",
+    "Extra spam detectors: /automod antispam turns on duplicate-message, ALL-CAPS, mention-spam, and link-count detection, each with its own thresholds and action.",
+    "Finer filtering: /automod content-filter add blocks a word or a link domain with its own action and severity (low/medium/high) \u2014 no built-in word list ships with the bot; each server defines its own entries."
    ],
    "title": "Automod"
   },
   {
    "id": "suggestions",
    "steps": [
-    "An admin runs /suggestions-setup with the channel suggestions go to.",
-    "Members submit with /suggest (title + details in a modal). The bot posts it with \ud83d\udc4d / \ud83d\udc4e voting \u2014 one vote per user.",
-    "Staff review with /suggest-status (your own) or the dashboard Suggestions tab, and Approve, Deny, or mark Implemented.",
+    "An admin runs /suggest suggestions-setup with the channel suggestions go to.",
+    "Members submit with /suggest suggest (title + details in a modal). The bot posts it with \ud83d\udc4d / \ud83d\udc4e voting \u2014 one vote per user.",
+    "Staff review with /suggest status (your own) or the dashboard Suggestions tab, and Approve, Deny, or mark Implemented.",
     "The suggester is told the outcome."
    ],
    "title": "Suggestions"
@@ -274,18 +274,18 @@
   {
    "id": "economy",
    "steps": [
-    "Everyone starts with 100 coins. Earn more with /daily (once a day, 100\u2013500 coins plus a random daily item) and /work (once an hour, 50\u2013250 coins).",
-    "Check your wallet and bank with /balance, move coins with /deposit and /withdraw, send coins with /pay, and see the richest members with /eco-leaderboard.",
-    "Spend in the shop: /shop lists items, /buy <id> buys (role items grant the role, everything else lands in /inventory). One item per guild per day is 25% off as the daily deal.",
-    "Crates (Common 500, Rare 1,500, Legendary 5,000) are opened with /open-crate for random loot. Sell items back with /sell (usually half price). Trade with another member using /trade \u2014 they accept, you confirm, and the swap happens in one database transaction.",
-    "Feeling lucky? /slots, /blackjack, /roulette, /gamble-coinflip, and /gamble-dice all use the same wallet. Minimum bet 10, maximum 10,000, 5 seconds between games."
+    "Everyone starts with 100 coins. Earn more with /economy daily (once a day, 100\u2013500 coins plus a random daily item) and /economy work (once an hour, 50\u2013250 coins).",
+    "Check your wallet and bank with /economy balance, move coins with /economy deposit and /economy withdraw, send coins with /economy pay, and see the richest members with /economy eco-leaderboard.",
+    "Spend in the shop: /economy shop lists items, /economy buy <id> buys (role items grant the role, everything else lands in /economy inventory). One item per guild per day is 25% off as the daily deal.",
+    "Crates (Common 500, Rare 1,500, Legendary 5,000) are opened with /economy open-crate for random loot. Sell items back with /economy sell (usually half price). Trade with another member using /economy trade \u2014 they accept, you confirm, and the swap happens in one database transaction.",
+    "Feeling lucky? /casino slots, /casino blackjack, /casino roulette, /casino gamble-coinflip, and /casino gamble-dice all use the same wallet. Minimum bet 10, maximum 10,000, 5 seconds between games."
    ],
    "title": "Economy, crates & trading"
   },
   {
    "id": "starboard",
    "steps": [
-    "An admin runs /starboard-setup with a channel and a threshold (default 3 stars).",
+    "An admin runs /starboard setup with a channel and a threshold (default 3 stars).",
     "When a message collects that many \u2b50 reactions, the bot posts it to the starboard channel as an embed (author, content, jump link, star count, first image).",
     "The count updates live as stars arrive. If it drops below the threshold, the starboard post is deleted.",
     "Bot messages and messages already in the starboard channel are ignored."
@@ -295,9 +295,9 @@
   {
    "id": "verification",
    "steps": [
-    "An admin runs /verify-setup with a channel, the role to grant, and a mode \u2014 Button (click to verify) or Captcha (click, then answer a quick math question in a modal).",
+    "An admin runs /verify setup with a channel, the role to grant, and a mode \u2014 Button (click to verify) or Captcha (click, then answer a quick math question in a modal).",
     "The bot posts a Verify button panel in the channel and enables the gate. New members are DM'd where to verify.",
-    "Turn it on/off with /verify-toggle. Grants and failures are logged to the verification_logs table.",
+    "Turn it on/off with /verify toggle. Grants and failures are logged to the verification_logs table.",
     "The same settings live on the dashboard Verification tab."
    ],
    "title": "Verification gate"
@@ -305,10 +305,10 @@
   {
    "id": "counting",
    "steps": [
-    "An admin runs /counting-setup with the counting channel. Each message there must start with the next number \u2014 a wrong number or the same person counting twice in a row deletes the message and resets the count to 0.",
-    "Correct counts get a \u2705 reaction. Reset manually with /counting-reset.",
-    "For bumps, an admin runs /bump-setup with the reminder channel. When someone types !d bump (or DISBOARD confirms a bump), the bot waits 2 hours, then posts a 'Time to bump!' reminder.",
-    "Check the timer anytime with /bump, or record a manual bump with /bump record."
+    "An admin runs /counting setup with the counting channel. Each message there must start with the next number \u2014 a wrong number or the same person counting twice in a row deletes the message and resets the count to 0.",
+    "Correct counts get a \u2705 reaction. Reset manually with /counting reset.",
+    "For bumps, an admin runs /counting bump-setup with the reminder channel. When someone types !d bump (or DISBOARD confirms a bump), the bot waits 2 hours, then posts a 'Time to bump!' reminder.",
+    "Check the timer anytime with /counting bump, or record a manual bump with /counting bump record."
    ],
    "title": "Counting & bump reminders"
   },
@@ -317,57 +317,57 @@
    "steps": [
     "Set the 'create' voice channel and a category on the dashboard Temp VC tab.",
     "Joining the create channel spins up a personal voice channel named after you and moves you in. It is deleted when it becomes empty.",
-    "Owners manage theirs with /tempvc limit, /tempvc lock, /tempvc unlock, /tempvc rename, and /tempvc kick.",
-    "If the owner leaves, someone else in the channel can take over with /tempvc claim."
+    "Owners manage theirs with /tempvc tempvc limit, /tempvc tempvc lock, /tempvc tempvc unlock, /tempvc tempvc rename, and /tempvc tempvc kick.",
+    "If the owner leaves, someone else in the channel can take over with /tempvc tempvc claim."
    ],
    "title": "Temporary voice channels"
   },
   {
    "id": "music",
    "steps": [
-    "Join a voice channel, then /play <song name, YouTube URL, or Spotify track link>. Spotify links are matched on YouTube \u2014 Spotify audio is never streamed directly.",
-    "Control playback with /skip, /stop, /pause, /resume, and /queue. /nowplaying shows the current track with a progress bar.",
-    "Apply an audio filter with /filter (bassboost, nightcore, vaporwave, 8d, or off) \u2014 the current track restarts with the filter on, because filters need FFmpeg re-encoding.",
-    "Get lyrics with /lyrics (the song playing now, or /lyrics song: Artist - Title). Lyrics come from the free lyrics.ovh API \u2014 no key needed."
+    "Join a voice channel, then /music play <song name, YouTube URL, or Spotify track link>. Spotify links are matched on YouTube \u2014 Spotify audio is never streamed directly.",
+    "Control playback with /music skip, /music stop, /music pause, /music resume, and /music queue. /music nowplaying shows the current track with a progress bar.",
+    "Apply an audio filter with /music filter (bassboost, nightcore, vaporwave, 8d, or off) \u2014 the current track restarts with the filter on, because filters need FFmpeg re-encoding.",
+    "Get lyrics with /music lyrics (the song playing now, or /music lyrics song: Artist - Title). Lyrics come from the free lyrics.ovh API \u2014 no key needed."
    ],
    "title": "Music, filters, lyrics & Spotify"
   },
   {
    "id": "birthdays",
    "steps": [
-    "Members set their birthday with /birthday set (month, day, and an optional year for ages).",
-    "An admin runs /birthday-setup with the announcement channel and the hour (default 9 AM, bot host local time).",
-    "On the day, the bot posts a birthday embed once per user per year. See what's coming with /birthday list, or remove yours with /birthday remove."
+    "Members set their birthday with /birthday birthday set (month, day, and an optional year for ages).",
+    "An admin runs /birthday setup with the announcement channel and the hour (default 9 AM, bot host local time).",
+    "On the day, the bot posts a birthday embed once per user per year. See what's coming with /birthday birthday list, or remove yours with /birthday birthday remove."
    ],
    "title": "Birthdays"
   },
   {
    "id": "reactionroles-req",
    "steps": [
-    "Create a panel with /reactionroles-setup, then add pairs with /reactionroles-add \u2014 optionally with a required role, a minimum days-in-server, and/or a minimum leveling level.",
+    "Create a panel with /reactionroles setup, then add pairs with /reactionroles add \u2014 optionally with a required role, a minimum days-in-server, and/or a minimum leveling level.",
     "Members who miss a requirement get an ephemeral message naming exactly what they missed; members who meet them get the role as usual.",
-    "See every mapping and its requirements with /reactionroles-list, or on the dashboard Reaction Roles tab.",
-    "Pause or resume a whole reaction-role message with /reactionroles-toggle <message_id> <enabled> \u2014 while paused the buttons render disabled and clicks are refused, without deleting any mappings."
+    "See every mapping and its requirements with /reactionroles list, or on the dashboard Reaction Roles tab.",
+    "Pause or resume a whole reaction-role message with /reactionroles toggle <message_id> <enabled> \u2014 while paused the buttons render disabled and clicks are refused, without deleting any mappings."
    ],
    "title": "Reaction roles with requirements"
   },
   {
    "id": "weather",
    "steps": [
-    "Check the weather anywhere with /weather <city, ZIP, or \"lat,lon\"> \u2014 temperature, feels-like, condition, humidity, wind, pressure, visibility, sunrise and sunset.",
-    "See ahead with /forecast <location> [days 1-7] \u2014 high/low, condition, and precipitation chance per day.",
-    "An admin can set a server default with /weather-set (location + imperial/metric units), so /weather with no location just works.",
+    "Check the weather anywhere with /weather weather <city, ZIP, or \"lat,lon\"> \u2014 temperature, feels-like, condition, humidity, wind, pressure, visibility, sunrise and sunset.",
+    "See ahead with /weather forecast <location> [days 1-7] \u2014 high/low, condition, and precipitation chance per day.",
+    "An admin can set a server default with /weather set (location + imperial/metric units), so /weather weather with no location just works.",
     "Weather comes from Open-Meteo \u2014 free, no API key needed.",
-    "Save a personal home with /weather-home set <location> \u2014 bare /weather uses your home first, then the server default."
+    "Save a personal home with /weather home set <location> \u2014 bare /weather weather uses your home first, then the server default."
    ],
    "title": "Weather"
   },
   {
    "id": "playlists",
    "steps": [
-    "While music is playing, run /playlist save with a name to save the current queue as a playlist.",
-    "Use /playlist load with the name (join a voice channel first) to queue the whole playlist back.",
-    "List your playlists with /playlist list, delete with /playlist delete, rename with /playlist rename. Max 10 playlists per user per server, 50 tracks each.",
+    "While music is playing, run /music playlist save with a name to save the current queue as a playlist.",
+    "Use /music playlist load with the name (join a voice channel first) to queue the whole playlist back.",
+    "List your playlists with /music playlist list, delete with /music playlist delete, rename with /music playlist rename. Max 10 playlists per user per server, 50 tracks each.",
     "The dashboard Music tab lists every playlist in the server with a delete button."
    ],
    "title": "Saved music playlists"
@@ -375,9 +375,9 @@
   {
    "id": "daily-trivia",
    "steps": [
-    "An admin runs /trivia-daily setup with a channel and an hour (UTC, default 12) \u2014 the bot posts one question per day there.",
+    "An admin runs /fun trivia-daily setup with a channel and an hour (UTC, default 12) \u2014 the bot posts one question per day there.",
     "Members answer by clicking an answer button. The first correct answer wins 50 coins and a trivia point.",
-    "Anyone can play today's question with /trivia-daily play, and see the top players with /trivia-leaderboard.",
+    "Anyone can play today's question with /fun trivia-daily play, and see the top players with /fun trivia-leaderboard.",
     "The question is the same for the whole server each day, and comes from the bot's built-in trivia bank."
    ],
    "title": "Daily trivia"
@@ -385,7 +385,7 @@
   {
    "id": "heist",
    "steps": [
-    "Run /heist with a bet (50\u20135000 coins from your wallet) to open a 60-second lobby.",
+    "Run /casino heist with a bet (50\u20135000 coins from your wallet) to open a 60-second lobby.",
     "Other members join with the Join button \u2014 success chance is 40% plus 10% per extra crew member (max 90%).",
     "If the heist succeeds, everyone gets their bet back x2. If it fails, everyone loses their bet.",
     "There is a 1-hour cooldown per user between heists."
@@ -395,29 +395,29 @@
   {
    "id": "milestones",
    "steps": [
-    "An admin runs /milestone-setup with a channel for milestone celebrations.",
+    "An admin runs /utility milestone-setup with a channel for milestone celebrations.",
     "When the server hits 100, 250, 500, 1000, 2000, 5000, or 10000 members, the bot posts a celebration embed there.",
     "The member who triggers a milestone earns a 100-coin bonus. Each milestone only fires once.",
-    "Anyone can check the next milestone and progress with /milestones."
+    "Anyone can check the next milestone and progress with /utility milestones."
    ],
    "title": "Member milestones"
   },
   {
    "id": "rolemenu",
    "steps": [
-    "An admin runs /rolemenu create with a title (and optional channel) to post a menu message.",
-    "Add options with /rolemenu add (menu ID, role, label, optional emoji and description). A menu holds up to 25 options.",
+    "An admin runs /role rolemenu create with a title (and optional channel) to post a menu message.",
+    "Add options with /role rolemenu add (menu ID, role, label, optional emoji and description). A menu holds up to 25 options.",
     "Members pick a role from the dropdown \u2014 selecting it again removes it. Reaction-role requirements (required role, days in server, level) apply.",
-    "Remove options with /rolemenu remove and delete the whole menu with /rolemenu delete."
+    "Remove options with /role rolemenu remove and delete the whole menu with /role rolemenu delete."
    ],
    "title": "Button role menus"
   },
   {
    "id": "translate",
    "steps": [
-    "An admin runs /translate-setup with a channel and a target language \u2014 messages in that channel are auto-translated into it.",
+    "An admin runs /tools translate-setup with a channel and a target language \u2014 messages in that channel are auto-translated into it.",
     "Translation uses Google's free unofficial endpoint (no key, no SLA) \u2014 if it fails, the message is simply left untranslated.",
-    "Anyone can translate text on demand with /translate and a target language code (e.g. es, fr, de).",
+    "Anyone can translate text on demand with /tools translate and a target language code (e.g. es, fr, de).",
     "Bot messages and commands are never translated.",
     "Right-click any message \u2192 Apps \u2192 \"Translate message\" translates that one message on demand."
    ],
@@ -426,9 +426,9 @@
   {
    "id": "dj-mode",
    "steps": [
-    "An admin runs /dj-setup with a DJ role to turn DJ mode on \u2014 or picks the role and the toggle on the dashboard Music tab.",
-    "When DJ mode is on, only the DJ role (and admins) can use /skip, /stop, /pause, /resume, /filter and /queue-clear. Everyone else gets an error naming the DJ role.",
-    "With \"gate only control commands\" on (the default), /play, /lyrics, /queue and /nowplaying stay open to everyone. Turn it off and every music command needs the DJ role.",
+    "An admin runs /music dj-setup with a DJ role to turn DJ mode on \u2014 or picks the role and the toggle on the dashboard Music tab.",
+    "When DJ mode is on, only the DJ role (and admins) can use /music skip, /music stop, /music pause, /music resume, /music filter and /music queue-clear. Everyone else gets an error naming the DJ role.",
+    "With \"gate only control commands\" on (the default), /music play, /music lyrics, /music queue and /music nowplaying stay open to everyone. Turn it off and every music command needs the DJ role.",
     "DJ mode can't be enabled without a DJ role set \u2014 the command and the dashboard both refuse with a clear error."
    ],
    "title": "DJ mode"
@@ -436,9 +436,9 @@
   {
    "id": "emoji-manager",
    "steps": [
-    "An admin with Manage Emojis runs /emoji-add with a name and an image URL or attachment (PNG/JPG/GIF under 256KB, name 2\u201332 letters, numbers or underscores).",
+    "An admin with Manage Emojis runs /emoji add with a name and an image URL or attachment (PNG/JPG/GIF under 256KB, name 2\u201332 letters, numbers or underscores).",
     "The bot checks the server's emoji slot limit first and errors clearly if the server is full.",
-    "/emoji-list shows the server's custom emoji (paginated), and /emoji-remove deletes one by name.",
+    "/emoji list shows the server's custom emoji (paginated), and /emoji remove deletes one by name.",
     "Additions and removals are logged to the database (emoji_logs). The dashboard Emojis tab has the same list, add and remove."
    ],
    "title": "Emoji manager"
@@ -446,10 +446,10 @@
   {
    "id": "countdowns",
    "steps": [
-    "An admin or staff member runs /countdown create with a title and a time \u2014 \"in 2h30m\", \"in 3d\", or an absolute date like \"2026-12-25 18:00\".",
+    "An admin or staff member runs /utility countdown create with a title and a time \u2014 \"in 2h30m\", \"in 3d\", or an absolute date like \"2026-12-25 18:00\".",
     "The bot posts a countdown embed that updates itself \u2014 every minute once under 24h is left, every 5 minutes before that.",
     "When it hits zero the message is edited to \"\ud83c\udf89 <title> is here!\" and the channel is pinged once.",
-    "/countdown list shows active countdowns; /countdown cancel removes one. The dashboard Events tab (Scheduled) has the same list with create/cancel."
+    "/utility countdown list shows active countdowns; /utility countdown cancel removes one. The dashboard Events tab (Scheduled) has the same list with create/cancel."
    ],
    "title": "Countdowns"
   },
@@ -457,38 +457,38 @@
    "id": "prestige",
    "steps": [
     "Members earn XP as usual up to the max level (100 by default, config.json leveling.maxLevel).",
-    "At max level, /prestige shows a confirm button \u2014 prestiging resets level to 1 and XP to 0, and grants +1 prestige.",
-    "Each prestige gives a permanent +10% XP multiplier, capped at +100% (prestige 10). A \u2b50 badge shows on /rank and the rank card.",
-    "An admin can set a prestige role (dashboard Leveling tab or guild_settings prestige_role_id) that is granted permanently when a member prestiges. /prestige-leaderboard shows the top prestige users."
+    "At max level, /level prestige shows a confirm button \u2014 prestiging resets level to 1 and XP to 0, and grants +1 prestige.",
+    "Each prestige gives a permanent +10% XP multiplier, capped at +100% (prestige 10). A \u2b50 badge shows on /level rank and the rank card.",
+    "An admin can set a prestige role (dashboard Leveling tab or guild_settings prestige_role_id) that is granted permanently when a member prestiges. /level prestige-leaderboard shows the top prestige users."
    ],
    "title": "Prestige levels"
   },
   {
    "id": "ticket-panels",
    "steps": [
-    "An admin runs /ticket-panel create with a title and a category \u2014 optionally a staff role, a channel to post in, and a description.",
-    "Each panel is separate: its own category, staff role and topic. /ticket-setup stays as the default/first panel.",
+    "An admin runs /ticket panel create with a title and a category \u2014 optionally a staff role, a channel to post in, and a description.",
+    "Each panel is separate: its own category, staff role and topic. /ticket setup stays as the default/first panel.",
     "Tickets opened from a panel record which panel they came from, so staff can tell which panel a ticket belongs to.",
-    "/ticket-panel list shows all panels; /ticket-panel delete removes one. The dashboard Tickets tab lists panels with create/delete."
+    "/ticket panel list shows all panels; /ticket panel delete removes one. The dashboard Tickets tab lists panels with create/delete."
    ],
    "title": "Multiple ticket panels"
   },
   {
    "id": "invite-roles",
    "steps": [
-    "An admin runs /inviterole add with an invite code and a role \u2014 e.g. the \"youtube\" invite gets the \"From YouTube\" role.",
+    "An admin runs /invite inviterole add with an invite code and a role \u2014 e.g. the \"youtube\" invite gets the \"From YouTube\" role.",
     "When someone joins through that invite, the role is granted automatically. The role is based on the code used, not the inviter.",
     "The code must be a real active invite in the server (checked on add) and the role must sit below the bot's highest role.",
-    "/inviterole list shows all rules; /inviterole remove deletes one. The dashboard Invites tab has the same list with add/remove."
+    "/invite inviterole list shows all rules; /invite inviterole remove deletes one. The dashboard Invites tab has the same list with add/remove."
    ],
    "title": "Invite-based auto-roles"
   },
   {
    "id": "economy-robbery-jobs",
    "steps": [
-    "Run /jobs to see your server's job catalog (Dishwasher, Barista, Mechanic, Developer by default).",
-    "Unlock a job with /job buy <name> (costs coins, needs the listed level), then pick it with /job set <name> \u2014 /work now pays that job's range.",
-    "Keep coins safe from /rob by moving them to the bank with /deposit \u2014 only wallet coins can be stolen.",
+    "Run /economy jobs to see your server's job catalog (Dishwasher, Barista, Mechanic, Developer by default).",
+    "Unlock a job with /economy job buy <name> (costs coins, needs the listed level), then pick it with /economy job set <name> \u2014 /economy work now pays that job's range.",
+    "Keep coins safe from /economy rob by moving them to the bank with /economy deposit \u2014 only wallet coins can be stolen.",
     "Admins can turn robbery off for the whole server on the dashboard Economy tab."
    ],
    "title": "Work jobs & robbery"
@@ -496,9 +496,9 @@
   {
    "id": "wordle",
    "steps": [
-    "Members play with /wordle \u2014 one game per person per day, same word for everyone in the server (seeded from the date + server id).",
+    "Members play with /fun wordle \u2014 one game per person per day, same word for everyone in the server (seeded from the date + server id).",
     "Guess via the modal (5 letters, 6 guesses). Feedback is green/yellow/grey squares; a win or loss shows an embed and updates the streak.",
-    "Streaks are consecutive winning days \u2014 a loss or a missed day resets to 0. See the top streaks and wins with /wordle-leaderboard.",
+    "Streaks are consecutive winning days \u2014 a loss or a missed day resets to 0. See the top streaks and wins with /fun wordle-leaderboard.",
     "The word list is src/data/words.json: 1,200 common answers + 14,855 allowed guesses, from the tabatkins/wordle-list and first20hours/google-10000-english open lists.",
     "Staff can see today's word and the leaderboard on the dashboard Games tab."
    ],
@@ -507,8 +507,8 @@
   {
    "id": "events",
    "steps": [
-    "Staff create an event with /event create <title> <date/time> [description] [channel] \u2014 the bot posts an embed with Going / Maybe / Can't go buttons.",
-    "Members RSVP with the buttons; /event list shows upcoming events and /event cancel <id> (admin) cancels one.",
+    "Staff create an event with /tools event create <title> <date/time> [description] [channel] \u2014 the bot posts an embed with Going / Maybe / Can't go buttons.",
+    "Members RSVP with the buttons; /tools event list shows upcoming events and /tools event cancel <id> (admin) cancels one.",
     "One hour before the start, RSVP'd members (Going/Maybe) get a DM reminder \u2014 if their DMs are closed they're mentioned in the channel instead.",
     "When the event starts, the bot posts a \"starting now\" message in the channel, mentioning the RSVP'd members.",
     "The dashboard Events tab lists upcoming events with RSVP counts and can create or cancel them."
@@ -518,9 +518,9 @@
   {
    "id": "slowmode",
    "steps": [
-    "An admin sets slowmode immediately with /slowmode set <seconds> [channel].",
-    "For a day/night schedule, use /slowmode-schedule <channel> <day_seconds> <night_seconds> <night_start> <night_end> \u2014 e.g. 0s by day, 10s from 22:00 to 08:00.",
-    "The bot re-applies the scheduled value every 15 minutes based on the current hour. Remove a schedule with /slowmode-schedule-remove <channel>.",
+    "An admin sets slowmode immediately with /mod slowmode set <seconds> [channel].",
+    "For a day/night schedule, use /mod slowmode-schedule <channel> <day_seconds> <night_seconds> <night_start> <night_end> \u2014 e.g. 0s by day, 10s from 22:00 to 08:00.",
+    "The bot re-applies the scheduled value every 15 minutes based on the current hour. Remove a schedule with /mod slowmode-schedule-remove <channel>.",
     "Schedules are listed and edited on the dashboard Moderation tab."
    ],
    "title": "Slowmode presets"
@@ -528,7 +528,7 @@
   {
    "id": "afkvoice",
    "steps": [
-    "An admin enables it with /afkvoice-setup: how many minutes muted/deafened before moving, and which AFK channel to move members to (blank = disconnect instead).",
+    "An admin enables it with /mod afkvoice-setup: how many minutes muted/deafened before moving, and which AFK channel to move members to (blank = disconnect instead).",
     "The bot watches voice states; members muted or deafened continuously longer than the threshold are moved (or disconnected).",
     "Bots are never moved, members already in the AFK channel are never moved, and a configurable staff role is exempt.",
     "Moves are logged to the afk_voice_moves table and to the modlog channel if one is set. Settings live on the dashboard Moderation tab."
@@ -538,7 +538,7 @@
   {
    "id": "imagestarboard",
    "steps": [
-    "An admin sets it up with /starboard-image-setup: a separate channel for image posts and a star threshold (default 3).",
+    "An admin sets it up with /starboard image-setup: a separate channel for image posts and a star threshold (default 3).",
     "The star-reaction flow is the same as the main starboard, but only messages with image/video attachments qualify \u2014 they post as a large-image embed.",
     "If no image channel is set, image posts go to the main starboard as before. Settings are on the dashboard Starboard tab."
    ],
@@ -547,8 +547,8 @@
   {
    "id": "statusroles",
    "steps": [
-    "An admin adds a rule with /statusrole add <text> <role> \u2014 when a member's custom status contains the text (case-insensitive), they get the role; when it stops containing it, the role is removed.",
-    "Manage rules with /statusrole list and /statusrole remove <text>, or on the dashboard Roles tab.",
+    "An admin adds a rule with /role statusrole add <text> <role> \u2014 when a member's custom status contains the text (case-insensitive), they get the role; when it stops containing it, the role is removed.",
+    "Manage rules with /role statusrole list and /role statusrole remove <text>, or on the dashboard Roles tab.",
     "Roles must sit below the bot's highest role, and bots never get status roles.",
     "Custom statuses only update when Discord sends a presence update, so there can be a delay \u2014 a 10-minute sweep catches missed updates."
    ],
@@ -557,7 +557,7 @@
   {
    "id": "snipe",
    "steps": [
-    "Staff use /snipe [channel] to see the last deleted message in a channel, and /editsnipe [channel] to see the last edited message's before/after.",
+    "Staff use /mod snipe [channel] to see the last deleted message in a channel, and /mod editsnipe [channel] to see the last edited message's before/after.",
     "Sniped messages are kept in memory only, for 10 minutes \u2014 deleted message content is never written to the database or the error log.",
     "If nothing was deleted/edited recently, the bot says so."
    ],
@@ -566,8 +566,8 @@
   {
    "id": "embeds",
    "steps": [
-    "An admin runs /embed create and fills in the modal (title, description, color), then a second modal for image/footer/channel \u2014 the finished embed posts to the chosen channel.",
-    "To fix a posted embed, use /embed edit <message_id or link> \u2014 it edits the bot's own embed in place.",
+    "An admin runs /utility embed create and fills in the modal (title, description, color), then a second modal for image/footer/channel \u2014 the finished embed posts to the chosen channel.",
+    "To fix a posted embed, use /utility embed edit <message_id or link> \u2014 it edits the bot's own embed in place.",
     "Built embeds are stored in the embeds table and listed on the dashboard Embeds tab, where staff can edit (form) or delete them."
    ],
    "title": "Embed builder"
@@ -576,7 +576,7 @@
    "id": "pollcharts",
    "steps": [
     "When a poll ends, the bot posts a results message with a bar chart (canvas) \u2014 each option's vote count and percentage \u2014 and stores the final tallies so results survive restarts.",
-    "Use /poll-results <message_id or link> any time to see a poll's results with the chart, live or ended.",
+    "Use /tools poll-results <message_id or link> any time to see a poll's results with the chart, live or ended.",
     "Past polls with their charts are on the dashboard Polls tab."
    ],
    "title": "Poll results charts"
@@ -586,32 +586,32 @@
    "steps": [
     "When a ticket closes, the creator is DM'd a 1\u20135 star prompt (buttons) with an optional comment modal.",
     "If their DMs are closed the prompt is skipped silently and the skip is logged.",
-    "Staff see the average rating, count, and recent ratings with comments via /ticket-ratings, or on the dashboard Staff \u2192 Tickets page."
+    "Staff see the average rating, count, and recent ratings with comments via /ticket ratings, or on the dashboard Staff \u2192 Tickets page."
    ],
    "title": "Ticket ratings"
   },
   {
    "id": "levelupannounce",
    "steps": [
-    "Level role rewards already auto-grant on level-up (see /levelrewards). This feature adds the announcement side.",
-    "Set a channel with /levelup-channel set <channel> (or on the dashboard Leveling tab) \u2014 when a member levels up AND gains a role, the bot posts an announcement embed there.",
-    "Level-ups without a role reward are still announced in the channel where they happened. Clear it with /levelup-channel clear."
+    "Level role rewards already auto-grant on level-up (see /level levelrewards). This feature adds the announcement side.",
+    "Set a channel with /level levelup-channel set <channel> (or on the dashboard Leveling tab) \u2014 when a member levels up AND gains a role, the bot posts an announcement embed there.",
+    "Level-ups without a role reward are still announced in the channel where they happened. Clear it with /level levelup-channel clear."
    ],
    "title": "Level-up announcements"
   },
   {
    "id": "inviterewards",
    "steps": [
-    "An admin adds a milestone with /invitereward add <invites> <role|coins> <value> \u2014 e.g. 10 invites \u2192 a role, or 25 invites \u2192 500 coins.",
+    "An admin adds a milestone with /invite invitereward add <invites> <role|coins> <value> \u2014 e.g. 10 invites \u2192 a role, or 25 invites \u2192 500 coins.",
     "When a member's valid invite count reaches a milestone, the reward grants automatically (once per milestone) and they're DM'd \u2014 plus a post in the invite log channel if one is set.",
-    "Fake joins never count toward milestones. Members check their progress with /myinviterewards; manage milestones with /invitereward list and /invitereward remove, or on the dashboard Invites tab."
+    "Fake joins never count toward milestones. Members check their progress with /invite myinviterewards; manage milestones with /invite invitereward list and /invite invitereward remove, or on the dashboard Invites tab."
    ],
    "title": "Invite rewards"
   },
   {
    "id": "afkautocreate",
    "steps": [
-    "An admin sets it up with /afkchannel-setup: the primary AFK channel and the max users before a second channel is created (default 10).",
+    "An admin sets it up with /tempvc afkchannel-setup: the primary AFK channel and the max users before a second channel is created (default 10).",
     "When the primary AFK channel reaches max users, the bot creates a second AFK voice channel (\"AFK 2\") in the same category; when it empties, it's deleted.",
     "If the primary is empty for 10 minutes and a secondary exists and is also empty, the secondary is deleted.",
     "Settings are on the dashboard Temp VC tab. This works with the AFK voice kick (1.7.4), which moves idle members into the AFK channel."
@@ -621,8 +621,8 @@
   {
    "id": "bookmarks",
    "steps": [
-    "Save any message you can read with /bookmark add <message_id or link> [note], or right-click a message \u2192 Apps \u2192 Bookmark message.",
-    "List your bookmarks with /bookmark list (ephemeral, with jump links) and remove one with /bookmark remove <id>.",
+    "Save any message you can read with /tools bookmark add <message_id or link> [note], or right-click a message \u2192 Apps \u2192 Bookmark message.",
+    "List your bookmarks with /tools bookmark list (ephemeral, with jump links) and remove one with /tools bookmark remove <id>.",
     "Only a 500-character excerpt of the message is stored \u2014 never the full body. Bookmarks are per-user; nobody else can see yours."
    ],
    "title": "Message bookmarks"
@@ -630,7 +630,7 @@
   {
    "id": "autopublish",
    "steps": [
-    "An admin adds announcement channels with /autopublish add <channel> (list with /autopublish list, remove with /autopublish remove).",
+    "An admin adds announcement channels with /tools autopublish add <channel> (list with /tools autopublish list, remove with /tools autopublish remove).",
     "Messages posted in a configured announcement channel are published (crossposted) automatically.",
     "Bot messages and already-published messages are skipped; failures are logged to the error log. Channels are managed on the dashboard Announcements tab."
    ],
@@ -639,10 +639,10 @@
   {
    "id": "reengage",
    "steps": [
-    "An admin enables it with /reengage-setup enable [days] [channel] \u2014 default 30 days of inactivity.",
+    "An admin enables it with /tools reengage-setup enable [days] [channel] \u2014 default 30 days of inactivity.",
     "Every day at 10:00, the bot finds members with no messages, voice time, or slash-command use in the last N days and sends a friendly \"we miss you\" DM (or posts in the chosen channel instead).",
-    "Each member is messaged at most once per 30 days; bots are never messaged, members who joined less than N days ago are excluded, and anyone can opt out with /reengage-optout.",
-    "Preview who would be messaged \u2014 without sending anything \u2014 with /reengage-preview. The inactive count is on the dashboard Analytics page.",
+    "Each member is messaged at most once per 30 days; bots are never messaged, members who joined less than N days ago are excluded, and anyone can opt out with /tools reengage-optout.",
+    "Preview who would be messaged \u2014 without sending anything \u2014 with /tools reengage-preview. The inactive count is on the dashboard Analytics page.",
     "Activity is read from user_levels.last_xp_at (last message that earned XP), voice_sessions (last voice session), and user_stats.last_seen (last slash-command use)."
    ],
    "title": "Inactive-member re-engagement"
@@ -650,7 +650,7 @@
   {
    "id": "rankcard",
    "steps": [
-    "/rank now posts a 900\u00d7300 rank card image: avatar, username, level, XP progress bar, rank on the leaderboard, and total messages \u2014 in the same theme as the welcome card.",
+    "/level rank now posts a 900\u00d7300 rank card image: avatar, username, level, XP progress bar, rank on the leaderboard, and total messages \u2014 in the same theme as the welcome card.",
     "If canvas fails, the text embed is shown instead. Total messages counts every message since this feature was added (user_levels.messages).",
     "Staff can preview a sample card on the dashboard Leveling tab."
    ],
@@ -659,8 +659,8 @@
   {
    "id": "reminders",
    "steps": [
-    "Set one with /remind set <time> <text> \u2014 times like \"in 2h\", \"tomorrow 9am\", or \"2026-11-14 15:00\".",
-    "See your pending reminders with /remind list, and cancel one with /remind cancel <id>.",
+    "Set one with /tools remind set <time> <text> \u2014 times like \"in 2h\", \"tomorrow 9am\", or \"2026-11-14 15:00\".",
+    "See your pending reminders with /tools remind list, and cancel one with /tools remind cancel <id>.",
     "When it is due the bot DMs you; if your DMs are closed it posts in the channel where you set it."
    ],
    "title": "Reminders"
@@ -668,25 +668,25 @@
   {
    "id": "report",
    "steps": [
-    "Report someone with /report submit @user <reason> [evidence] \u2014 the report is saved and posted to the modlog channel.",
-    "Moderators list open reports with /report list (needs Manage Messages).",
-    "Reports only work if an admin has set a modlog channel with /modlog-setup."
+    "Report someone with /mod report submit @user <reason> [evidence] \u2014 the report is saved and posted to the modlog channel.",
+    "Moderators list open reports with /mod report list (needs Manage Messages).",
+    "Reports only work if an admin has set a modlog channel with /mod modlog-setup."
    ],
    "title": "Reporting users"
   },
   {
    "id": "verify-anywhere",
    "steps": [
-    "New members verify from the panel posted by /verify-setup (button, or a math-question captcha).",
-    "Any member can also run /verify anywhere \u2014 it tells you if you are already verified, or sends you a working Verify button."
+    "New members verify from the panel posted by /verify setup (button, or a math-question captcha).",
+    "Any member can also run /verify verify anywhere \u2014 it tells you if you are already verified, or sends you a working Verify button."
    ],
    "title": "Verifying"
   },
   {
    "id": "lockdown",
    "steps": [
-    "A moderator runs /lockdown lock [channel] [reason] \u2014 @everyone can no longer send messages there.",
-    "/lockdown release unlocks it and restores the channel\u2019s previous permissions exactly; /lockdown status lists locked channels."
+    "A moderator runs /mod lockdown lock [channel] [reason] \u2014 @everyone can no longer send messages there.",
+    "/mod lockdown release unlocks it and restores the channel\u2019s previous permissions exactly; /mod lockdown status lists locked channels."
    ],
    "title": "Locking a channel"
   },
@@ -694,39 +694,39 @@
    "id": "counting-leaderboard",
    "steps": [
     "Play counting in the configured channel: each message must start with the next number, and the same person cannot count twice in a row.",
-    "/counting-leaderboard shows the current count, the highest count, and the top 10 counters by correct counts."
+    "/counting leaderboard shows the current count, the highest count, and the top 10 counters by correct counts."
    ],
    "title": "Counting leaderboard"
   },
   {
    "id": "confess-setup",
    "steps": [
-    "An admin runs /confess-setup with a channel (approval queue on by default).",
-    "Members submit with /confess, which opens a modal \u2014 the bot posts it anonymously; staff approve or deny it first when approval is on."
+    "An admin runs /fun confess-setup with a channel (approval queue on by default).",
+    "Members submit with /fun confess, which opens a modal \u2014 the bot posts it anonymously; staff approve or deny it first when approval is on."
    ],
    "title": "Confessions"
   },
   {
    "id": "social-actions",
    "steps": [
-    "/ship @user [@user2] shows a compatibility % for the pair \u2014 the same pair always gets the same score.",
-    "/hug, /kiss, and /slap @user [message] post a GIF in the channel naming who did it and to whom."
+    "/fun ship @user [@user2] shows a compatibility % for the pair \u2014 the same pair always gets the same score.",
+    "/fun hug, /fun kiss, and /fun slap @user [message] post a GIF in the channel naming who did it and to whom."
    ],
    "title": "Social actions"
   },
   {
    "id": "quests",
    "steps": [
-    "/quest list shows today\u2019s 5 quests (claim /daily, work a shift, use 5 slash commands, 10 voice minutes, play a casino game) with done/claimed state.",
-    "/quest claim [quest] claims one, or all completed ones if you leave it out. Each pays coins + XP, once per quest per day."
+    "/economy quest list shows today\u2019s 5 quests (claim /economy daily, work a shift, use 5 slash commands, 10 voice minutes, play a casino game) with done/claimed state.",
+    "/economy quest claim [quest] claims one, or all completed ones if you leave it out. Each pays coins + XP, once per quest per day."
    ],
    "title": "Daily quests"
   },
   {
    "id": "roleshop",
    "steps": [
-    "Admins list roles for sale with /roleshop add <role> <price> and remove them with /roleshop remove <role>.",
-    "Members buy with /roleshop buy <role> using wallet coins \u2014 one-time purchases, no refunds.",
+    "Admins list roles for sale with /economy roleshop add <role> <price> and remove them with /economy roleshop remove <role>.",
+    "Members buy with /economy roleshop buy <role> using wallet coins \u2014 one-time purchases, no refunds.",
     "A role must sit below the bot\u2019s highest role, and it is granted before any coins are taken."
    ],
    "title": "Role shop"
@@ -734,16 +734,16 @@
   {
    "id": "color-custom",
    "steps": [
-    "/color custom <hex> creates a personal color role in any #RRGGBB color and wears it (one color at a time).",
-    "Your personal role shows in /color list; /color remove deletes it entirely instead of leaving a dead role behind."
+    "/role color custom <hex> creates a personal color role in any #RRGGBB color and wears it (one color at a time).",
+    "Your personal role shows in /role color list; /role color remove deletes it entirely instead of leaving a dead role behind."
    ],
    "title": "Custom color roles"
   },
   {
    "id": "weather-home",
    "steps": [
-    "Save a personal home with /weather-home set <location> \u2014 /weather with no location uses it first, then the server default from /weather-set.",
-    "/weather-home view shows your saved home; /weather-home clear removes it."
+    "Save a personal home with /weather home set <location> \u2014 /weather weather with no location uses it first, then the server default from /weather set.",
+    "/weather home view shows your saved home; /weather home clear removes it."
    ],
    "title": "Weather home location"
   },
@@ -758,16 +758,16 @@
   {
    "id": "tempvc-setup",
    "steps": [
-    "An admin runs /tempvc-setup with a create channel and an optional category.",
-    "Joining the create channel spins up a personal voice channel named after you; it is deleted when empty. Manage yours with /tempvc limit/lock/unlock/rename/kick/claim."
+    "An admin runs /tempvc setup with a create channel and an optional category.",
+    "Joining the create channel spins up a personal voice channel named after you; it is deleted when empty. Manage yours with /tempvc tempvc limit/lock/unlock/rename/kick/claim."
    ],
    "title": "Temporary voice channels"
   },
   {
    "id": "steal-emoji",
    "steps": [
-    "/steal-emoji <emoji> [name] copies a custom emoji from another server into this one (or use a direct image URL).",
-    "Same rules as /emoji-add: PNG/JPG/GIF under 256KB, name 2\u201332 letters/numbers/underscores, and the server must have a free emoji slot."
+    "/emoji steal-emoji <emoji> [name] copies a custom emoji from another server into this one (or use a direct image URL).",
+    "Same rules as /emoji add: PNG/JPG/GIF under 256KB, name 2\u201332 letters/numbers/underscores, and the server must have a free emoji slot."
    ],
    "title": "Stealing an emoji"
   },
@@ -775,47 +775,47 @@
    "id": "logging",
    "title": "Member + moderation logging",
    "steps": [
-    "An admin runs /logging setup <channel> and picks which events to log: joins, leaves, bans, kicks, timeouts, role changes (all on by default).",
+    "An admin runs /mod logging setup <channel> and picks which events to log: joins, leaves, bans, kicks, timeouts, role changes (all on by default).",
     "Kicks are told apart from plain leaves using the audit log (needs View Audit Log); without that permission every removal logs as a leave.",
-    "Message deletes/edits stay on the modlog (/modlog-setup) and Automod actions on the Automod log channel \u2014 point all three at the same channel for one audit feed, or keep them separate.",
-    "Check the current setup anytime with /logging status."
+    "Message deletes/edits stay on the modlog (/mod modlog-setup) and Automod actions on the Automod log channel \u2014 point all three at the same channel for one audit feed, or keep them separate.",
+    "Check the current setup anytime with /mod logging status."
    ]
   },
   {
    "id": "autoresponder",
    "title": "Autoresponder",
    "steps": [
-    "An admin adds a reply with /autoresponder add <trigger> <response> \u2014 when the phrase appears anywhere in a message, the bot replies with it.",
+    "An admin adds a reply with /tools autoresponder add <trigger> <response> \u2014 when the phrase appears anywhere in a message, the bot replies with it.",
     "Use match 'exact' when the whole message must be the trigger; the default 'contains' fires anywhere in the message.",
-    "This is different from /custom-add, which only fires when a message is (or starts with) a single trigger word.",
-    "Pause one reply without deleting it with /autoresponder toggle, remove it with /autoresponder remove, and see them all with /autoresponder list."
+    "This is different from /custom add, which only fires when a message is (or starts with) a single trigger word.",
+    "Pause one reply without deleting it with /tools autoresponder toggle, remove it with /tools autoresponder remove, and see them all with /tools autoresponder list."
    ]
   },
   {
    "id": "antispam",
    "title": "Antispam detectors",
    "steps": [
-    "An admin runs /antispam to turn on extra detectors on top of Automod's rate limit: duplicate messages (same text repeated), ALL-CAPS shouting, mention spam, and too many links in one message.",
+    "An admin runs /automod antispam to turn on extra detectors on top of Automod's rate limit: duplicate messages (same text repeated), ALL-CAPS shouting, mention spam, and too many links in one message.",
     "Each detector has its own thresholds \u2014 e.g. duplicate_max (default 3 in 60s), caps percent (default 70%) and minimum letters (default 10), mention_max (default 5).",
     "All detectors share one antispam action (delete / warn / timeout / delete + warn / delete + timeout), separate from the main Automod action.",
-    "Run /antispam with no options to see the current settings. Admins and exempt roles/channels bypass every check."
+    "Run /automod antispam with no options to see the current settings. Admins and exempt roles/channels bypass every check."
    ]
   },
   {
    "id": "content-filter",
    "title": "Content filter",
    "steps": [
-    "An admin adds a rule with /content-filter add <type> <value> \u2014 type 'word' blocks a word or phrase (word-boundary match), type 'domain' blocks links to a site and its subdomains.",
+    "An admin adds a rule with /automod content-filter add <type> <value> \u2014 type 'word' blocks a word or phrase (word-boundary match), type 'domain' blocks links to a site and its subdomains.",
     "Each rule has its own action (delete / warn / timeout / delete + warn / delete + timeout) and severity (low / medium / high), so a slur can be delete + timeout while a mild word is delete-only.",
     "No built-in word list ships with the bot \u2014 every server defines its own entries.",
-    "List all rules with /content-filter list, remove one with /content-filter remove."
+    "List all rules with /automod content-filter list, remove one with /automod content-filter remove."
    ]
   },
   {
    "id": "safety-status",
    "title": "Safety status",
    "steps": [
-    "An admin runs /safety-status for one overview of the server's protection: Automod, antispam detectors, content-filter counts, member logging, autoresponders, reaction roles, and stream watchers.",
+    "An admin runs /mod safety-status for one overview of the server's protection: Automod, antispam detectors, content-filter counts, member logging, autoresponders, reaction roles, and stream watchers.",
     "It also shows how many Automod actions fired in the last 24 hours, broken down by action.",
     "The command is read-only \u2014 it changes nothing."
    ]

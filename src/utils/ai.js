@@ -72,7 +72,7 @@ async function askAI({ guildId, guildName, userId, channelId, question }) {
   lastRequestByUser.set(userId, now);
   const history = getHistory(channelId);
   const messages = [
-    { role: 'system', content: `You are AceBot, a friendly Discord bot in the server "${guildName || 'this server'}". Answer concisely and helpfully. Keep answers short unless the question needs detail.` },
+    { role: 'system', content: `You are Vikings Hall Clerk, a friendly Discord bot in the server "${guildName || 'this server'}". Answer concisely and helpfully. Keep answers short unless the question needs detail.` },
     ...history,
     { role: 'user', content: question },
   ];
