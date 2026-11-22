@@ -1,6 +1,7 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const { errorEmbed, infoEmbed } = require('../../utils/embeds');
 const automod = require('../../utils/automod');
+const { resolveLogChannel } = require('../../utils/logChannels');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -12,6 +13,8 @@ module.exports = {
       return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission.')] });
     }
     const s = await automod.getSettings(interaction.guildId);
+    // 1.16.20: show the effective automod log channel (per-type, else master).
+    const logChannelId = await resolveLogChannel(interaction.guildId, 'automod');
     const embed = infoEmbed('🛡️ Automod settings', s.enabled ? 'Automod is ✅ enabled in this server.' : 'Automod is ❌ disabled in this server — use /automod-setup to turn it on.');
     embed.addFields(
       { name: 'Spam', value: `${s.spamMaxMessages}+ messages in ${s.spamWindowSeconds}s → ${s.spamAction}${s.spamAction.includes('timeout') ? ` (${s.spamTimeoutMinutes} min)` : ''}`, inline: false },
@@ -20,7 +23,7 @@ module.exports = {
       { name: 'Discord invite blocking', value: s.blockInvites ? '✅ on' : '❌ off', inline: true },
       { name: 'Exempt roles', value: s.exemptRoles.length ? s.exemptRoles.map((r) => `<@&${r}>`).join(' ') : 'none', inline: false },
       { name: 'Exempt channels', value: s.exemptChannels.length ? s.exemptChannels.map((c) => `<#${c}>`).join(' ') : 'none', inline: false },
-      { name: 'Log channel', value: s.logChannelId ? `<#${s.logChannelId}>` : 'not set', inline: false },
+      { name: 'Log channel', value: logChannelId ? `<#${logChannelId}>` : 'not set', inline: false },
     );
     return interaction.reply({ embeds: [embed] });
   },

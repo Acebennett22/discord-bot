@@ -3,6 +3,7 @@ const { successEmbed, errorEmbed, infoEmbed } = require('../../utils/embeds');
 const db = require('../../utils/database');
 const { getGuildSettings, setGuildSettings } = require('../../utils/guildSettings');
 const { parseWhitelist } = require('../../utils/antinuke');
+const { resolveLogChannel } = require('../../utils/logChannels');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -31,7 +32,9 @@ module.exports = {
     const current = await getGuildSettings(interaction.guildId);
     if (enabled === null && action === null && threshold === null && !whitelistRole) {
       const whitelist = parseWhitelist(current.antInukeWhitelistRoles);
-      return interaction.reply({ embeds: [infoEmbed('🛡️ Anti-nuke settings', `**Enabled:** ${current.antInukeEnabled ?? false ? 'Yes' : 'No'}\n**Action:** ${current.antInukeAction || 'kick'}\n**Threshold:** ${current.antInukeThreshold ?? 5} destructive actions in 60s\n**Whitelisted roles:** ${whitelist.length ? whitelist.map((id) => `<@&${id}>`).join(', ') : 'None'}\n**Log channel:** ${current.antInukeLogChannelId ? `<#${current.antInukeLogChannelId}>` : 'Not set (falls back to the general log channel)'}\n\nRe-run with options to change any of these.`)] });
+      // 1.16.20: effective anti-nuke log channel (per-type, else master).
+      const antinukeLogChannelId = await resolveLogChannel(interaction.guildId, 'antinuke');
+      return interaction.reply({ embeds: [infoEmbed('🛡️ Anti-nuke settings', `**Enabled:** ${current.antInukeEnabled ?? false ? 'Yes' : 'No'}\n**Action:** ${current.antInukeAction || 'kick'}\n**Threshold:** ${current.antInukeThreshold ?? 5} destructive actions in 60s\n**Whitelisted roles:** ${whitelist.length ? whitelist.map((id) => `<@&${id}>`).join(', ') : 'None'}\n**Log channel:** ${antinukeLogChannelId ? `<#${antinukeLogChannelId}>` : 'Not set (falls back to the master log channel)'}\n\nRe-run with options to change any of these.`)] });
     }
 
     const patch = {};

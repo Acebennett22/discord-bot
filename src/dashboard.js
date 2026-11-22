@@ -552,7 +552,7 @@ app.get('/servers', requireAuth, async (req, res) => {
 });
 
 // --- Per-server settings pages (one per module) --------------------------------
-const MODULES = ['general', 'identity', 'moderation', 'tickets', 'serverstats', 'streams', 'music', 'leveling', 'reactionroles', 'gameservers', 'commands', 'applications', 'invites', 'welcome', 'automod', 'suggestions', 'economy', 'starboard', 'customcommands', 'faq', 'scheduled', 'roles', 'verification', 'counting', 'tempvc', 'birthdays', 'analytics', 'giveaways', 'ai', 'modmail', 'games', 'emojis', 'media', 'threads', 'confessions', 'events', 'embeds', 'embed-creator', 'polls', 'announcements'];
+const MODULES = ['general', 'identity', 'moderation', 'logs', 'tickets', 'serverstats', 'streams', 'music', 'leveling', 'reactionroles', 'gameservers', 'commands', 'applications', 'invites', 'welcome', 'automod', 'suggestions', 'economy', 'starboard', 'customcommands', 'faq', 'scheduled', 'roles', 'verification', 'counting', 'tempvc', 'birthdays', 'analytics', 'giveaways', 'ai', 'modmail', 'games', 'emojis', 'media', 'threads', 'confessions', 'events', 'embeds', 'embed-creator', 'polls', 'announcements'];
 
 app.get('/guilds/:id', requireAuth, requireGuildAccess, (req, res) => res.redirect(`/guilds/${req.params.id}/general`));
 
@@ -580,6 +580,12 @@ app.get('/guilds/:id/:module', requireAuth, requireGuildAccess, async (req, res)
   let birthdays = [];
   let reactionRoleMappings = [];
   let tempvcHubs = [];
+  // 1.16.20: log channels (master + per-type) + the effective channel each
+  // type resolves to. Loaded for every module so the old pickers (general,
+  // moderation, automod) can show the effective channel.
+  let logChannels = null;
+  let logChannelsEffective = {};
+  let logChannelTypes = [];
   let analyticsData = null;
   let giveaways = [];
   let aiUsage = null;
@@ -865,6 +871,12 @@ app.get('/guilds/:id/:module', requireAuth, requireGuildAccess, async (req, res)
       } catch { inactiveMembers = null; }
     }
   }
+  // 1.16.20: log channels — loaded for every module (getLogChannels no-ops
+  // to all-null when the DB is down, so this is safe outside the db block).
+  const logChannelsUtils = require('./utils/logChannels');
+  logChannels = await logChannelsUtils.getLogChannels(id);
+  logChannelsEffective = await logChannelsUtils.getEffectiveChannels(id, logChannels);
+  logChannelTypes = logChannelsUtils.LOG_TYPES;
   res.render('settings', {
     user: req.session.user, guild: req.guildMeta, module, settings,
     channels, roles, streamers, tickets, gameServers, applicationForms, pendingApplications, inviteLeaderboard, inviteStats, automodSettings, automodActions, suggestions, premiumSettings, shopItems, customCommands, faqs, scheduledMessages, countingSettings, birthdays, reactionRoleMappings, analyticsData, giveaways, aiUsage, aiConfigured, mcWidgets, voiceStats, voiceRate, colorRoles, modmailThreads, modmailBlocks, playlists, triviaSettings, triviaLeaderboard, roleMenus, milestoneSettings, milestoneNext, translateSettings, ticketPanels, inviteRoleRules, prestigeLeaderboard, countdowns, emojis, workJobs, recentRobs, tempBans, lotteryStatus, lotteryDraws, serverRules, identity, inviteUrl: inviteUrl(),
@@ -873,7 +885,7 @@ app.get('/guilds/:id/:module', requireAuth, requireGuildAccess, async (req, res)
     scheduledEventsList, wordleLeaderboard, wordleToday, slowmodeSchedules, statusRoleRules, builtEmbeds, pastPolls, ticketRatingStats, inviteRewardList, inactiveMembers,
     threadOverrides, pendingConfessions, tempRoles, xpShopItems,
     commandToggles: db.isEnabled() ? (await db.query('SELECT command_name, enabled FROM command_toggles WHERE guild_id = ?', [id]) || []) : [],
-    tempvcHubs,
+    tempvcHubs, logChannels, logChannelsEffective, logChannelTypes,
   });
 });
 
@@ -2266,6 +2278,58 @@ app.post('/api/guilds/:id/automod', requireAuth, requireGuildAccess, async (req,
   const { saved, settings } = await automodUtils.setSettings(req.params.id, patch);
   if (!saved) return res.status(503).json({ error: 'Settings saved in memory only — MySQL is not connected.' });
   res.json({ ok: true, settings });
+});
+
+// --- Log channels API (1.16.20) ---
+// Master log channel + one per-type override per log type (Dyno-style).
+// GET returns the raw settings plus the effective channel each type
+// resolves to. POST accepts, per type, a channel id, 'master' (fall back
+// to the master channel), or 'off' (never log that type); the master
+// accepts a channel id or '' (none). Unknown channel ids are ignored.
+const logChannelsUtils = require('./utils/logChannels');
+app.get('/api/guilds/:id/log-channels', requireAuth, requireGuildAccess, async (req, res) => {
+  const channels = await logChannelsUtils.getLogChannels(req.params.id);
+  const effective = await logChannelsUtils.getEffectiveChannels(req.params.id, channels);
+  res.json({ ...channels, effective, types: logChannelsUtils.LOG_TYPES });
+});
+app.post('/api/guilds/:id/log-channels', requireAuth, requireGuildAccess, async (req, res) => {
+  const body = req.body || {};
+  const isFormPost = req.is('application/x-www-form-urlencoded');
+  const { channels } = await guildChannelsRoles(req.params.id).catch(() => ({ channels: [], roles: [] }));
+  const channelIds = new Set(channels.map((c) => c.id));
+  const channelNames = new Map(channels.map((c) => [c.id, c.name]));
+  const patch = {};
+  if ('masterChannelId' in body && (body.masterChannelId === '' || channelIds.has(body.masterChannelId))) patch.master = body.masterChannelId || '';
+  for (const t of logChannelsUtils.LOG_TYPES) {
+    const key = `log_${t.key}`;
+    if (!(key in body)) continue;
+    const v = body[key];
+    if (v === 'master') patch[t.key] = null;
+    else if (v === 'off') patch[t.key] = '';
+    else if (typeof v === 'string' && v !== '' && channelIds.has(v)) patch[t.key] = v;
+    // Anything else (unknown id, empty string) is ignored — never save a
+    // channel the bot cannot see.
+  }
+  let savedChannels;
+  try {
+    const { saved, channels: next } = await logChannelsUtils.setLogChannels(req.params.id, patch);
+    if (!saved) return res.status(503).json({ error: 'Settings saved in memory only — MySQL is not connected.' });
+    savedChannels = next;
+  } catch (err) {
+    return res.status(500).json({ error: `Could not save log channels: ${err.message}` });
+  }
+  const effective = {};
+  const effectiveLabels = {};
+  for (const t of logChannelsUtils.LOG_TYPES) {
+    effective[t.key] = logChannelsUtils.resolveFromChannels(savedChannels, t.key);
+    effectiveLabels[t.key] = effective[t.key] ? `#${channelNames.get(effective[t.key]) || effective[t.key]}` : 'nowhere';
+  }
+  await staffUtils.audit(req.session.user.id, 'log-channels.save', req.params.id, `master=${savedChannels.master || 'none'} ${logChannelsUtils.LOG_TYPES.map((t) => `${t.key}=${savedChannels[t.key] === '' ? 'off' : savedChannels[t.key] || 'master'}`).join(' ')}`).catch(() => {});
+  if (isFormPost) {
+    const back = (req.get('Referer') || `/guilds/${req.params.id}/logs`).split('?')[0];
+    return res.redirect(`${back}?saved=1`);
+  }
+  res.json({ ok: true, channels: savedChannels, effective, effectiveLabels });
 });
 
 // --- Suggestions API ---

@@ -4,6 +4,7 @@ const db = require('../../utils/database');
 const staff = require('../../utils/staff');
 const { getGuildSettings } = require('../../utils/guildSettings');
 const { parseWhitelist } = require('../../utils/antinuke');
+const { resolveLogChannel } = require('../../utils/logChannels');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -17,6 +18,8 @@ module.exports = {
     const enabled = settings.antInukeEnabled ?? false;
     const action = settings.antInukeAction || 'kick';
     const threshold = settings.antInukeThreshold ?? 5;
+    // 1.16.20: effective anti-nuke log channel (per-type, else master).
+    const antinukeLogChannelId = await resolveLogChannel(interaction.guildId, 'antinuke');
 
     let eventLines = ['No anti-nuke events recorded.'];
     if (db.isEnabled()) {
@@ -32,7 +35,7 @@ module.exports = {
       }
     }
     return interaction.reply({ embeds: [infoEmbed('🛡️ Anti-nuke status',
-      `**Enabled:** ${enabled ? 'Yes' : 'No'}\n**Action:** ${action}\n**Threshold:** ${threshold} destructive actions in 60s\n**Whitelisted roles:** ${whitelist.length ? whitelist.map((id) => `<@&${id}>`).join(', ') : 'None'}\n**Log channel:** ${settings.antInukeLogChannelId ? `<#${settings.antInukeLogChannelId}>` : 'Not set'}`,
+      `**Enabled:** ${enabled ? 'Yes' : 'No'}\n**Action:** ${action}\n**Threshold:** ${threshold} destructive actions in 60s\n**Whitelisted roles:** ${whitelist.length ? whitelist.map((id) => `<@&${id}>`).join(', ') : 'None'}\n**Log channel:** ${antinukeLogChannelId ? `<#${antinukeLogChannelId}>` : 'Not set'}`,
       [{ name: 'Recent events (last 10)', value: eventLines.join('\n').slice(0, 1000) }])] });
   },
 };

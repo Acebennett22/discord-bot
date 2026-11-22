@@ -6,7 +6,7 @@
       <strong><%= guild.name %></strong>
     </div>
     <nav aria-label="Settings sections">
-      <% const MODS = [['general','⚙️ General'],['identity','🎭 Bot Identity'],['moderation','🛡️ Moderation'],['tickets','🎫 Tickets'],['serverstats','📊 Server Stats'],['streams','📺 Streams'],['music','🎵 Music'],['leveling','🏆 Leveling'],['reactionroles','🎭 Reaction Roles'],['gameservers','🖥️ Game Servers'],['applications','📝 Applications'],['commands','⌨️ Commands'],['invites','📨 Invites'],['welcome','👋 Welcome'],['automod','🤖 Automod'],['suggestions','💡 Suggestions'],['economy','🪙 Economy'],['starboard','⭐ Starboard'],['customcommands','⌨️ Custom Commands'],['faq','💬 FAQ'],['scheduled','⏰ Scheduled'],['roles','🎭 Roles'],['verification','✅ Verification'],['counting','🔢 Counting'],['tempvc','🔊 Temp VC'],['birthdays','🎂 Birthdays'],['analytics','📈 Analytics'],['giveaways','🎉 Giveaways'],['ai','💬 AI Chat'],['modmail','📬 Modmail'],['games','🎲 Games'],['emojis','😀 Emojis'],['media','🧵 Media'],['threads','🧵 Threads'],['confessions','🤫 Confessions'],['events','📅 Events'],['embeds','🧩 Embeds'],['embed-creator','📝 Embed Creator'],['polls','📊 Polls'],['announcements','📣 Announcements']]; %>
+      <% const MODS = [['general','⚙️ General'],['identity','🎭 Bot Identity'],['moderation','🛡️ Moderation'],['logs','📋 Log Channels'],['tickets','🎫 Tickets'],['serverstats','📊 Server Stats'],['streams','📺 Streams'],['music','🎵 Music'],['leveling','🏆 Leveling'],['reactionroles','🎭 Reaction Roles'],['gameservers','🖥️ Game Servers'],['applications','📝 Applications'],['commands','⌨️ Commands'],['invites','📨 Invites'],['welcome','👋 Welcome'],['automod','🤖 Automod'],['suggestions','💡 Suggestions'],['economy','🪙 Economy'],['starboard','⭐ Starboard'],['customcommands','⌨️ Custom Commands'],['faq','💬 FAQ'],['scheduled','⏰ Scheduled'],['roles','🎭 Roles'],['verification','✅ Verification'],['counting','🔢 Counting'],['tempvc','🔊 Temp VC'],['birthdays','🎂 Birthdays'],['analytics','📈 Analytics'],['giveaways','🎉 Giveaways'],['ai','💬 AI Chat'],['modmail','📬 Modmail'],['games','🎲 Games'],['emojis','😀 Emojis'],['media','🧵 Media'],['threads','🧵 Threads'],['confessions','🤫 Confessions'],['events','📅 Events'],['embeds','🧩 Embeds'],['embed-creator','📝 Embed Creator'],['polls','📊 Polls'],['announcements','📣 Announcements']]; %>
       <label for="module-picker">Settings section</label>
       <select id="module-picker" aria-label="Settings section">
         <% MODS.forEach(([m, label]) => { %>
@@ -33,8 +33,9 @@
       </select>
       <label>Mod log channel</label>
       <select name="logChannelId"><option value="">— none —</option>
-        <% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>" <%= settings.logChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }); %>
+        <% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>" <%= logChannelsEffective?.moderation === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }); %>
       </select>
+      <p class="muted">This is the moderation log channel. Every log type is managed on the <a href="/guilds/<%= guild.id %>/logs">📋 Log Channels</a> page.</p>
       <label>Embed color</label>
       <input type="text" name="embedColor" value="<%= settings.embedColor || '' %>" placeholder="#5865F2">
       <br><br><button class="btn" type="submit">Save general settings</button>
@@ -207,7 +208,7 @@
     <form method="post" action="/api/guilds/<%= guild.id %>/premium">
       <label>Modlog channel</label>
       <select name="modlogChannelId"><option value="">— off —</option>
-        <% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>" <%= premiumSettings?.modlogChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }); %>
+        <% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>" <%= logChannelsEffective?.message === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }); %>
       </select>
       <br><br><button class="btn" type="submit">Save modlog channel</button>
     </form>
@@ -255,6 +256,29 @@
       </select>
       <br><br><button class="btn" type="submit">Save AFK voice settings</button>
     </form>
+    <% } %>
+
+    <% if (module === 'logs') { %>
+    <h1>📋 Log Channels</h1>
+    <p class="muted">Where each kind of log goes. Pick a channel per type (Dyno-style), or leave it on <strong>Use master</strong> to send it to the master log channel. <strong>Off</strong> silences that type entirely. If no master channel is set and a type has no channel of its own, that type is not logged anywhere. Existing log channel settings were carried over automatically — member logs, message logs, moderation logs, ticket logs, invite logs, anti-nuke logs, and automod logs keep going where they already did.</p>
+    <form id="log-channels-form" method="post" action="/api/guilds/<%= guild.id %>/log-channels">
+      <label>Master log channel — the fallback for every type set to “Use master”</label>
+      <select name="masterChannelId"><option value="">— none —</option>
+        <% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>" <%= logChannels?.master === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }); %>
+      </select>
+      <% if (!logChannels?.master) { %><p class="muted">No master channel set — types on “Use master” are not logged anywhere.</p><% } %>
+      <% (logChannelTypes || []).forEach(t => { %>
+      <label><%= t.label %> — <span class="muted"><%= t.description %></span></label>
+      <select name="log_<%= t.key %>">
+        <option value="master" <%= logChannels?.[t.key] == null ? 'selected' : '' %>>Use master channel</option>
+        <option value="off" <%= logChannels?.[t.key] === '' ? 'selected' : '' %>>Off — don't log this type</option>
+        <% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>" <%= logChannels?.[t.key] === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }); %>
+      </select>
+      <p class="muted">Currently going to: <span id="log-current-<%= t.key %>"><%= logChannelsEffective?.[t.key] ? '#' + ((channels.find(c => c.id === logChannelsEffective[t.key]) || {}).name || logChannelsEffective[t.key]) : 'nowhere' %></span></p>
+      <% }); %>
+      <br><button class="btn" type="submit">Save log channels</button>
+    </form>
+    <p id="log-channels-result" class="muted"></p>
     <% } %>
 
     <% if (module === 'tickets') { %>
@@ -1236,7 +1260,7 @@
       <label class="toggle"><input type="checkbox" name="blockInvites" value="true" <%= automodSettings?.block_invites !== 0 ? 'checked' : '' %>><span class="track"></span><span>Block Discord invite links</span></label>
       <label>Log channel</label>
       <select name="logChannelId"><option value="">— none —</option>
-        <% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>" <%= automodSettings?.log_channel_id === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }); %>
+        <% channels.filter(c => c.type === 0).forEach(c => { %><option value="<%= c.id %>" <%= logChannelsEffective?.automod === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }); %>
       </select>
       <label>Banned words (one per line)</label>
       <textarea name="bannedWords" rows="4"><% try { (JSON.parse(automodSettings?.banned_words || '[]') || []).forEach(w => { %><%= w %>

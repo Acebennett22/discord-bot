@@ -1,6 +1,7 @@
 const { SlashCommandBuilder, PermissionFlagsBits, ChannelType } = require('discord.js');
 const { successEmbed, errorEmbed } = require('../../utils/embeds');
 const automod = require('../../utils/automod');
+const { resolveLogChannel } = require('../../utils/logChannels');
 
 const ACTIONS = ['delete', 'warn', 'timeout', 'delete_warn', 'delete_timeout'];
 
@@ -43,11 +44,13 @@ module.exports = {
       return interaction.reply({ embeds: [errorEmbed('Nothing to set', 'Give at least one option — or run /automod to see the current settings.')] });
     }
     const { saved, settings } = await automod.setSettings(interaction.guildId, patch);
+    // 1.16.20: show the effective automod log channel (per-type, else master).
+    const logChannelId = await resolveLogChannel(interaction.guildId, 'automod');
     const lines = [
       `Status: ${settings.enabled ? '✅ enabled' : '❌ disabled'}`,
       `Spam: ${settings.spamMaxMessages}+ messages in ${settings.spamWindowSeconds}s → ${settings.spamAction}`,
       `Block links: ${settings.blockLinks ? 'on' : 'off'} · Block invites: ${settings.blockInvites ? 'on' : 'off'}`,
-      `Log channel: ${settings.logChannelId ? `<#${settings.logChannelId}>` : 'not set'}`,
+      `Log channel: ${logChannelId ? `<#${logChannelId}>` : 'not set'}`,
     ];
     if (!saved) lines.push('\n⚠️ MySQL is not connected — these settings are only kept in memory for this run.');
     return interaction.reply({ embeds: [successEmbed('Automod settings saved', lines.join('\n'))] });

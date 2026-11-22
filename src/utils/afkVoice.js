@@ -8,6 +8,7 @@
 // it empties, and also when the primary has been empty for 10 minutes.
 const db = require('./database');
 const { getGuildSettings } = require('./guildSettings');
+const { fetchLogChannel } = require('./logChannels');
 const errorLogger = require('./errorLogger');
 
 // guildId -> Map(userId -> { channelId, since })
@@ -110,14 +111,13 @@ async function checkAfkVoice(client) {
             [guild.id, userId, voice.channelId],
           ).catch(() => {});
         }
-        // Modlog, if configured.
-        if (settings.logChannelId) {
-          const log = guild.channels.cache.get(settings.logChannelId)
-            || await guild.channels.fetch(settings.logChannelId).catch(() => null);
-          if (log?.isTextBased()) {
-            const { infoEmbed } = require('./embeds');
-            await log.send({ embeds: [infoEmbed('😴 AFK voice kick', `<@${userId}> was idle in voice for ${settings.afkVoiceMinutes ?? 30}+ minutes and was moved to the AFK channel.`, [])] }).catch(() => {});
-          }
+        // Modlog, if configured. 1.16.20: AFK voice kicks go to the
+        // moderation log channel — per-type channel if set, else the master
+        // log channel, else nowhere.
+        const log = await fetchLogChannel(guild, 'moderation');
+        if (log) {
+          const { infoEmbed } = require('./embeds');
+          await log.send({ embeds: [infoEmbed('😴 AFK voice kick', `<@${userId}> was idle in voice for ${settings.afkVoiceMinutes ?? 30}+ minutes and was moved to the AFK channel.`, [])] }).catch(() => {});
         }
       }
     } catch (e) {

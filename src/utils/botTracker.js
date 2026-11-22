@@ -25,7 +25,7 @@
 const db = require('./database');
 const config = require('./config');
 const { getGuildSettings } = require('./guildSettings');
-const { getPremiumSettings } = require('./premiumSettings');
+const { fetchLogChannel } = require('./logChannels');
 const { warnEmbed } = require('./embeds');
 
 const SPAM_WORDS = ['nitro', 'steam', 'free', 'gift', 'crypto', 'bitcoin', 'discord.gg', 'nitro'];
@@ -92,10 +92,10 @@ function scoreMember(member, joins) {
 
 async function postToModlog(guild, text) {
   try {
-    const premium = await getPremiumSettings(guild.id);
-    if (!premium.modlogChannelId) return;
-    const channel = await guild.channels.fetch(premium.modlogChannelId).catch(() => null);
-    if (!channel?.isTextBased()) return;
+    // 1.16.20: bot-join flags go to the message log channel — per-type
+    // channel if set, else the master log channel, else nowhere.
+    const channel = await fetchLogChannel(guild, 'message');
+    if (!channel) return;
     await channel.send({ embeds: [warnEmbed('🤖 Bot tracking', text)] });
   } catch {}
 }

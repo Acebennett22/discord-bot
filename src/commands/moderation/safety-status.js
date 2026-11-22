@@ -8,6 +8,7 @@ const db = require('../../utils/database');
 const automod = require('../../utils/automod');
 const contentFilter = require('../../utils/contentFilter');
 const memberLog = require('../../utils/memberLog');
+const { resolveLogChannel } = require('../../utils/logChannels');
 const { getRules: getAutoresponders } = require('../../utils/autoresponders');
 
 module.exports = {
@@ -21,11 +22,14 @@ module.exports = {
       return interaction.reply({ embeds: [errorEmbed('Admin only', 'You need the Manage Server permission.')] });
     }
     if (!db.isEnabled()) return interaction.reply({ embeds: [errorEmbed('Database offline', 'Protection settings live in MySQL — connect the database first.')] });
-    const [am, filterRules, logging, responders] = await Promise.all([
+    const [am, filterRules, logging, responders, amLogChannelId, memberLogChannelId] = await Promise.all([
       automod.getSettings(interaction.guildId),
       contentFilter.getRules(interaction.guildId),
       memberLog.getSettings(interaction.guildId),
       getAutoresponders(interaction.guildId),
+      // 1.16.20: effective log channels (per-type, else master).
+      resolveLogChannel(interaction.guildId, 'automod'),
+      resolveLogChannel(interaction.guildId, 'member'),
     ]);
     const rrRows = await db.query('SELECT COUNT(DISTINCT message_id) AS c, COUNT(*) AS total FROM reaction_roles WHERE guild_id = ?', [interaction.guildId]).catch(() => []);
     const streamRows = await db.query('SELECT COUNT(*) AS c FROM streamers WHERE guild_id = ?', [interaction.guildId]).catch(() => []);
@@ -48,10 +52,10 @@ module.exports = {
     ].filter(([, on]) => on).map(([label]) => label);
 
     const lines = [
-      `**Automod:** ${onOff(am.enabled)} — spam ${am.spamMaxMessages}+/${am.spamWindowSeconds}s → ${am.spamAction}; links ${onOff(am.blockLinks)}, invites ${onOff(am.blockInvites)}; banned words: ${am.bannedWords.length}; log: ${am.logChannelId ? `<#${am.logChannelId}>` : 'not set'}`,
+      `**Automod:** ${onOff(am.enabled)} — spam ${am.spamMaxMessages}+/${am.spamWindowSeconds}s → ${am.spamAction}; links ${onOff(am.blockLinks)}, invites ${onOff(am.blockInvites)}; banned words: ${am.bannedWords.length}; log: ${amLogChannelId ? `<#${amLogChannelId}>` : 'not set'}`,
       `**Antispam:** duplicates ${onOff(am.dupEnabled)}, caps ${onOff(am.capsEnabled)}, mentions ${onOff(am.mentionEnabled)}, link limit ${am.linkMax > 0 ? `max ${am.linkMax}` : 'off'} — action: ${am.antispamAction}`,
       `**Content filter:** ${words} blocked word(s), ${domains} blocked domain(s)`,
-      `**Member logging:** ${logging.logChannelId ? `<#${logging.logChannelId}> — ${logEvents.length ? logEvents.join(', ') : 'all events off'}` : 'not set up (run /logging setup)'}`,
+      `**Member logging:** ${memberLogChannelId ? `<#${memberLogChannelId}> — ${logEvents.length ? logEvents.join(', ') : 'all events off'}` : 'not set up (run /logging setup)'}`,
       `**Autoresponders:** ${liveResponders}/${(responders || []).length} enabled`,
       `**Reaction roles:** ${Number(rrRows?.[0]?.total || 0)} mapping(s) on ${Number(rrRows?.[0]?.c || 0)} message(s)`,
       `**Stream watchers:** ${Number(streamRows?.[0]?.c || 0)} (Twitch/YouTube/Kick auto-check; TikTok/Facebook manual via /stream-announce)`,

@@ -9,6 +9,7 @@
 const db = require('./database');
 const config = require('./config');
 const { getGuildSettings } = require('./guildSettings');
+const { resolveLogChannelOr } = require('./logChannels');
 const { infoEmbed } = require('./embeds');
 
 // guildId -> Map(code -> { uses, inviterId, channelId, maxUses })
@@ -139,8 +140,11 @@ async function recordJoin(member) {
   const { grantInviteRole } = require('./inviteRoles');
   await grantInviteRole(member, inviteCode).catch(() => {});
 
-  // Invite log message (inviteLogChannelId, else welcome channel).
-  const logChannelId = settings.inviteLogChannelId || settings.welcomeChannelId;
+  // Invite log message. 1.16.20: the invite log channel — per-type channel
+  // if set, else the master log channel, else the welcome channel (the
+  // legacy fallback, kept for servers whose welcome channel was set after
+  // the log_channels seed ran), else nowhere.
+  const logChannelId = await resolveLogChannelOr(guild.id, 'invite', settings.welcomeChannelId);
   if (logChannelId) {
     const channel = guild.channels.cache.get(logChannelId) || await guild.channels.fetch(logChannelId).catch(() => null);
     if (channel?.isTextBased()) {

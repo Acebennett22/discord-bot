@@ -3,6 +3,7 @@
 // never breaks because a server hasn't run /setup yet.
 const db = require('./database');
 const config = require('./config');
+const { mirrorLogChannel } = require('./logChannels');
 
 // Short TTL cache (60s): dashboard edits are picked up without a restart,
 // while the bot still avoids a DB query on every single event.
@@ -337,6 +338,14 @@ async function setGuildSettings(guildId, patch) {
      ON DUPLICATE KEY UPDATE ${COLUMNS.map((c) => `${c} = VALUES(${c})`).join(', ')}`,
     [guildId, ...values],
   );
+  // 1.16.20: keep the new log_channels table in sync — only for the log
+  // channels that actually changed, so a save that only touches an
+  // unrelated setting (welcome, levels, …) never touches them. The general
+  // log channel is the master log channel's legacy source.
+  await mirrorLogChannel(guildId, 'moderation', current.logChannelId, next.logChannelId);
+  await mirrorLogChannel(guildId, 'ticket', current.ticketLogChannelId, next.ticketLogChannelId);
+  await mirrorLogChannel(guildId, 'invite', current.inviteLogChannelId, next.inviteLogChannelId);
+  await mirrorLogChannel(guildId, 'antinuke', current.antinukeLogChannelId, next.antinukeLogChannelId);
   return { saved: true, settings: next };
 }
 

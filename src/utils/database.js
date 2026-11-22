@@ -141,6 +141,26 @@ const TEMPVC_HUBS_CREATE = `CREATE TABLE IF NOT EXISTS tempvc_hubs (
   INDEX idx_tempvc_hubs_guild (guild_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`;
 
+// The log_channels table (1.16.20) — one row per guild, the single routing
+// source for every log type (see src/utils/logChannels.js). Per-type columns
+// hold a channel id, NULL (unset — fall back to the master channel), or ''
+// (explicitly off); the master column holds a channel id or NULL. The table
+// is lazily seeded from the legacy per-table log channel settings on first
+// read, so existing servers keep logging exactly where they did.
+const LOG_CHANNELS_CREATE = `CREATE TABLE IF NOT EXISTS log_channels (
+  guild_id VARCHAR(32) NOT NULL,
+  master_channel_id VARCHAR(32) NULL,
+  member_channel_id VARCHAR(32) NULL,
+  message_channel_id VARCHAR(32) NULL,
+  moderation_channel_id VARCHAR(32) NULL,
+  ticket_channel_id VARCHAR(32) NULL,
+  invite_channel_id VARCHAR(32) NULL,
+  antinuke_channel_id VARCHAR(32) NULL,
+  automod_channel_id VARCHAR(32) NULL,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (guild_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`;
+
 async function runMigrations(dbName) {
   if (!pool) return;
   for (const [table, column, definition] of MISSING_COLUMNS) {
@@ -182,6 +202,11 @@ async function runMigrations(dbName) {
     await pool.execute(TEMPVC_HUBS_CREATE);
   } catch (err) {
     console.warn('[db] Migration: could not ensure tempvc_hubs table:', err.message);
+  }
+  try {
+    await pool.execute(LOG_CHANNELS_CREATE);
+  } catch (err) {
+    console.warn('[db] Migration: could not ensure log_channels table:', err.message);
   }
   await ensureReactionRolesEmojiCollation(dbName);
 }

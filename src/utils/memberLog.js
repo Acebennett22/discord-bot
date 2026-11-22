@@ -1,11 +1,14 @@
 // Member / moderation event logging (1.14.2): joins, leaves, kicks, bans,
-// unbans, timeouts, and role changes, posted to one log channel.
-// Separate from the modlog (deleted/edited messages) and from Automod's
-// log channel — a server can point all three at the same channel or not.
+// unbans, timeouts, and role changes, posted to the member log channel
+// (1.16.20: routed through src/utils/logChannels.js — the per-type channel
+// if set, else the master log channel, else nowhere). Separate from the
+// modlog (deleted/edited messages) and from Automod's log channel — a
+// server can point all three at the same channel or not.
 // Every event is individually toggleable; all default to on when a channel
 // is set. DB offline = nothing is logged, never fatal.
 const db = require('./database');
 const { infoEmbed } = require('./embeds');
+const { fetchLogChannel, mirrorLogChannel } = require('./logChannels');
 
 const DEFAULTS = {
   logChannelId: '',
@@ -46,6 +49,9 @@ async function setSettings(guildId, patch) {
     [guildId, next.logChannelId || null, next.logJoins ? 1 : 0, next.logLeaves ? 1 : 0,
      next.logBans ? 1 : 0, next.logKicks ? 1 : 0, next.logTimeouts ? 1 : 0, next.logRoleChanges ? 1 : 0],
   );
+  // 1.16.20: keep the new log_channels table in sync — only when the channel
+  // actually changed, so a save that only flips toggles never touches it.
+  await mirrorLogChannel(guildId, 'member', current.logChannelId, next.logChannelId);
   return { saved: true, settings: next };
 }
 
@@ -55,10 +61,9 @@ async function setSettings(guildId, patch) {
 async function logEvent(guild, event, title, description) {
   const key = `log${event[0].toUpperCase()}${event.slice(1)}`;
   const settings = await getSettings(guild.id);
-  if (!settings.logChannelId || settings[key] === false) return;
-  const channel = guild.channels.cache.get(settings.logChannelId)
-    || await guild.channels.fetch(settings.logChannelId).catch(() => null);
-  if (!channel?.isTextBased()) return;
+  if (settings[key] === false) return;
+  const channel = await fetchLogChannel(guild, 'member');
+  if (!channel) return;
   await channel.send({ embeds: [infoEmbed(title, description)] }).catch(() => {});
 }
 

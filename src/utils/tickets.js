@@ -8,6 +8,7 @@ const {
 } = require('discord.js');
 const db = require('./database');
 const { getGuildSettings } = require('./guildSettings');
+const { resolveLogChannel } = require('./logChannels');
 const { generateTranscript } = require('./transcript');
 const { infoEmbed, successEmbed } = require('./embeds');
 
@@ -190,8 +191,10 @@ async function closeTicket(interaction, channel, ticket, reason, closedBy) {
     }
   }
 
-  // Send transcript to the ticket log channel + DM the creator.
-  const logChannelId = settings.ticketLogChannelId;
+  // Send transcript to the ticket log channel + DM the creator. 1.16.20:
+  // the ticket log channel — per-type channel if set, else the master log
+  // channel, else nowhere.
+  const logChannelId = await resolveLogChannel(channel.guildId, 'ticket');
   if (logChannelId) {
     const logChannel = channel.guild.channels.cache.get(logChannelId)
       || await channel.guild.channels.fetch(logChannelId).catch(() => null);

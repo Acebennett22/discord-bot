@@ -4,7 +4,7 @@
 // a modlog channel is set for the guild.
 const { Events, AuditLogEvent } = require('discord.js');
 const db = require('../utils/database');
-const { getPremiumSettings } = require('../utils/premiumSettings');
+const { fetchLogChannel } = require('../utils/logChannels');
 const { infoEmbed } = require('../utils/embeds');
 const { resolveActor } = require('../utils/resolveActor');
 
@@ -22,11 +22,9 @@ function excerpt(text, max = 1000) {
 }
 
 async function modlogChannel(guild) {
-  const settings = await getPremiumSettings(guild.id);
-  if (!settings.modlogChannelId) return null;
-  const channel = guild.channels.cache.get(settings.modlogChannelId)
-    || await guild.channels.fetch(settings.modlogChannelId).catch(() => null);
-  return channel?.isTextBased() ? channel : null;
+  // 1.16.20: the message log channel — per-type channel if set, else the
+  // master log channel, else nowhere.
+  return fetchLogChannel(guild, 'message');
 }
 
 // Who deleted a message (1.16.4). A mod (or the bot itself, e.g. a purge

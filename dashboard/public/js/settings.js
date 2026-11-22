@@ -114,6 +114,22 @@
         if (status) status.innerHTML = `Automod is currently <strong>${body.enabled ? '✅ enabled' : '❌ disabled'}</strong> in this server.`;
         AceBot.toast('Settings saved');
       },
+      // 1.16.20: master + per-type log channels. The POST returns the
+      // effective channel label per type, so the "Currently going to" lines
+      // update without a reload.
+      'log-channels-form': async () => {
+        const fd = new FormData(form);
+        const body = { masterChannelId: fd.get('masterChannelId') || '' };
+        for (const t of ['member', 'message', 'moderation', 'ticket', 'invite', 'antinuke', 'automod']) body['log_' + t] = fd.get('log_' + t) || 'master';
+        const res = await AceBot.postJSON(api('/log-channels'), body);
+        if (res && res.effectiveLabels) {
+          for (const [type, label] of Object.entries(res.effectiveLabels)) {
+            const el = document.getElementById('log-current-' + type);
+            if (el) el.textContent = label;
+          }
+        }
+        AceBot.toast('Log channels saved');
+      },
       'add-shop-form': async () => {
         const fd = new FormData(form);
         await AceBot.postJSON(api('/shop'), Object.fromEntries(fd));
@@ -276,7 +292,7 @@
     if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
     try { await handlers[id](); }
     catch (err) {
-      const resultIds = { 'add-streamer-form': 'streamer-result', 'create-app-form': 'app-form-result', 'automod-form': 'automod-result', 'add-shop-form': 'shop-result', 'add-custom-form': 'custom-result', 'add-faq-form': 'faq-result', 'add-ticket-panel-form': 'ticket-panel-result', 'add-invite-role-form': 'invite-role-result', 'add-reaction-role-form': 'reaction-role-result', 'add-countdown-form': 'countdown-result', 'add-emoji-form': 'emoji-result', 'rules-form': 'rules-result', 'add-event-form': 'event-result', 'add-slowmode-form': 'slowmode-result', 'add-statusrole-form': 'statusrole-result', 'add-invitereward-form': 'invitereward-result', 'identity-form': 'identity-result', 'identity-avatar-form': 'identity-avatar-result' };
+      const resultIds = { 'add-streamer-form': 'streamer-result', 'create-app-form': 'app-form-result', 'automod-form': 'automod-result', 'log-channels-form': 'log-channels-result', 'add-shop-form': 'shop-result', 'add-custom-form': 'custom-result', 'add-faq-form': 'faq-result', 'add-ticket-panel-form': 'ticket-panel-result', 'add-invite-role-form': 'invite-role-result', 'add-reaction-role-form': 'reaction-role-result', 'add-countdown-form': 'countdown-result', 'add-emoji-form': 'emoji-result', 'rules-form': 'rules-result', 'add-event-form': 'event-result', 'add-slowmode-form': 'slowmode-result', 'add-statusrole-form': 'statusrole-result', 'add-invitereward-form': 'invitereward-result', 'identity-form': 'identity-result', 'identity-avatar-form': 'identity-avatar-result' };
       showResult(resultIds[id], '❌ ' + err.message, false);
       AceBot.toast('Failed: ' + err.message, 'error');
     } finally {

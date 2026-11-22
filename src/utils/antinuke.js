@@ -18,6 +18,7 @@
 //   fall back to the defaults via `??`.
 const db = require('./database');
 const { getGuildSettings } = require('./guildSettings');
+const { resolveLogChannel } = require('./logChannels');
 const { errorEmbed } = require('./embeds');
 const errorLogger = require('./errorLogger');
 
@@ -100,8 +101,10 @@ async function alertOwnerAndLog(guild, user, action, count) {
       embeds: [errorEmbed('Anti-nuke triggered', `**${user.tag}** (<@${user.id}>) performed **${count}** destructive actions in 60 seconds in **${guild.name}**.\n**Action taken:** ${action}\n${reason}`)],
     }).catch(() => {});
   }
-  // Post to the anti-nuke log channel, falling back to the general log channel.
-  const channelId = settings.logChannelId || (await getGuildSettings(guild.id).catch(() => null))?.logChannelId || '';
+  // Post to the anti-nuke log channel. 1.16.20: the per-type channel if
+  // set, else the master log channel, else nowhere (the old fallback to
+  // the general log channel is now the master fallback).
+  const channelId = await resolveLogChannel(guild.id, 'antinuke');
   if (channelId) {
     const channel = await guild.client.channels.fetch(channelId).catch(() => null);
     if (channel?.isTextBased()) {

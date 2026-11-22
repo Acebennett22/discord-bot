@@ -665,6 +665,26 @@ CREATE TABLE IF NOT EXISTS tempvc_hubs (
   INDEX idx_tempvc_hubs_guild (guild_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Log channels (1.16.20): one row per guild, the single routing source for
+-- every log type (see src/utils/logChannels.js). Per-type columns hold a
+-- channel id, NULL (unset — fall back to the master channel), or ''
+-- (explicitly off); the master column holds a channel id or NULL. Lazily
+-- seeded from the legacy per-table log channel settings on first read, so
+-- existing servers keep logging exactly where they did.
+CREATE TABLE IF NOT EXISTS log_channels (
+  guild_id VARCHAR(32) NOT NULL,
+  master_channel_id VARCHAR(32) NULL,
+  member_channel_id VARCHAR(32) NULL,
+  message_channel_id VARCHAR(32) NULL,
+  moderation_channel_id VARCHAR(32) NULL,
+  ticket_channel_id VARCHAR(32) NULL,
+  invite_channel_id VARCHAR(32) NULL,
+  antinuke_channel_id VARCHAR(32) NULL,
+  automod_channel_id VARCHAR(32) NULL,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (guild_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS birthdays (
   guild_id VARCHAR(32) NOT NULL,
   user_id VARCHAR(32) NOT NULL,

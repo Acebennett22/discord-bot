@@ -5,6 +5,7 @@
 // a 60s TTL, defaults when the DB is down or no row exists.
 const db = require('./database');
 const config = require('./config');
+const { mirrorLogChannel } = require('./logChannels');
 
 const cache = new Map(); // guildId -> { settings, at }
 const CACHE_TTL_MS = 60_000;
@@ -89,6 +90,10 @@ async function setPremiumSettings(guildId, patch) {
      next.economyWorkMin, next.economyWorkMax,
      next.economyCurrencyName || 'coins', next.economyCurrencyEmoji || '🪙'],
   );
+  // 1.16.20: keep the new log_channels table in sync — only when the modlog
+  // channel actually changed, so a save that only touches economy/starboard
+  // never touches it.
+  await mirrorLogChannel(guildId, 'message', current.modlogChannelId, next.modlogChannelId);
   return { saved: true, settings: next };
 }
 

@@ -2,7 +2,7 @@
 // configured milestone, they automatically get the reward (a role, or coins
 // in their economy wallet). Each milestone grants once per user.
 const db = require('./database');
-const { getGuildSettings } = require('./guildSettings');
+const { resolveLogChannel } = require('./logChannels');
 const { addCoins } = require('./economy');
 const { successEmbed } = require('./embeds');
 const errorLogger = require('./errorLogger');
@@ -57,12 +57,14 @@ async function checkInviteRewards(guild, inviterId, validInvites) {
       [guild.id, inviterId, reward.invites_required],
     );
     granted.push({ reward, description });
-    // DM the member + post in the invite log channel if set.
+    // DM the member + post in the invite log channel if set. 1.16.20: the
+    // invite log channel — per-type channel if set, else the master log
+    // channel, else nowhere.
     await member.send({ embeds: [successEmbed('🎉 Invite reward!', `You reached **${reward.invites_required} valid invites** in **${guild.name}** and earned ${description}!`)] }).catch(() => {});
-    const settings = await getGuildSettings(guild.id).catch(() => null);
-    if (settings?.inviteLogChannelId) {
-      const channel = guild.channels.cache.get(settings.inviteLogChannelId)
-        || await guild.channels.fetch(settings.inviteLogChannelId).catch(() => null);
+    const inviteLogChannelId = await resolveLogChannel(guild.id, 'invite');
+    if (inviteLogChannelId) {
+      const channel = guild.channels.cache.get(inviteLogChannelId)
+        || await guild.channels.fetch(inviteLogChannelId).catch(() => null);
       if (channel?.isTextBased()) {
         await channel.send({ embeds: [successEmbed('🎉 Invite reward!', `<@${inviterId}> reached **${reward.invites_required} valid invites** and earned ${description}!`)] }).catch(() => {});
       }

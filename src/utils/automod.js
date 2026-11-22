@@ -9,6 +9,7 @@ const { addWarn } = require('./warns');
 const { infoEmbed } = require('./embeds');
 const { logWarn } = require('./errorLogger');
 const { getGuildSettings } = require('./guildSettings');
+const { resolveLogChannel, mirrorLogChannel } = require('./logChannels');
 const contentFilter = require('./contentFilter');
 const { markBotDeleted } = require('../events/ghostPing');
 
@@ -166,6 +167,10 @@ async function setSettings(guildId, patch) {
      next.dupEnabled ? 1 : 0, next.dupMax, next.capsEnabled ? 1 : 0, next.capsMinLength, next.capsPercent,
      next.mentionEnabled ? 1 : 0, next.mentionMax, next.linkMax, next.antispamAction],
   );
+  // 1.16.20: keep the new log_channels table in sync — only when the log
+  // channel actually changed, so a save that only flips filters never
+  // touches it.
+  await mirrorLogChannel(guildId, 'automod', current.logChannelId, next.logChannelId);
   return { saved: true, settings: next };
 }
 
@@ -184,8 +189,9 @@ async function logAction(guild, userId, action, reason, message, channelId) {
       [guild.id, userId, action, reason, message ? message.content.slice(0, 500) : null, channelId || null],
     );
   }
-  const settings = await getSettings(guild.id);
-  const logChannelId = settings.logChannelId;
+  // 1.16.20: automod actions go to the automod log channel — per-type
+  // channel if set, else the master log channel, else nowhere.
+  const logChannelId = await resolveLogChannel(guild.id, 'automod');
   if (!logChannelId) return;
   const channel = guild.channels.cache.get(logChannelId)
     || await guild.channels.fetch(logChannelId).catch(() => null);

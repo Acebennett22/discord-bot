@@ -5,7 +5,7 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const db = require('./database');
 const { getGuildSettings } = require('./guildSettings');
-const { getPremiumSettings } = require('./premiumSettings');
+const { resolveLogChannel } = require('./logChannels');
 
 function confessionEmbed(confession) {
   return new EmbedBuilder()
@@ -17,11 +17,13 @@ function confessionEmbed(confession) {
 }
 
 async function postReviewQueue(client, guildId, confession) {
-  // Staff review message in the modlog channel (if set) — the ONLY place
-  // the author is visible, and only to staff who can read that channel.
-  const premium = await getPremiumSettings(guildId).catch(() => null);
-  if (!premium?.modlogChannelId) return;
-  const channel = await client.channels.fetch(premium.modlogChannelId).catch(() => null);
+  // Staff review message in the message log channel (if set) — the ONLY
+  // place the author is visible, and only to staff who can read that
+  // channel. 1.16.20: per-type channel if set, else the master log
+  // channel, else nowhere.
+  const logChannelId = await resolveLogChannel(guildId, 'message');
+  if (!logChannelId) return;
+  const channel = await client.channels.fetch(logChannelId).catch(() => null);
   if (!channel?.isTextBased()) return;
   const embed = new EmbedBuilder()
     .setColor(0xe67e22)

@@ -1,8 +1,7 @@
 const { MessageFlags, SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const { successEmbed, errorEmbed, infoEmbed } = require('../../utils/embeds');
 const db = require('../../utils/database');
-const { getGuildSettings } = require('../../utils/guildSettings');
-const { getPremiumSettings } = require('../../utils/premiumSettings');
+const { resolveLogChannel } = require('../../utils/logChannels');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -53,19 +52,19 @@ module.exports = {
     );
     const reportId = result.insertId;
 
-    // Post to the modlog channel, if one is set. The modlog channel is
-    // configured with /modlog-setup, which writes the premium-settings key
-    // (modlogChannelId); fall back to the core log channel as well.
-    const settings = await getGuildSettings(interaction.guildId);
-    const premium = await getPremiumSettings(interaction.guildId).catch(() => null);
-    const logChannelId = premium?.modlogChannelId || settings.logChannelId || '';
+    // Post to the moderation log channel, if one is set (1.16.20: the
+    // per-type moderation channel, else the master log channel, else the
+    // message log channel as a last resort — reports used to go to the
+    // modlog channel, so a server with only a modlog set keeps working).
+    const logChannelId = (await resolveLogChannel(interaction.guildId, 'moderation'))
+      || (await resolveLogChannel(interaction.guildId, 'message'));
     if (!logChannelId) {
-      return interaction.reply({ embeds: [successEmbed('Report filed', `Your report against <@${reported.id}> was saved as **#${reportId}**.\n\n⚠️ No modlog channel is set up yet, so the moderators were **not** pinged in a channel — please ask an admin to run \`/modlog-setup\` so future reports reach the mod team.`)], flags: MessageFlags.Ephemeral });
+      return interaction.reply({ embeds: [successEmbed('Report filed', `Your report against <@${reported.id}> was saved as **#${reportId}**.\n\n⚠️ No moderation log channel is set up yet, so the moderators were **not** pinged in a channel — please ask an admin to set one on the dashboard's Log Channels page (or run \`/modlog-setup\`) so future reports reach the mod team.`)], flags: MessageFlags.Ephemeral });
     }
     const logChannel = interaction.guild.channels.cache.get(logChannelId)
       || await interaction.guild.channels.fetch(logChannelId).catch(() => null);
     if (!logChannel?.isTextBased()) {
-      return interaction.reply({ embeds: [successEmbed('Report filed', `Your report against <@${reported.id}> was saved as **#${reportId}**.\n\n⚠️ The configured modlog channel could not be found, so the moderators were **not** pinged in a channel — please ask an admin to re-run \`/modlog-setup\`.`)], flags: MessageFlags.Ephemeral });
+      return interaction.reply({ embeds: [successEmbed('Report filed', `Your report against <@${reported.id}> was saved as **#${reportId}**.\n\n⚠️ The configured moderation log channel could not be found, so the moderators were **not** pinged in a channel — please ask an admin to check the dashboard's Log Channels page.`)], flags: MessageFlags.Ephemeral });
     }
     await logChannel.send({
       embeds: [infoEmbed(`🚨 Report #${reportId}`, `**Reported:** <@${reported.id}> (${reported.tag})\n**Reporter:** <@${interaction.user.id}> (${interaction.user.tag})\n**Reason:** ${reason.slice(0, 1000)}${evidence ? `\n**Evidence:** ${evidence.slice(0, 1000)}` : ''}\n\nUse \`/report list\` to see open reports.`)],

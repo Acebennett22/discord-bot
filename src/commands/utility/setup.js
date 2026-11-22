@@ -1,6 +1,7 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const { successEmbed, errorEmbed } = require('../../utils/embeds');
 const { setGuildSettings } = require('../../utils/guildSettings');
+const { resolveLogChannel } = require('../../utils/logChannels');
 const db = require('../../utils/database');
 
 module.exports = {
@@ -29,11 +30,14 @@ module.exports = {
       return interaction.reply({ embeds: [errorEmbed('Nothing to set', 'Give at least one option, e.g. /setup welcome_channel:#general log_channel:#mod-logs')] });
     }
     const { saved, settings } = await setGuildSettings(interaction.guildId, patch);
+    // 1.16.20: show the effective log channels (per-type, else master).
+    const logChannelId = await resolveLogChannel(interaction.guildId, 'moderation');
+    const ticketLogChannelId = await resolveLogChannel(interaction.guildId, 'ticket');
     const lines = [
       `Welcome channel: ${settings.welcomeChannelId ? `<#${settings.welcomeChannelId}>` : 'not set'}`,
-      `Log channel: ${settings.logChannelId ? `<#${settings.logChannelId}>` : 'not set'}`,
+      `Log channel: ${logChannelId ? `<#${logChannelId}>` : 'not set'}`,
       `Ticket category: ${settings.ticketCategoryId ? `<#${settings.ticketCategoryId}>` : 'not set'}`,
-      `Ticket log channel: ${settings.ticketLogChannelId ? `<#${settings.ticketLogChannelId}>` : 'not set'}`,
+      `Ticket log channel: ${ticketLogChannelId ? `<#${ticketLogChannelId}>` : 'not set'}`,
       `Ticket support role: ${settings.ticketSupportRoleId ? `<@&${settings.ticketSupportRoleId}>` : 'not set'}`,
     ];
     if (!saved) lines.push('\n⚠️ MySQL is not connected, so these settings are only kept in memory for this run — connect the database to make /setup permanent.');

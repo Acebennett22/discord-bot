@@ -1,7 +1,7 @@
 const { Events } = require('discord.js');
 const { errorEmbed, infoEmbed } = require('../utils/embeds');
 const db = require('../utils/database');
-const { getGuildSettings } = require('../utils/guildSettings');
+const { fetchLogChannel } = require('../utils/logChannels');
 const { isCommandEnabled } = require('../utils/featureToggles');
 const { resolveChild } = require('../handlers/consolidate');
 const errorLogger = require('../utils/errorLogger');
@@ -11,11 +11,10 @@ const MODERATION_COMMANDS = new Set(['kick', 'ban', 'timeout', 'warn', 'clear', 
 async function sendToLogChannel(interaction, commandName, success, errorMessage) {
   if (!MODERATION_COMMANDS.has(commandName) || !interaction.guildId) return;
   try {
-    const settings = await getGuildSettings(interaction.guildId);
-    if (!settings.logChannelId) return;
-    const channel = interaction.guild.channels.cache.get(settings.logChannelId)
-      || await interaction.guild.channels.fetch(settings.logChannelId).catch(() => null);
-    if (!channel?.isTextBased()) return;
+    // 1.16.20: mod command usage goes to the moderation log channel — the
+    // per-type channel if set, else the master log channel, else nowhere.
+    const channel = await fetchLogChannel(interaction.guild, 'moderation');
+    if (!channel) return;
     await channel.send({
       embeds: [infoEmbed(
         `Mod log — /${commandName}`,

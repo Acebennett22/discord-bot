@@ -7,6 +7,7 @@ const { SlashCommandBuilder, PermissionFlagsBits, ChannelType } = require('disco
 const { successEmbed, errorEmbed, statsEmbed } = require('../../utils/embeds');
 const db = require('../../utils/database');
 const memberLog = require('../../utils/memberLog');
+const { resolveLogChannel } = require('../../utils/logChannels');
 
 const TOGGLES = [
   ['joins', 'logJoins', 'Member joins'],
@@ -17,9 +18,9 @@ const TOGGLES = [
   ['roles', 'logRoleChanges', 'Role changes'],
 ];
 
-function summary(settings) {
+function summary(settings, channelId) {
   return [
-    `Channel: ${settings.logChannelId ? `<#${settings.logChannelId}>` : 'not set'}`,
+    `Channel: ${channelId ? `<#${channelId}>` : 'not set'}`,
     ...TOGGLES.map(([key, prop, label]) => `${settings[prop] ? '✅' : '❌'} ${label}`),
   ].join('\n');
 }
@@ -47,7 +48,9 @@ module.exports = {
     const sub = interaction.options.getSubcommand();
     if (sub === 'status') {
       const settings = await memberLog.getSettings(interaction.guildId);
-      return interaction.reply({ embeds: [statsEmbed('📋 Member logging', summary(settings))] });
+      // 1.16.20: show the effective member log channel (per-type, else master).
+      const channelId = await resolveLogChannel(interaction.guildId, 'member');
+      return interaction.reply({ embeds: [statsEmbed('📋 Member logging', summary(settings, channelId))] });
     }
     const patch = { logChannelId: interaction.options.getChannel('channel').id };
     for (const [opt, prop] of TOGGLES) {
@@ -56,6 +59,7 @@ module.exports = {
     }
     const { saved, settings } = await memberLog.setSettings(interaction.guildId, patch);
     if (!saved) return interaction.reply({ embeds: [errorEmbed('Not saved', 'MySQL is not connected — settings were kept in memory only.')] });
-    return interaction.reply({ embeds: [successEmbed('Logging updated', summary(settings))]  });
+    const channelId = await resolveLogChannel(interaction.guildId, 'member');
+    return interaction.reply({ embeds: [successEmbed('Logging updated', summary(settings, channelId))]  });
   },
 };
