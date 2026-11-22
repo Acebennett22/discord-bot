@@ -636,6 +636,20 @@ app.get('/guilds/:id/:module', requireAuth, requireGuildAccess, async (req, res)
     inviteStats = await db.query('SELECT user_id, total_invites, valid_invites, leaves, fake_invites, updated_at FROM user_invites WHERE guild_id = ? ORDER BY valid_invites DESC LIMIT 50', [id]) || [];
     const automodRows = await db.query('SELECT * FROM automod_settings WHERE guild_id = ?', [id]) || [];
     automodSettings = automodRows[0] || null;
+    // 1.16.19: mysql2 returns JSON columns (banned_words, exempt_roles,
+    // exempt_channels) already parsed as JS arrays, but the settings
+    // template JSON.parses these fields — JSON.parse([]) throws
+    // ("Unexpected end of JSON input") and 500s the Automod page for
+    // any guild with a saved row (fresh guilds render fine because the
+    // row is null and the template falls back to the string '[]').
+    // Normalize them back to JSON strings here so the template always
+    // sees the shape it was written for.
+    if (automodSettings) {
+      for (const key of ['banned_words', 'exempt_roles', 'exempt_channels']) {
+        const v = automodSettings[key];
+        if (v != null && typeof v !== 'string') automodSettings[key] = JSON.stringify(v);
+      }
+    }
     automodActions = await db.query('SELECT * FROM automod_actions WHERE guild_id = ? ORDER BY id DESC LIMIT 50', [id]) || [];
     suggestions = await db.query('SELECT * FROM suggestions WHERE guild_id = ? ORDER BY id DESC LIMIT 50', [id]) || [];
     // Premium features (own table, see src/utils/premiumSettings.js).
